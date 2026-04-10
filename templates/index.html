@@ -1,0 +1,64 @@
+{% extends 'base.html' %}
+{% block title %}Start | Projekt Baza{% endblock %}
+{% block content %}
+<section class="hero-section">
+    <div class="container hero-grid auth-grid">
+        <div class="hero-copy glass-card">
+            <span class="eyebrow">Aplikacja webowa</span>
+            <h1>Jedna aplikacja: konto użytkownika i sklep internetowy</h1>
+            <p>Ta wersja łączy Twoje logowanie i rejestrację z wcześniejszym sklepem Django. Po aktywacji konta użytkownik może wejść do panelu oraz przejść do części sklepowej.</p>
+            <div class="hero-actions">
+                <a class="btn btn-primary" href="#register">Załóż konto</a>
+                <a class="btn btn-secondary" href="#login">Zaloguj się</a>
+            </div>
+        </div>
+
+        <div class="auth-stack">
+            <section id="register" class="glass-card auth-card">
+                <h3>Rejestracja</h3>
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="form-row">
+                        {{ reg_form.username.label_tag }}
+                        {{ reg_form.username }}
+                        {% for error in reg_form.username.errors %}<div class="field-error">{{ error }}</div>{% endfor %}
+                    </div>
+                    <div class="form-row">
+                        {{ reg_form.email.label_tag }}
+                        {{ reg_form.email }}
+                        {% for error in reg_form.email.errors %}<div class="field-error">{{ error }}</div>{% endfor %}
+                    </div>
+                    <div class="form-row">
+                        {{ reg_form.password.label_tag }}
+                        {{ reg_form.password }}
+                        {% for error in reg_form.password.errors %}<div class="field-error">{{ error }}</div>{% endfor %}
+                    </div>
+                    <div class="form-row">
+                        {{ reg_form.password2.label_tag }}
+                        {{ reg_form.password2 }}
+                        {% for error in reg_form.password2.errors %}<div class="field-error">{{ error }}</div>{% endfor %}
+                    </div>
+                    {% for error in reg_form.non_field_errors %}<div class="field-error">{{ error }}</div>{% endfor %}
+                    <button type="submit" name="register" class="btn btn-primary w-full">Zarejestruj</button>
+                </form>
+            </section>
+
+            <section id="login" class="glass-card auth-card">
+                <h3>Logowanie</h3>
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="form-row">
+                        {{ login_form.login.label_tag }}
+                        {{ login_form.login }}
+                    </div>
+                    <div class="form-row">
+                        {{ login_form.password.label_tag }}
+                        {{ login_form.password }}
+                    </div>
+                    <button type="submit" name="login_submit" class="btn btn-secondary w-full">Zaloguj</button>
+                </form>
+            </section>
+        </div>
+    </div>
+</section>
+{% endblock %}

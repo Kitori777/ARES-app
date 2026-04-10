@@ -1,0 +1,42 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}ARES | Arkusze{% endblock %}
+{% block topbar_title %}Arkusze{% endblock %}
+{% block history_module_name %}Arkusze{% endblock %}
+
+{% block content %}
+<section class="workspace-header-card">
+    <div>
+        <span class="hero-badge">ARKUSZE</span>
+        <h1>Twoje arkusze</h1>
+        <p>Twórz, otwieraj i organizuj zapisane arkusze.</p>
+    </div>
+</section>
+
+<section class="panel-card">
+    <h3>Nowy arkusz</h3>
+    <form id="create-sheet-form" class="sheet-create-form">
+        <div class="form-grid-2">
+            <div>
+                <label for="sheet-name">Nazwa arkusza</label>
+                <input type="text" id="sheet-name" placeholder="Np. Budżet 2026" required>
+            </div>
+            <div>
+                <label for="sheet-category">Kategoria</label>
+                <input type="text" id="sheet-category" placeholder="Np. Finanse, Raport, Analiza">
+            </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary">Utwórz arkusz</button>
+    </form>
+</section>
+
+<section class="sheet-list-grid" id="sheet-list"></section>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/ares_api.js' %}"></script>
+<script src="{% static 'js/worksheets_page.js' %}"></script>
+{% endblock %}
+

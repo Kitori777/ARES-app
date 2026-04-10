@@ -1,0 +1,36 @@
+[build-system]
+requires = ["setuptools>=69,<80", "wheel>=0.43,<1.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ares"
+version = "0.1.0"
+description = "ARES - webowy system arkuszy kalkulacyjnych"
+readme = "README.md"
+requires-python = ">=3.11,<3.15"
+dependencies = [
+    "Django>=4.2,<5.0",
+    "Pillow>=10.0,<12.0",
+    "django-widget-tweaks>=1.5,<2.0",
+    "python-dotenv>=1.0,<2.0",
+    "dj-database-url>=2.2,<3.0",
+    "whitenoise>=6.8,<7.0",
+    "gunicorn>=23.0,<24.0",
+    "psycopg[binary]>=3.2,<4.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.3,<9.1",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.setuptools]
+include-package-data = true
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["ares*", "projekt_baza*"]
+exclude = ["users*", "static*", "templates*"]

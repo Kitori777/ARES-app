@@ -1,0 +1,348 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}ARES | Raporty{% endblock %}
+{% block topbar_title %}Raporty{% endblock %}
+
+{% block extra_head %}
+<style>
+    .page-grid {
+        display: grid;
+        gap: 20px;
+    }
+
+    .ares-card {
+        background: linear-gradient(180deg, rgba(19,29,47,0.96), rgba(15,22,36,0.98));
+        border: 1px solid rgba(255,255,255,0.08);
+        border-radius: 22px;
+        box-shadow: 0 20px 40px rgba(0,0,0,0.22);
+        padding: 22px;
+    }
+
+    .ares-label {
+        font-size: 0.78rem;
+        letter-spacing: 0.12em;
+        color: #9fb0c8;
+        margin-bottom: 10px;
+        text-transform: uppercase;
+    }
+
+    .hero-grid {
+        display: grid;
+        grid-template-columns: 1.2fr 0.8fr;
+        gap: 20px;
+    }
+
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 14px;
+    }
+
+    .stat-box {
+        border-radius: 16px;
+        padding: 14px;
+        background: rgba(255,255,255,0.04);
+        border: 1px solid rgba(255,255,255,0.06);
+    }
+
+    .stat-box span {
+        display: block;
+        color: #9fb0c8;
+        font-size: 0.82rem;
+        margin-bottom: 6px;
+    }
+
+    .stat-box strong {
+        font-size: 1.2rem;
+        color: #eef3ff;
+    }
+
+    .insights-list,
+    .top-list {
+        display: grid;
+        gap: 12px;
+        margin-top: 14px;
+    }
+
+    .mini-item {
+        border-radius: 16px;
+        padding: 14px;
+        background: rgba(255,255,255,0.04);
+        border: 1px solid rgba(255,255,255,0.06);
+        color: #eef3ff;
+    }
+
+    .mini-item .muted {
+        color: #9fb0c8;
+        margin-top: 4px;
+        font-size: 0.92rem;
+    }
+
+    .report-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 20px;
+    }
+
+    .bars {
+        display: grid;
+        gap: 12px;
+        margin-top: 14px;
+    }
+
+    .bar-row {
+        display: grid;
+        gap: 6px;
+    }
+
+    .bar-top {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        color: #eef3ff;
+        font-size: 0.92rem;
+    }
+
+    .bar-track {
+        height: 10px;
+        border-radius: 999px;
+        background: rgba(255,255,255,0.06);
+        overflow: hidden;
+    }
+
+    .bar-fill {
+        height: 100%;
+        border-radius: 999px;
+        background: linear-gradient(90deg, #4f8cff, #7ba8ff);
+    }
+
+    @media (max-width: 1100px) {
+        .hero-grid,
+        .report-grid,
+        .stats-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<section class="page-grid">
+    <div class="hero-grid">
+        <div class="ares-card">
+            <div class="ares-label">Raport aktywności</div>
+            <h1 style="margin:0 0 8px 0; color:#eef3ff;">Raport użytkownika i aktywności</h1>
+            <div style="color:#9fb0c8;">
+                Tu użytkownik zobaczy realne statystyki pracy: aktywność dzienną, miesięczną, top arkusze i krótkie ciekawostki.
+            </div>
+
+            <div class="insights-list" id="insights-list"></div>
+        </div>
+
+        <div class="ares-card">
+            <div class="ares-label">Najważniejsze liczby</div>
+            <div class="stats-grid">
+                <div class="stat-box"><span>Liczba arkuszy</span><strong id="stat-sheets">0</strong></div>
+                <div class="stat-box"><span>Wszystkie akcje</span><strong id="stat-actions">0</strong></div>
+                <div class="stat-box"><span>Akcje dziś</span><strong id="stat-today">0</strong></div>
+                <div class="stat-box"><span>Akcje 30 dni</span><strong id="stat-month">0</strong></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="report-grid">
+        <section class="ares-card">
+            <div class="ares-label">Raport dzienny</div>
+            <div class="top-list" id="daily-report"></div>
+        </section>
+
+        <section class="ares-card">
+            <div class="ares-label">Raport miesięczny</div>
+            <div class="top-list" id="monthly-report"></div>
+        </section>
+
+        <section class="ares-card">
+            <div class="ares-label">Top arkusze</div>
+            <div class="bars" id="top-sheets-bars"></div>
+        </section>
+
+        <section class="ares-card">
+            <div class="ares-label">Typy działań</div>
+            <div class="bars" id="action-types-bars"></div>
+        </section>
+    </div>
+</section>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const statSheets = document.getElementById("stat-sheets");
+    const statActions = document.getElementById("stat-actions");
+    const statToday = document.getElementById("stat-today");
+    const statMonth = document.getElementById("stat-month");
+
+    const insightsList = document.getElementById("insights-list");
+    const dailyReport = document.getElementById("daily-report");
+    const monthlyReport = document.getElementById("monthly-report");
+    const topSheetsBars = document.getElementById("top-sheets-bars");
+    const actionTypesBars = document.getElementById("action-types-bars");
+
+    async function getJson(url) {
+        const response = await fetch(url, {
+            method: "GET",
+            headers: { "X-Requested-With": "XMLHttpRequest" },
+            credentials: "same-origin"
+        });
+        if (!response.ok) throw new Error(`GET ${url} -> ${response.status}`);
+        return await response.json();
+    }
+
+    function diffDays(value) {
+        const dt = new Date(value);
+        const now = new Date();
+        return (now - dt) / (1000 * 60 * 60 * 24);
+    }
+
+    function formatDate(value) {
+        if (!value) return "—";
+        const d = new Date(value);
+        if (Number.isNaN(d.getTime())) return value;
+        return d.toLocaleString("pl-PL");
+    }
+
+    function countBy(arr, keyFn) {
+        const map = new Map();
+        arr.forEach(item => {
+            const key = keyFn(item);
+            map.set(key, (map.get(key) || 0) + 1);
+        });
+        return map;
+    }
+
+    function renderMiniList(el, items) {
+        el.innerHTML = items.map(item => `
+            <div class="mini-item">
+                <div>${item.title}</div>
+                <div class="muted">${item.desc}</div>
+            </div>
+        `).join("");
+    }
+
+    function renderBars(el, items) {
+        if (!items.length) {
+            el.innerHTML = `<div class="mini-item">Brak danych.</div>`;
+            return;
+        }
+
+        const max = Math.max(...items.map(i => i.value), 1);
+
+        el.innerHTML = items.map(item => `
+            <div class="bar-row">
+                <div class="bar-top">
+                    <span>${item.label}</span>
+                    <span>${item.value}</span>
+                </div>
+                <div class="bar-track">
+                    <div class="bar-fill" style="width:${(item.value / max) * 100}%"></div>
+                </div>
+            </div>
+        `).join("");
+    }
+
+    Promise.all([
+        getJson("/ares/api/history/"),
+        getJson("/ares/api/sheets/")
+    ]).then(([historyEntries, sheets]) => {
+        const history = [...historyEntries].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+        const todayEntries = history.filter(e => diffDays(e.createdAt) < 1);
+        const monthEntries = history.filter(e => diffDays(e.createdAt) <= 30);
+
+        statSheets.textContent = sheets.length;
+        statActions.textContent = history.length;
+        statToday.textContent = todayEntries.length;
+        statMonth.textContent = monthEntries.length;
+
+        const sheetCounts = countBy(
+            history.filter(e => (e.sheetName || e.details?.sheetName)),
+            e => e.sheetName || e.details?.sheetName
+        );
+
+        const actionTypeCounts = countBy(
+            history,
+            e => e.details?.type || e.action || "inne"
+        );
+
+        const topSheetArr = [...sheetCounts.entries()]
+            .map(([label, value]) => ({ label, value }))
+            .sort((a, b) => b.value - a.value)
+            .slice(0, 5);
+
+        const topActionArr = [...actionTypeCounts.entries()]
+            .map(([label, value]) => ({ label, value }))
+            .sort((a, b) => b.value - a.value)
+            .slice(0, 6);
+
+        const mostUsedSheet = topSheetArr[0]?.label || "Brak danych";
+        const mostUsedAction = topActionArr[0]?.label || "Brak danych";
+        const lastActivity = history[0]?.createdAt || null;
+
+        renderMiniList(insightsList, [
+            {
+                title: `Najczęściej używany arkusz: ${mostUsedSheet}`,
+                desc: "To arkusz, na którym użytkownik działał najczęściej."
+            },
+            {
+                title: `Najczęstszy typ akcji: ${mostUsedAction}`,
+                desc: "Najczęściej wykonywana operacja w systemie."
+            },
+            {
+                title: `Ostatnia aktywność: ${formatDate(lastActivity)}`,
+                desc: "Ostatnie zapisane działanie użytkownika."
+            }
+        ]);
+
+        renderMiniList(dailyReport, [
+            {
+                title: `Akcje dziś: ${todayEntries.length}`,
+                desc: "Łączna liczba działań wykonanych dzisiaj."
+            },
+            {
+                title: `Importy dziś: ${todayEntries.filter(e => e.details?.type === "csv_import").length}`,
+                desc: "Liczba importów plików CSV w bieżącym dniu."
+            },
+            {
+                title: `Zapisy dziś: ${todayEntries.filter(e => e.details?.type === "save_sheet").length}`,
+                desc: "Liczba zapisów arkusza wykonanych dzisiaj."
+            }
+        ]);
+
+        renderMiniList(monthlyReport, [
+            {
+                title: `Akcje z 30 dni: ${monthEntries.length}`,
+                desc: "Łączna liczba działań z ostatnich 30 dni."
+            },
+            {
+                title: `Nowe arkusze: ${monthEntries.filter(e => e.details?.type === "sheet_create").length}`,
+                desc: "Liczba utworzonych arkuszy w ostatnich 30 dniach."
+            },
+            {
+                title: `Eksporty: ${monthEntries.filter(e => e.details?.type === "csv_export").length}`,
+                desc: "Liczba eksportów z ostatnich 30 dni."
+            }
+        ]);
+
+        renderBars(topSheetsBars, topSheetArr);
+        renderBars(actionTypesBars, topActionArr);
+    }).catch(err => {
+        console.error(err);
+        insightsList.innerHTML = `<div class="mini-item">Nie udało się pobrać danych do raportów.</div>`;
+        dailyReport.innerHTML = `<div class="mini-item">Brak danych.</div>`;
+        monthlyReport.innerHTML = `<div class="mini-item">Brak danych.</div>`;
+        topSheetsBars.innerHTML = `<div class="mini-item">Brak danych.</div>`;
+        actionTypesBars.innerHTML = `<div class="mini-item">Brak danych.</div>`;
+    });
+});
+</script>
+{% endblock %}

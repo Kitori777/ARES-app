@@ -1,0 +1,56 @@
+{% extends 'base.html' %}
+
+{% block title %}ARES | Start{% endblock %}
+{% block topbar_title %}Panel główny{% endblock %}
+{% block history_module_name %}Start{% endblock %}
+
+{% block content %}
+<section class="dashboard-hero">
+    <div class="dashboard-hero-left">
+        <span class="hero-badge">ARES WORKSPACE</span>
+        <h1>Witaj w systemie ARES</h1>
+        <p>
+            To jest główny panel aplikacji do pracy z arkuszami kalkulacyjnymi.
+            Możesz przejść do arkuszy, importu danych, historii zmian i raportów.
+        </p>
+
+        <div class="hero-buttons">
+            <a href="{% url 'worksheets' %}" class="btn btn-primary">Przejdź do arkusza</a>
+            <a href="{% url 'import_data' %}" class="btn btn-secondary">Import danych</a>
+        </div>
+    </div>
+
+    <div class="dashboard-hero-right">
+        <div class="info-card">
+            <h3>Sesja użytkownika</h3>
+            <ul class="summary-list">
+                <li><strong>Użytkownik:</strong> {{ request.user.username }}</li>
+                <li><strong>Status:</strong> aktywny</li>
+                <li><strong>Moduł:</strong> ARES</li>
+            </ul>
+        </div>
+    </div>
+</section>
+
+<section class="tiles-grid">
+    <a class="feature-tile" href="{% url 'worksheets' %}">
+        <h3>Analiza danych</h3>
+        <p>Praca na arkuszach i zestawieniach.</p>
+    </a>
+
+    <a class="feature-tile" href="{% url 'reports' %}">
+        <h3>Zestawienia</h3>
+        <p>Podgląd raportów i gotowych widoków.</p>
+    </a>
+
+    <a class="feature-tile" href="{% url 'history' %}">
+        <h3>Archiwum</h3>
+        <p>Historia zmian i wcześniejsze operacje.</p>
+    </a>
+
+    <a class="feature-tile" href="{% url 'worksheets' %}">
+        <h3>Nowy arkusz</h3>
+        <p>Rozpocznij pracę na aktywnym arkuszu.</p>
+    </a>
+</section>
+{% endblock %}

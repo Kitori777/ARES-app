@@ -1,0 +1,120 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}ARES{% endblock %}</title>
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    {% block extra_head %}{% endblock %}
+</head>
+<body class="ares-body">
+
+{% if request.user.is_authenticated %}
+<div class="app-shell" id="app-shell">
+    <aside class="app-sidebar" id="app-sidebar">
+        <div class="app-logo-box">
+            <img src="{% static 'img/ares-logo.svg' %}" alt="ARES" class="ares-logo">
+            <div class="sidebar-brand-text">
+                <div class="app-logo-title">ARES</div>
+                <div class="app-logo-subtitle">System arkuszy</div>
+            </div>
+            <button class="sidebar-toggle sidebar-toggle-inside" id="sidebar-toggle" type="button" aria-label="Zwiń panel">
+                ☰
+            </button>
+        </div>
+
+        <nav class="app-menu">
+            <a href="{% url 'dashboard' %}" class="app-menu-link">Start</a>
+            <a href="{% url 'worksheets' %}" class="app-menu-link">Arkusze</a>
+            <a href="{% url 'import_data' %}" class="app-menu-link">Import CSV/XLSX</a>
+            <a href="{% url 'history' %}" class="app-menu-link">Historia zmian</a>
+            <a href="{% url 'reports' %}" class="app-menu-link">Raporty</a>
+        </nav>
+    </aside>
+
+    <div class="app-content-area">
+        <header class="app-topbar">
+            <div class="topbar-left">
+                <button class="sidebar-toggle" id="sidebar-toggle-top" type="button" aria-label="Pokaż lub ukryj panel">
+                    ☰
+                </button>
+                <div>
+                    <div class="topbar-label">AKTYWNY SYSTEM</div>
+                    <div class="topbar-title">{% block topbar_title %}ARES{% endblock %}</div>
+                </div>
+            </div>
+
+            <div class="topbar-actions">
+                <span class="topbar-user">{{ request.user.username }}</span>
+                <a href="{% url 'logout' %}" class="btn btn-ghost">Wyloguj</a>
+            </div>
+        </header>
+
+        <main class="ares-main">
+            <div class="container">
+                {% if messages %}
+                    <div class="messages-stack">
+                        {% for message in messages %}
+                            <div class="alert alert-{{ message.tags|default:'info' }}">
+                                {{ message }}
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+
+                {% block content %}{% endblock %}
+            </div>
+        </main>
+    </div>
+</div>
+{% else %}
+<main class="auth-main">
+    <div class="container">
+        {% if messages %}
+            <div class="messages-stack">
+                {% for message in messages %}
+                    <div class="alert alert-{{ message.tags|default:'info' }}">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+
+        {% block guest_content %}{% endblock %}
+    </div>
+</main>
+{% endif %}
+
+{% if request.user.is_authenticated %}
+<script>
+    (function () {
+        const shell = document.getElementById('app-shell');
+        const btn1 = document.getElementById('sidebar-toggle');
+        const btn2 = document.getElementById('sidebar-toggle-top');
+        const STORAGE_KEY = 'ares_sidebar_collapsed';
+
+        if (!shell) return;
+
+        const applyState = (collapsed) => {
+            shell.classList.toggle('sidebar-collapsed', collapsed);
+            localStorage.setItem(STORAGE_KEY, collapsed ? '1' : '0');
+        };
+
+        const initial = localStorage.getItem(STORAGE_KEY) === '1';
+        applyState(initial);
+
+        [btn1, btn2].forEach(btn => {
+            if (!btn) return;
+            btn.addEventListener('click', () => {
+                const collapsed = shell.classList.contains('sidebar-collapsed');
+                applyState(!collapsed);
+            });
+        });
+    })();
+</script>
+{% endif %}
+
+{% block extra_js %}{% endblock %}
+</body>
+</html>

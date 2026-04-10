@@ -1,0 +1,229 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}ARES | Edytor arkusza{% endblock %}
+{% block topbar_title %}Edytor arkusza{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'css/worksheet_editor.css' %}">
+{% endblock %}
+
+{% block content %}
+<section class="we-page-shell">
+    <div class="we-toolbar-card">
+        <div class="we-toolbar-top">
+            <div class="we-sheet-meta">
+                <div class="we-label">ARKUSZ</div>
+                <h1 id="editor-sheet-name">Arkusz</h1>
+                <p id="editor-sheet-meta">Ładowanie danych arkusza...</p>
+                <div id="autosave-badge" class="we-autosave-badge">Brak zmian</div>
+            </div>
+        </div>
+
+        <div class="we-formula-bar">
+            <div class="we-cell-address" id="active-cell-label">A1</div>
+            <input
+                id="formula-input"
+                type="text"
+                class="we-formula-input"
+                placeholder="Wpisz wartość lub formułę, np. =SUMA(A1:A10)"
+            >
+            <button id="apply-formula-btn" class="btn btn-primary" type="button">Zastosuj</button>
+        </div>
+
+        <div class="we-tabs">
+            <button class="we-tab active" data-tab="start" type="button">Start</button>
+            <button class="we-tab" data-tab="insert" type="button">Wstaw</button>
+            <button class="we-tab" data-tab="formulas" type="button">Formuły</button>
+            <button class="we-tab" data-tab="data" type="button">Dane</button>
+            <button class="we-tab" data-tab="view" type="button">Widok</button>
+        </div>
+
+        <div class="we-ribbon">
+            <div class="we-ribbon-panel active" data-panel="start">
+                <div class="we-toolbar-buttons">
+                    <button id="rename-sheet-btn" class="btn btn-secondary" type="button">Zmień nazwę</button>
+                    <button id="save-sheet-btn" class="btn btn-primary" type="button">Zapisz</button>
+                    <button id="export-csv-btn" class="btn btn-ghost" type="button">Eksport CSV</button>
+
+                    <label class="we-upload-btn">
+                        <span>Import CSV</span>
+                        <input id="csv-import-input" type="file" accept=".csv">
+                    </label>
+                </div>
+            </div>
+
+            <div class="we-ribbon-panel" data-panel="insert">
+                <div class="we-insert-layout">
+                    <div class="we-insert-main">
+                        <button class="we-insert-item has-submenu active" data-submenu="submenu-cells" type="button">Komórki</button>
+                        <button class="we-insert-item has-submenu" data-submenu="submenu-rows" type="button">Wiersze</button>
+                        <button class="we-insert-item has-submenu" data-submenu="submenu-cols" type="button">Kolumny</button>
+                        <button class="we-insert-item" data-action="new-sheet" type="button">Arkusz</button>
+
+                        <div class="we-insert-divider"></div>
+
+                        <button class="we-insert-item has-submenu" data-submenu="submenu-templates" type="button">Gotowe tabele</button>
+                        <button class="we-insert-item" data-action="chart" type="button">Wykres</button>
+                        <button class="we-insert-item" data-action="pivot" type="button">Tabela przestawna</button>
+                        <button class="we-insert-item" data-action="image" type="button">Obraz</button>
+                        <button class="we-insert-item" data-action="drawing" type="button">Rysunek</button>
+
+                        <div class="we-insert-divider"></div>
+
+                        <button class="we-insert-item" data-action="function-helper" type="button">Funkcja</button>
+                        <button class="we-insert-item" data-action="link" type="button">Link</button>
+                        <button class="we-insert-item" data-action="checkbox" type="button">Pole wyboru</button>
+                        <button class="we-insert-item" data-action="dropdown" type="button">Menu</button>
+                        <button class="we-insert-item" data-action="emoji" type="button">Emotikony</button>
+                        <button class="we-insert-item has-submenu" data-submenu="submenu-smart" type="button">Elementy inteligentne</button>
+
+                        <div class="we-insert-divider"></div>
+
+                        <button class="we-insert-item" data-action="comment" type="button">Komentarz</button>
+                        <button class="we-insert-item" data-action="note" type="button">Notatka</button>
+                    </div>
+
+                    <div class="we-insert-sub">
+                        <div class="we-submenu active" id="submenu-cells">
+                            <button class="we-submenu-item" data-action="clear-cell" type="button">Wyczyść komórkę</button>
+                            <button class="we-submenu-item" data-action="clear-row" type="button">Wyczyść cały wiersz</button>
+                            <button class="we-submenu-item" data-action="clear-col" type="button">Wyczyść całą kolumnę</button>
+                        </div>
+
+                        <div class="we-submenu" id="submenu-rows">
+                            <button class="we-submenu-item" data-action="row-above" type="button">Wstaw wiersz powyżej</button>
+                            <button class="we-submenu-item" data-action="row-below" type="button">Wstaw wiersz poniżej</button>
+                        </div>
+
+                        <div class="we-submenu" id="submenu-cols">
+                            <button class="we-submenu-item" data-action="col-left" type="button">Wstaw kolumnę po lewej</button>
+                            <button class="we-submenu-item" data-action="col-right" type="button">Wstaw kolumnę po prawej</button>
+                        </div>
+
+                        <div class="we-submenu" id="submenu-templates">
+                            <button class="we-submenu-item" data-action="tpl-budget" type="button">Budżet domowy</button>
+                            <button class="we-submenu-item" data-action="tpl-tasks" type="button">Lista zadań</button>
+                            <button class="we-submenu-item" data-action="tpl-schedule" type="button">Harmonogram</button>
+                            <button class="we-submenu-item" data-action="tpl-report" type="button">Raport miesięczny</button>
+                        </div>
+
+                        <div class="we-submenu" id="submenu-smart">
+                            <button class="we-submenu-item" data-action="smart-date" type="button">Data</button>
+                            <button class="we-submenu-item" data-action="smart-status" type="button">Status</button>
+                            <button class="we-submenu-item" data-action="smart-progress" type="button">Postęp</button>
+                        </div>
+                    </div>
+                </div>
+
+                <input id="image-insert-input" type="file" accept="image/*" hidden>
+            </div>
+
+            <div class="we-ribbon-panel" data-panel="formulas">
+                <div class="we-toolbar-buttons">
+                    <button class="we-chip" data-fn="SUMA" type="button">SUMA</button>
+                    <button class="we-chip" data-fn="ŚREDNIA" type="button">ŚREDNIA</button>
+                    <button class="we-chip" data-fn="MEDIANA" type="button">MEDIANA</button>
+                    <button class="we-chip" data-fn="MINIMUM" type="button">MIN</button>
+                    <button class="we-chip" data-fn="MAXIMUM" type="button">MAX</button>
+                    <button class="we-chip" data-fn="ZLICZ" type="button">ZLICZ</button>
+                    <button class="we-chip" data-fn="ODCHYLENIE" type="button">ODCH.</button>
+                    <button class="we-chip" data-fn="WARIANCJA" type="button">WARIANCJA</button>
+
+                    <button class="we-chip" data-fn="ABS" type="button">ABS</button>
+                    <button class="we-chip" data-fn="ROUND" type="button">ROUND</button>
+                    <button class="we-chip" data-fn="PIERWIASTEK" type="button">PIERW.</button>
+                    <button class="we-chip" data-fn="MOC" type="button">MOC</button>
+                    <button class="we-chip" data-fn="LEN" type="button">LEN</button>
+                    <button class="we-chip" data-fn="CONCAT" type="button">CONCAT</button>
+                    <button class="we-chip" data-fn="LEWO" type="button">LEWO</button>
+                    <button class="we-chip" data-fn="PRAWO" type="button">PRAWO</button>
+                    <button class="we-chip" data-fn="DZISIAJ" type="button">DZISIAJ</button>
+                    <button class="we-chip" data-fn="TERAZ" type="button">TERAZ</button>
+                </div>
+            </div>
+
+            <div class="we-ribbon-panel" data-panel="data">
+                <div class="we-toolbar-buttons">
+                    <button id="sort-asc-btn" class="btn btn-secondary" type="button">Sortuj A-Z</button>
+                    <button id="sort-desc-btn" class="btn btn-secondary" type="button">Sortuj Z-A</button>
+                    <button id="clear-cell-btn" class="btn btn-secondary" type="button">Wyczyść komórkę</button>
+                </div>
+            </div>
+
+            <div class="we-ribbon-panel" data-panel="view">
+                <div class="we-toolbar-buttons">
+                    <button id="toggle-full-width-btn" class="btn btn-secondary" type="button">Tryb pełnej szerokości</button>
+                    <button id="toggle-grid-btn" class="btn btn-secondary" type="button">Pokaż / ukryj siatkę</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <section class="we-sheet-card" id="sheet-editor-card">
+        <div class="we-sheet-scroll">
+            <table class="we-sheet-table" id="sheet-grid-table">
+                <thead id="sheet-head"></thead>
+                <tbody id="sheet-body"></tbody>
+            </table>
+        </div>
+    </section>
+
+    <section class="we-objects-card" id="generated-objects-card" hidden>
+        <div class="we-label">OBIEKTY / PODGLĄDY</div>
+        <div id="generated-objects-area"></div>
+    </section>
+</section>
+
+<div class="we-modal" id="chart-modal">
+    <div class="we-modal-box">
+        <div class="we-modal-top">
+            <strong>Utwórz wykres</strong>
+            <button type="button" class="we-modal-close" data-close-modal="chart-modal">✕</button>
+        </div>
+
+        <div class="we-modal-grid">
+            <div>
+                <label for="chart-range-input">Zakres (np. A1:B6)</label>
+                <input id="chart-range-input" type="text" placeholder="A1:B6">
+            </div>
+            <div>
+                <label for="chart-type-select">Typ wykresu</label>
+                <select id="chart-type-select">
+                    <option value="bar">Słupkowy</option>
+                    <option value="line">Liniowy</option>
+                    <option value="pie">Kołowy</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="we-modal-actions">
+            <button id="build-chart-btn" class="btn btn-primary" type="button">Generuj wykres</button>
+        </div>
+    </div>
+</div>
+
+<div class="we-modal" id="pivot-modal">
+    <div class="we-modal-box">
+        <div class="we-modal-top">
+            <strong>Tabela przestawna light</strong>
+            <button type="button" class="we-modal-close" data-close-modal="pivot-modal">✕</button>
+        </div>
+
+        <div class="we-modal-grid">
+            <div>
+                <label for="pivot-range-input">Zakres (np. A1:B10)</label>
+                <input id="pivot-range-input" type="text" placeholder="A1:B10">
+            </div>
+        </div>
+
+        <div class="we-modal-actions">
+            <button id="build-pivot-btn" class="btn btn-primary" type="button">Generuj tabelę</button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/worksheet_editor.js' %}"></script>
+{% endblock %}

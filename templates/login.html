@@ -1,0 +1,49 @@
+{% extends 'base.html' %}
+
+{% block title %}ARES | Logowanie{% endblock %}
+
+{% block guest_content %}
+<section class="hero-app">
+    <div class="hero-left">
+        <span class="hero-badge">ARES SYSTEM</span>
+        <h1>Zarządzaj arkuszami jak w prawdziwej aplikacji</h1>
+        <p>
+            ARES to system do pracy z arkuszami kalkulacyjnymi, zestawieniami
+            i analizą danych. Po zalogowaniu użytkownik przechodzi od razu
+            do środowiska roboczego.
+        </p>
+
+        <div class="hero-features">
+            <div class="feature-card">
+                <h3>Arkusze robocze</h3>
+                <p>Praca na danych w jednym miejscu.</p>
+            </div>
+            <div class="feature-card">
+                <h3>Nowoczesny interfejs</h3>
+                <p>Układ przypominający aplikację, a nie zwykłą stronę.</p>
+            </div>
+            <div class="feature-card">
+                <h3>Bezpieczny dostęp</h3>
+                <p>Logowanie i rejestracja z weryfikacją e-mail.</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="hero-right">
+        <div class="auth-card app-card">
+            <h2>Logowanie do ARES</h2>
+
+            <form method="post">
+                {% csrf_token %}
+                <input type="text" name="username" placeholder="Login" required>
+                <input type="password" name="password" placeholder="Hasło" required>
+                <button type="submit" class="btn btn-primary btn-full">Zaloguj się</button>
+            </form>
+
+            <p class="auth-link">
+                Nie masz konta? <a href="{% url 'register' %}">Zarejestruj się</a>
+            </p>
+        </div>
+    </div>
+</section>
+{% endblock %}

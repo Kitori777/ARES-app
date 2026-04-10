@@ -1,0 +1,97 @@
+{% extends 'base.html' %}
+
+{% block title %}ARES | Rejestracja{% endblock %}
+
+{% block guest_content %}
+<section class="hero-app single-auth">
+    <div class="hero-right centered-auth">
+        <div class="auth-card app-card">
+            <h2>Rejestracja do ARES</h2>
+
+            <form method="post" novalidate>
+                {% csrf_token %}
+
+                {% if form.non_field_errors %}
+                    <div class="form-errors">
+                        {% for error in form.non_field_errors %}
+                            <div class="message">{{ error }}</div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+
+                <label for="id_username">Login</label>
+                <input
+                    type="text"
+                    name="username"
+                    id="id_username"
+                    class="form-input"
+                    value="{{ form.username.value|default:'' }}"
+                    required
+                >
+                {% if form.username.errors %}
+                    <div class="field-error">
+                        {% for error in form.username.errors %}
+                            <div>{{ error }}</div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+
+                <label for="id_email">E-mail</label>
+                <input
+                    type="email"
+                    name="email"
+                    id="id_email"
+                    class="form-input"
+                    value="{{ form.email.value|default:'' }}"
+                    required
+                >
+                {% if form.email.errors %}
+                    <div class="field-error">
+                        {% for error in form.email.errors %}
+                            <div>{{ error }}</div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+
+                <label for="id_password1">Hasło</label>
+                <input
+                    type="password"
+                    name="password1"
+                    id="id_password1"
+                    class="form-input"
+                    required
+                >
+                {% if form.password1.errors %}
+                    <div class="field-error">
+                        {% for error in form.password1.errors %}
+                            <div>{{ error }}</div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+
+                <label for="id_password2">Powtórz hasło</label>
+                <input
+                    type="password"
+                    name="password2"
+                    id="id_password2"
+                    class="form-input"
+                    required
+                >
+                {% if form.password2.errors %}
+                    <div class="field-error">
+                        {% for error in form.password2.errors %}
+                            <div>{{ error }}</div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+
+                <button type="submit" class="btn btn-primary btn-full">Załóż konto</button>
+            </form>
+
+            <p class="auth-link">
+                Masz już konto? <a href="{% url 'login' %}">Zaloguj się</a>
+            </p>
+        </div>
+    </div>
+</section>
+{% endblock %}

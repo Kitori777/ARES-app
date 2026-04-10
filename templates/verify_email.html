@@ -1,0 +1,22 @@
+{% extends 'base.html' %}
+
+{% block title %}ARES | Weryfikacja{% endblock %}
+
+{% block guest_content %}
+<div class="auth-page">
+    <div class="auth-card app-card">
+        <h2>Potwierdzenie e-mail</h2>
+        <p>Wpisz kod wysłany na Twój adres e-mail.</p>
+
+        <form method="post">
+            {% csrf_token %}
+            <input type="text" name="code" placeholder="Wpisz kod" required>
+            <button type="submit" class="btn btn-primary btn-full">Potwierdź</button>
+        </form>
+
+        <p class="auth-link">
+            <a href="{% url 'login' %}">Wróć do logowania</a>
+        </p>
+    </div>
+</div>
+{% endblock %}

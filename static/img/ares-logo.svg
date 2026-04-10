@@ -1,0 +1,8 @@
+<svg width="256" height="256" viewBox="0 0 256 256" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="256" height="256" rx="36" fill="#0F172A"></rect>
+  <path d="M148 32L164 48L152 84L176 108L164 120L188 144L174 158L146 130L128 188L110 170L124 126L82 168L64 150L110 104L92 86L108 70L126 88L148 32Z" fill="#E5EDFF"></path>
+  <path d="M78 74L146 142" stroke="#4F8CFF" stroke-width="10" stroke-linecap="round"></path>
+  <path d="M64 182L104 142L126 164L88 206L64 182Z" fill="#4F8CFF"></path>
+  <path d="M84 214H172" stroke="#C9D7FF" stroke-width="8" stroke-linecap="round"></path>
+  <text x="128" y="240" text-anchor="middle" fill="#EAF1FF" font-size="26" font-family="Arial" font-weight="700">ARES</text>
+</svg>
