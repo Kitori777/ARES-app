@@ -22,12 +22,7 @@
 
         <div class="we-formula-bar">
             <div class="we-cell-address" id="active-cell-label">A1</div>
-            <input
-                id="formula-input"
-                type="text"
-                class="we-formula-input"
-                placeholder="Wpisz wartość lub formułę, np. =SUMA(A1:A10)"
-            >
+            <input id="formula-input" type="text" class="we-formula-input" placeholder="Wpisz wartość lub formułę, np. =SUMA(A1:A10)">
             <button id="apply-formula-btn" class="btn btn-primary" type="button">Zastosuj</button>
         </div>
 
@@ -41,15 +36,62 @@
 
         <div class="we-ribbon">
             <div class="we-ribbon-panel active" data-panel="start">
-                <div class="we-toolbar-buttons">
-                    <button id="rename-sheet-btn" class="btn btn-secondary" type="button">Zmień nazwę</button>
-                    <button id="save-sheet-btn" class="btn btn-primary" type="button">Zapisz</button>
-                    <button id="export-csv-btn" class="btn btn-ghost" type="button">Eksport CSV</button>
+                <div class="we-start-toolbar">
+                    <div class="we-toolbar-group">
+                        <button id="undo-btn" class="btn btn-secondary" type="button">Cofnij</button>
+                        <button id="rename-sheet-btn" class="btn btn-secondary" type="button">Zmień nazwę</button>
+                        <button id="save-sheet-btn" class="btn btn-primary" type="button">Zapisz</button>
+                        <button id="export-csv-btn" class="btn btn-ghost" type="button">Eksport CSV</button>
+                        <label class="we-upload-btn">
+                            <span>Import CSV</span>
+                            <input id="csv-import-input" type="file" accept=".csv">
+                        </label>
+                    </div>
 
-                    <label class="we-upload-btn">
-                        <span>Import CSV</span>
-                        <input id="csv-import-input" type="file" accept=".csv">
-                    </label>
+                    <div class="we-toolbar-sep"></div>
+
+                    <div class="we-toolbar-group">
+                        <select id="font-family-select" class="we-toolbar-select">
+                            <option value="Arial, sans-serif">Arial</option>
+                            <option value="'Segoe UI', sans-serif">Segoe UI</option>
+                            <option value="'Roboto', sans-serif">Roboto</option>
+                            <option value="'Trebuchet MS', sans-serif">Trebuchet MS</option>
+                            <option value="'Verdana', sans-serif">Verdana</option>
+                            <option value="'Tahoma', sans-serif">Tahoma</option>
+                            <option value="'Georgia', serif">Georgia</option>
+                            <option value="'Times New Roman', serif">Times New Roman</option>
+                            <option value="'Courier New', monospace">Courier New</option>
+                            <option value="'Comic Sans MS', cursive">Comic Sans MS</option>
+                        </select>
+
+                        <input id="font-size-input" type="number" min="8" max="72" value="14" class="we-toolbar-number">
+
+                        <button id="bold-btn" class="btn btn-secondary we-mini-btn" type="button"><strong>B</strong></button>
+                        <button id="italic-btn" class="btn btn-secondary we-mini-btn" type="button"><em>I</em></button>
+                        <button id="underline-btn" class="btn btn-secondary we-mini-btn" type="button"><u>U</u></button>
+                    </div>
+
+                    <div class="we-toolbar-sep"></div>
+
+                    <div class="we-toolbar-group">
+                        <label class="we-color-chip">
+                            <span>Kolor tekstu</span>
+                            <input id="text-color-input" type="color" value="#eef3ff">
+                        </label>
+
+                        <label class="we-color-chip">
+                            <span>Tło</span>
+                            <input id="fill-color-input" type="color" value="#0f1728">
+                        </label>
+                    </div>
+
+                    <div class="we-toolbar-sep"></div>
+
+                    <div class="we-toolbar-group">
+                        <button id="align-left-btn" class="btn btn-secondary we-mini-btn" type="button">⯇</button>
+                        <button id="align-center-btn" class="btn btn-secondary we-mini-btn" type="button">≡</button>
+                        <button id="align-right-btn" class="btn btn-secondary we-mini-btn" type="button">⯈</button>
+                    </div>
                 </div>
             </div>
 
@@ -59,27 +101,16 @@
                         <button class="we-insert-item has-submenu active" data-submenu="submenu-cells" type="button">Komórki</button>
                         <button class="we-insert-item has-submenu" data-submenu="submenu-rows" type="button">Wiersze</button>
                         <button class="we-insert-item has-submenu" data-submenu="submenu-cols" type="button">Kolumny</button>
-                        <button class="we-insert-item" data-action="new-sheet" type="button">Arkusz</button>
-
                         <div class="we-insert-divider"></div>
-
-                        <button class="we-insert-item has-submenu" data-submenu="submenu-templates" type="button">Gotowe tabele</button>
                         <button class="we-insert-item" data-action="chart" type="button">Wykres</button>
                         <button class="we-insert-item" data-action="pivot" type="button">Tabela przestawna</button>
-                        <button class="we-insert-item" data-action="image" type="button">Obraz</button>
-                        <button class="we-insert-item" data-action="drawing" type="button">Rysunek</button>
-
+                        <button class="we-insert-item" data-action="solver" type="button">Solver</button>
                         <div class="we-insert-divider"></div>
-
                         <button class="we-insert-item" data-action="function-helper" type="button">Funkcja</button>
                         <button class="we-insert-item" data-action="link" type="button">Link</button>
                         <button class="we-insert-item" data-action="checkbox" type="button">Pole wyboru</button>
                         <button class="we-insert-item" data-action="dropdown" type="button">Menu</button>
                         <button class="we-insert-item" data-action="emoji" type="button">Emotikony</button>
-                        <button class="we-insert-item has-submenu" data-submenu="submenu-smart" type="button">Elementy inteligentne</button>
-
-                        <div class="we-insert-divider"></div>
-
                         <button class="we-insert-item" data-action="comment" type="button">Komentarz</button>
                         <button class="we-insert-item" data-action="note" type="button">Notatka</button>
                     </div>
@@ -90,56 +121,34 @@
                             <button class="we-submenu-item" data-action="clear-row" type="button">Wyczyść cały wiersz</button>
                             <button class="we-submenu-item" data-action="clear-col" type="button">Wyczyść całą kolumnę</button>
                         </div>
-
                         <div class="we-submenu" id="submenu-rows">
                             <button class="we-submenu-item" data-action="row-above" type="button">Wstaw wiersz powyżej</button>
                             <button class="we-submenu-item" data-action="row-below" type="button">Wstaw wiersz poniżej</button>
                         </div>
-
                         <div class="we-submenu" id="submenu-cols">
                             <button class="we-submenu-item" data-action="col-left" type="button">Wstaw kolumnę po lewej</button>
                             <button class="we-submenu-item" data-action="col-right" type="button">Wstaw kolumnę po prawej</button>
                         </div>
-
-                        <div class="we-submenu" id="submenu-templates">
-                            <button class="we-submenu-item" data-action="tpl-budget" type="button">Budżet domowy</button>
-                            <button class="we-submenu-item" data-action="tpl-tasks" type="button">Lista zadań</button>
-                            <button class="we-submenu-item" data-action="tpl-schedule" type="button">Harmonogram</button>
-                            <button class="we-submenu-item" data-action="tpl-report" type="button">Raport miesięczny</button>
-                        </div>
-
-                        <div class="we-submenu" id="submenu-smart">
-                            <button class="we-submenu-item" data-action="smart-date" type="button">Data</button>
-                            <button class="we-submenu-item" data-action="smart-status" type="button">Status</button>
-                            <button class="we-submenu-item" data-action="smart-progress" type="button">Postęp</button>
-                        </div>
                     </div>
                 </div>
-
-                <input id="image-insert-input" type="file" accept="image/*" hidden>
             </div>
 
             <div class="we-ribbon-panel" data-panel="formulas">
-                <div class="we-toolbar-buttons">
-                    <button class="we-chip" data-fn="SUMA" type="button">SUMA</button>
-                    <button class="we-chip" data-fn="ŚREDNIA" type="button">ŚREDNIA</button>
-                    <button class="we-chip" data-fn="MEDIANA" type="button">MEDIANA</button>
-                    <button class="we-chip" data-fn="MINIMUM" type="button">MIN</button>
-                    <button class="we-chip" data-fn="MAXIMUM" type="button">MAX</button>
-                    <button class="we-chip" data-fn="ZLICZ" type="button">ZLICZ</button>
-                    <button class="we-chip" data-fn="ODCHYLENIE" type="button">ODCH.</button>
-                    <button class="we-chip" data-fn="WARIANCJA" type="button">WARIANCJA</button>
+                <div class="we-formula-browser">
+                    <aside class="we-formula-categories" id="formula-categories"></aside>
 
-                    <button class="we-chip" data-fn="ABS" type="button">ABS</button>
-                    <button class="we-chip" data-fn="ROUND" type="button">ROUND</button>
-                    <button class="we-chip" data-fn="PIERWIASTEK" type="button">PIERW.</button>
-                    <button class="we-chip" data-fn="MOC" type="button">MOC</button>
-                    <button class="we-chip" data-fn="LEN" type="button">LEN</button>
-                    <button class="we-chip" data-fn="CONCAT" type="button">CONCAT</button>
-                    <button class="we-chip" data-fn="LEWO" type="button">LEWO</button>
-                    <button class="we-chip" data-fn="PRAWO" type="button">PRAWO</button>
-                    <button class="we-chip" data-fn="DZISIAJ" type="button">DZISIAJ</button>
-                    <button class="we-chip" data-fn="TERAZ" type="button">TERAZ</button>
+                    <section class="we-formula-list-wrap">
+                        <div class="we-formula-list-top">
+                            <strong id="formula-category-title">Kategoria</strong>
+                        </div>
+                        <div class="we-formula-list" id="formula-list"></div>
+                    </section>
+
+                    <section class="we-formula-details" id="formula-details">
+                        <div class="we-formula-details-empty">
+                            Wybierz funkcję z listy, aby zobaczyć opis i przykład użycia.
+                        </div>
+                    </section>
                 </div>
             </div>
 
@@ -155,6 +164,7 @@
                 <div class="we-toolbar-buttons">
                     <button id="toggle-full-width-btn" class="btn btn-secondary" type="button">Tryb pełnej szerokości</button>
                     <button id="toggle-grid-btn" class="btn btn-secondary" type="button">Pokaż / ukryj siatkę</button>
+                    <button id="autofit-cols-btn" class="btn btn-secondary" type="button">Wyrównaj tabelę do tekstu</button>
                 </div>
             </div>
         </div>
@@ -178,27 +188,80 @@
 <div class="we-modal" id="chart-modal">
     <div class="we-modal-box">
         <div class="we-modal-top">
-            <strong>Utwórz wykres</strong>
+            <strong>Wstaw wykres</strong>
             <button type="button" class="we-modal-close" data-close-modal="chart-modal">✕</button>
         </div>
 
         <div class="we-modal-grid">
             <div>
-                <label for="chart-range-input">Zakres (np. A1:B6)</label>
-                <input id="chart-range-input" type="text" placeholder="A1:B6">
+                <label for="chart-range-input">Zakres danych</label>
+                <input id="chart-range-input" type="text" placeholder="A1:B10">
             </div>
+
             <div>
                 <label for="chart-type-select">Typ wykresu</label>
                 <select id="chart-type-select">
-                    <option value="bar">Słupkowy</option>
                     <option value="line">Liniowy</option>
+                    <option value="bar">Słupkowy</option>
+                    <option value="column">Kolumnowy</option>
+                    <option value="area">Warstwowy</option>
                     <option value="pie">Kołowy</option>
+                    <option value="scatter">Punktowy</option>
+                    <option value="histogram">Histogram</option>
                 </select>
+            </div>
+
+            <div class="we-grid-span-2">
+                <label for="chart-title-input">Tytuł wykresu</label>
+                <input id="chart-title-input" type="text" placeholder="Np. Sprzedaż miesięczna">
+            </div>
+
+            <div>
+                <label for="chart-x-title-input">Tytuł osi X</label>
+                <input id="chart-x-title-input" type="text" placeholder="Np. Miesiąc">
+            </div>
+
+            <div>
+                <label for="chart-y-title-input">Tytuł osi Y</label>
+                <input id="chart-y-title-input" type="text" placeholder="Np. Wartość">
+            </div>
+
+            <div>
+                <label for="chart-series-color">Kolor serii</label>
+                <input id="chart-series-color" type="color" value="#4f8cff">
+            </div>
+
+            <div class="we-check-row">
+                <label class="we-inline-check">
+                    <input id="chart-first-row-header" type="checkbox" checked>
+                    <span>Pierwszy wiersz jako nagłówek</span>
+                </label>
+            </div>
+
+            <div class="we-check-row">
+                <label class="we-inline-check">
+                    <input id="chart-show-legend" type="checkbox" checked>
+                    <span>Pokaż legendę</span>
+                </label>
+            </div>
+
+            <div class="we-check-row">
+                <label class="we-inline-check">
+                    <input id="chart-show-grid" type="checkbox" checked>
+                    <span>Pokaż siatkę</span>
+                </label>
+            </div>
+
+            <div class="we-check-row">
+                <label class="we-inline-check">
+                    <input id="chart-show-labels" type="checkbox">
+                    <span>Etykiety danych</span>
+                </label>
             </div>
         </div>
 
         <div class="we-modal-actions">
-            <button id="build-chart-btn" class="btn btn-primary" type="button">Generuj wykres</button>
+            <button id="build-chart-btn" class="btn btn-primary" type="button">Dodaj wykres</button>
         </div>
     </div>
 </div>
@@ -206,24 +269,76 @@
 <div class="we-modal" id="pivot-modal">
     <div class="we-modal-box">
         <div class="we-modal-top">
-            <strong>Tabela przestawna light</strong>
+            <strong>Tabela przestawna</strong>
             <button type="button" class="we-modal-close" data-close-modal="pivot-modal">✕</button>
         </div>
-
         <div class="we-modal-grid">
             <div>
                 <label for="pivot-range-input">Zakres (np. A1:B10)</label>
                 <input id="pivot-range-input" type="text" placeholder="A1:B10">
             </div>
+            <div>
+                <label for="pivot-agg-select">Agregacja</label>
+                <select id="pivot-agg-select">
+                    <option value="sum">Suma</option>
+                    <option value="count">Liczba</option>
+                    <option value="avg">Średnia</option>
+                    <option value="min">Minimum</option>
+                    <option value="max">Maksimum</option>
+                    <option value="median">Mediana</option>
+                </select>
+            </div>
         </div>
-
         <div class="we-modal-actions">
             <button id="build-pivot-btn" class="btn btn-primary" type="button">Generuj tabelę</button>
+        </div>
+    </div>
+</div>
+
+<div class="we-modal" id="solver-modal">
+    <div class="we-modal-box">
+        <div class="we-modal-top">
+            <strong>Solver</strong>
+            <button type="button" class="we-modal-close" data-close-modal="solver-modal">✕</button>
+        </div>
+        <div class="we-modal-grid">
+            <div>
+                <label for="solver-target-input">Komórka celu</label>
+                <input id="solver-target-input" type="text" placeholder="C1">
+            </div>
+            <div>
+                <label for="solver-variable-input">Komórka zmiennej</label>
+                <input id="solver-variable-input" type="text" placeholder="A1,A2,A3">
+            </div>
+            <div>
+                <label for="solver-mode-select">Tryb</label>
+                <select id="solver-mode-select">
+                    <option value="max">Maksymalizacja</option>
+                    <option value="min">Minimalizacja</option>
+                </select>
+            </div>
+            <div>
+                <label for="solver-step-input">Krok</label>
+                <input id="solver-step-input" type="number" step="any" value="1">
+            </div>
+            <div>
+                <label for="solver-min-input">Minimum</label>
+                <input id="solver-min-input" type="number" step="any" value="0">
+            </div>
+            <div>
+                <label for="solver-max-input">Maksimum</label>
+                <input id="solver-max-input" type="number" step="any" value="100">
+            </div>
+        </div>
+        <div class="we-modal-actions">
+            <button id="run-solver-btn" class="btn btn-primary" type="button">Uruchom solver</button>
         </div>
     </div>
 </div>
 {% endblock %}
 
 {% block extra_js %}
+<script src="{% static 'js/formula_catalog.js' %}"></script>
+<script src="{% static 'js/formula_engine.js' %}"></script>
 <script src="{% static 'js/worksheet_editor.js' %}"></script>
 {% endblock %}

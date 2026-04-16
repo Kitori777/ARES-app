@@ -11,15 +11,12 @@ document.addEventListener("DOMContentLoaded", function () {
 
     const saveBtn = document.getElementById("save-sheet-btn");
     const exportBtn = document.getElementById("export-csv-btn");
-    const addRowBtn = document.getElementById("add-row-btn");
-    const addColBtn = document.getElementById("add-col-btn");
     const renameBtn = document.getElementById("rename-sheet-btn");
     const importInput = document.getElementById("csv-import-input");
     const formulaInput = document.getElementById("formula-input");
     const applyFormulaBtn = document.getElementById("apply-formula-btn");
     const activeCellLabel = document.getElementById("active-cell-label");
 
-    const formulaChips = document.querySelectorAll(".we-chip[data-fn]");
     const tabs = document.querySelectorAll(".we-tab");
     const panels = document.querySelectorAll(".we-ribbon-panel");
 
@@ -28,62 +25,93 @@ document.addEventListener("DOMContentLoaded", function () {
     const clearCellBtn = document.getElementById("clear-cell-btn");
     const toggleFullWidthBtn = document.getElementById("toggle-full-width-btn");
     const toggleGridBtn = document.getElementById("toggle-grid-btn");
+    const autofitBtn = document.getElementById("autofit-cols-btn");
     const sheetEditorCard = document.getElementById("sheet-editor-card");
     const sheetGridTable = document.getElementById("sheet-grid-table");
 
     const insertMenuItems = document.querySelectorAll(".we-insert-item");
     const insertSubmenuItems = document.querySelectorAll(".we-submenu-item");
     const insertSubmenus = document.querySelectorAll(".we-submenu");
-    const imageInsertInput = document.getElementById("image-insert-input");
-
-    const chartModal = document.getElementById("chart-modal");
-    const pivotModal = document.getElementById("pivot-modal");
-    const chartRangeInput = document.getElementById("chart-range-input");
-    const chartTypeSelect = document.getElementById("chart-type-select");
-    const buildChartBtn = document.getElementById("build-chart-btn");
-    const pivotRangeInput = document.getElementById("pivot-range-input");
-    const buildPivotBtn = document.getElementById("build-pivot-btn");
-    const modalCloseButtons = document.querySelectorAll(".we-modal-close");
 
     const generatedObjectsCard = document.getElementById("generated-objects-card");
     const generatedObjectsArea = document.getElementById("generated-objects-area");
 
+    const chartModal = document.getElementById("chart-modal");
+    const chartRangeInput = document.getElementById("chart-range-input");
+    const chartTypeSelect = document.getElementById("chart-type-select");
+    const chartTitleInput = document.getElementById("chart-title-input");
+    const chartXTitleInput = document.getElementById("chart-x-title-input");
+    const chartYTitleInput = document.getElementById("chart-y-title-input");
+    const chartSeriesColorInput = document.getElementById("chart-series-color");
+    const chartFirstRowHeaderInput = document.getElementById("chart-first-row-header");
+    const chartShowLegendInput = document.getElementById("chart-show-legend");
+    const chartShowGridInput = document.getElementById("chart-show-grid");
+    const chartShowLabelsInput = document.getElementById("chart-show-labels");
+    const buildChartBtn = document.getElementById("build-chart-btn");
+
+    const pivotModal = document.getElementById("pivot-modal");
+    const pivotRangeInput = document.getElementById("pivot-range-input");
+    const pivotAggSelect = document.getElementById("pivot-agg-select");
+    const buildPivotBtn = document.getElementById("build-pivot-btn");
+
+    const solverModal = document.getElementById("solver-modal");
+    const solverTargetInput = document.getElementById("solver-target-input");
+    const solverVariableInput = document.getElementById("solver-variable-input");
+    const solverModeSelect = document.getElementById("solver-mode-select");
+    const solverStepInput = document.getElementById("solver-step-input");
+    const solverMinInput = document.getElementById("solver-min-input");
+    const solverMaxInput = document.getElementById("solver-max-input");
+    const runSolverBtn = document.getElementById("run-solver-btn");
+
+    const modalCloseButtons = document.querySelectorAll("[data-close-modal]");
+
+    const formulaCategoriesEl = document.getElementById("formula-categories");
+    const formulaListEl = document.getElementById("formula-list");
+    const formulaDetailsEl = document.getElementById("formula-details");
+    const formulaCategoryTitleEl = document.getElementById("formula-category-title");
+
+    const undoBtn = document.getElementById("undo-btn");
+
+    const fontFamilySelect = document.getElementById("font-family-select");
+    const fontSizeInput = document.getElementById("font-size-input");
+    const boldBtn = document.getElementById("bold-btn");
+    const italicBtn = document.getElementById("italic-btn");
+    const underlineBtn = document.getElementById("underline-btn");
+    const textColorInput = document.getElementById("text-color-input");
+    const fillColorInput = document.getElementById("fill-color-input");
+    const alignLeftBtn = document.getElementById("align-left-btn");
+    const alignCenterBtn = document.getElementById("align-center-btn");
+    const alignRightBtn = document.getElementById("align-right-btn");
+
     let currentSheet = null;
+    let currentRows = 20;
+    let currentCols = 10;
     let activeCell = { row: 0, col: 0 };
-
-    let hasUnsavedChanges = false;
     let autosaveTimer = null;
-    let isSaving = false;
+    let fullWidthMode = false;
+    let gridHidden = false;
 
-    const FUNCTION_ALIASES = {
-        "ŚREDNIA": "SREDNIA",
-        "SREDNIA": "SREDNIA",
-        "SUMA": "SUMA",
-        "MEDIANA": "MEDIANA",
-        "MINIMUM": "MINIMUM",
-        "MIN": "MINIMUM",
-        "MAXIMUM": "MAXIMUM",
-        "MAX": "MAXIMUM",
-        "ZLICZ": "ZLICZ",
-        "ODCHYLENIE": "ODCHYLENIE",
-        "ODCH.": "ODCHYLENIE",
-        "WARIANCJA": "WARIANCJA",
-        "ABS": "ABS",
-        "ROUND": "ROUND",
-        "PIERWIASTEK": "PIERWIASTEK",
-        "PIERW.": "PIERWIASTEK",
-        "MOC": "MOC",
-        "LEN": "LEN",
-        "CONCAT": "CONCAT",
-        "LEWO": "LEWO",
-        "PRAWO": "PRAWO",
-        "DZISIAJ": "DZISIAJ",
-        "TERAZ": "TERAZ"
+    let activeFormulaCategory = null;
+    let activeFormulaName = null;
+
+    let chartObjects = [];
+    let pivotObjects = [];
+
+    let historyStack = [];
+    let isRestoringHistory = false;
+
+    let selectionStart = null;
+    let selectionEnd = null;
+    let isMouseSelecting = false;
+
+    const SPILL_PREFIX = "__SPILL__:";
+    const DEFAULT_CHART_COLOR = "#4f8cff";
+    const STATIC_PALETTE = ["#4f8cff", "#7ba8ff", "#54c6eb", "#8a6dff", "#3ccf91", "#f8c156", "#ff8a65"];
+
+    window.EditorHelpers = {
+        parseNumber,
+        isNumericValue
     };
-
-    function normalizeFunctionName(name) {
-        return FUNCTION_ALIASES[(name || "").trim().toUpperCase()] || (name || "").trim().toUpperCase();
-    }
 
     function getCookie(name) {
         const cookies = document.cookie ? document.cookie.split(";") : [];
@@ -103,11 +131,14 @@ document.addEventListener("DOMContentLoaded", function () {
             credentials: "same-origin"
         });
 
+        const text = await response.text();
+        console.log("GET", url, "status:", response.status, "body:", text);
+
         if (!response.ok) {
-            throw new Error(`GET ${url} -> ${response.status}`);
+            throw new Error(`GET ${url} -> ${response.status}\n${text}`);
         }
 
-        return await response.json();
+        return JSON.parse(text);
     }
 
     async function postJson(url, data) {
@@ -132,172 +163,111 @@ document.addEventListener("DOMContentLoaded", function () {
         return await response.json();
     }
 
-    function setAutosaveStatus(state, text) {
-        if (!autosaveBadge) return;
-        autosaveBadge.className = `we-autosave-badge ${state || ""}`.trim();
-        autosaveBadge.textContent = text;
-    }
-
-    function markDirty() {
-        hasUnsavedChanges = true;
-        setAutosaveStatus("saving", "Niezapisane zmiany");
-        scheduleAutosave();
-    }
-
-    function scheduleAutosave() {
-        if (autosaveTimer) clearTimeout(autosaveTimer);
-        autosaveTimer = setTimeout(() => {
-            silentSave();
-        }, 1200);
-    }
-
-    async function silentSave() {
-        if (!currentSheet || !hasUnsavedChanges || isSaving) return;
-
-        isSaving = true;
-        setAutosaveStatus("saving", "Trwa autozapis...");
-
-        try {
-            await postJson(`/ares/api/sheets/${currentSheet.id}/save/`, {
-                name: currentSheet.name,
-                category: currentSheet.category,
-                grid: currentSheet.grid,
-                action: "Autozapis arkusza"
-            });
-
-            hasUnsavedChanges = false;
-            setAutosaveStatus("saved", "Zapisano automatycznie");
-        } catch (e) {
-            console.error("silentSave error:", e);
-            setAutosaveStatus("error", "Błąd autozapisu");
-        } finally {
-            isSaving = false;
-        }
-    }
-
-    function saveOnExit() {
-        if (!currentSheet || !hasUnsavedChanges) return;
-
-        const csrftoken = getCookie("csrftoken");
-        const payload = JSON.stringify({
-            name: currentSheet.name,
-            category: currentSheet.category,
-            grid: currentSheet.grid,
-            action: "Autozapis przy wyjściu"
-        });
-
-        const url = `/ares/api/sheets/${currentSheet.id}/save/`;
-
-        fetch(url, {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                "X-CSRFToken": csrftoken || "",
-                "X-Requested-With": "XMLHttpRequest"
-            },
-            credentials: "same-origin",
-            keepalive: true,
-            body: payload
-        }).catch(() => {});
-    }
-
-    function columnIndexToLabel(index) {
+    function colToLabel(index) {
         let label = "";
-        let n = index;
-        while (n >= 0) {
-            label = String.fromCharCode((n % 26) + 65) + label;
-            n = Math.floor(n / 26) - 1;
+        let n = index + 1;
+
+        while (n > 0) {
+            const rem = (n - 1) % 26;
+            label = String.fromCharCode(65 + rem) + label;
+            n = Math.floor((n - 1) / 26);
         }
+
         return label;
     }
 
-    function getCellName(row, col) {
-        return `${columnIndexToLabel(col)}${row + 1}`;
-    }
-
-    function setActiveCellLabel() {
-        if (activeCellLabel) {
-            activeCellLabel.textContent = getCellName(activeCell.row, activeCell.col);
+    function labelToCol(label) {
+        let result = 0;
+        for (const ch of String(label).toUpperCase()) {
+            result = result * 26 + (ch.charCodeAt(0) - 64);
         }
+        return result - 1;
     }
 
-    function parseCellRef(cellRef) {
-        const match = /^([A-Z]+)(\d+)$/i.exec((cellRef || "").trim());
+    function cellRefToIndex(ref) {
+        const match = String(ref || "").trim().toUpperCase().match(/^([A-Z]+)(\d+)$/);
         if (!match) return null;
 
-        const letters = match[1].toUpperCase();
-        const row = parseInt(match[2], 10) - 1;
-
-        let col = 0;
-        for (let i = 0; i < letters.length; i++) {
-            col = col * 26 + (letters.charCodeAt(i) - 64);
-        }
-
-        return { row, col: col - 1 };
-    }
-
-    function parseRange(rangeText) {
-        const clean = (rangeText || "").trim();
-        if (!clean.includes(":")) return null;
-
-        const [startText, endText] = clean.split(":");
-        const start = parseCellRef(startText);
-        const end = parseCellRef(endText);
-        if (!start || !end) return null;
-
         return {
-            rowStart: Math.min(start.row, end.row),
-            rowEnd: Math.max(start.row, end.row),
-            colStart: Math.min(start.col, end.col),
-            colEnd: Math.max(start.col, end.col)
+            col: labelToCol(match[1]),
+            row: parseInt(match[2], 10) - 1
         };
     }
 
-    function toNumber(value) {
-        const normalized = String(value ?? "").trim().replace(",", ".");
-        if (!normalized) return NaN;
-        const num = Number(normalized);
-        return Number.isFinite(num) ? num : NaN;
+    function emptyGrid(rows = 20, cols = 10) {
+        return Array.from({ length: rows }, () => Array.from({ length: cols }, () => ""));
     }
 
-    function ensureRectangularGrid(grid) {
-        if (!Array.isArray(grid) || !grid.length) {
-            return Array.from({ length: 20 }, () => Array(8).fill(""));
+    function inferDimensionsFromGrid(grid) {
+        const rows = Math.max(Array.isArray(grid) ? grid.length : 0, 20);
+        let cols = 10;
+
+        (grid || []).forEach(row => {
+            cols = Math.max(cols, Array.isArray(row) ? row.length : 0);
+        });
+
+        return { rows, cols };
+    }
+
+    function normalizeLoadedSheet(data) {
+        const initialGrid = Array.isArray(data.grid) ? data.grid : emptyGrid();
+        const dims = inferDimensionsFromGrid(initialGrid);
+
+        currentRows = dims.rows;
+        currentCols = dims.cols;
+
+        const normalized = emptyGrid(currentRows, currentCols);
+        initialGrid.forEach((row, r) => {
+            row.forEach((value, c) => {
+                normalized[r][c] = value ?? "";
+            });
+        });
+
+        return {
+            ...data,
+            category: data.category || "Bez kategorii",
+            styles: data.styles || {},
+            grid: normalized
+        };
+    }
+
+    function ensureDimensions(rows, cols) {
+        while (currentSheet.grid.length < rows) {
+            currentSheet.grid.push(Array.from({ length: currentCols }, () => ""));
+        }
+        if (rows > currentRows) currentRows = rows;
+
+        if (cols > currentCols) {
+            currentCols = cols;
+            currentSheet.grid = currentSheet.grid.map(row => {
+                while (row.length < currentCols) row.push("");
+                return row;
+            });
         }
 
-        const maxCols = Math.max(...grid.map(r => Array.isArray(r) ? r.length : 0), 1);
-
-        return grid.map(row => {
-            const safe = Array.isArray(row) ? [...row] : [];
-            while (safe.length < maxCols) safe.push("");
-            return safe;
+        currentSheet.grid = currentSheet.grid.map(row => {
+            while (row.length < currentCols) row.push("");
+            return row;
         });
     }
 
-    function formatDate(value) {
-        if (!value) return "-";
-        const d = new Date(value);
-        if (Number.isNaN(d.getTime())) return value;
-        return d.toLocaleString("pl-PL");
+    function parseNumber(value) {
+        if (typeof value === "number") return Number.isFinite(value) ? value : 0;
+        if (typeof value === "boolean") return value ? 1 : 0;
+
+        const normalized = String(value ?? "").trim().replace(/\s+/g, "").replace(",", ".");
+        if (!normalized) return 0;
+
+        const num = Number(normalized);
+        return Number.isFinite(num) ? num : 0;
     }
 
-    function updateHeaderInfo() {
-        if (!currentSheet) return;
+    function isNumericValue(value) {
+        if (typeof value === "number") return Number.isFinite(value);
+        if (typeof value === "boolean") return true;
 
-        const rows = currentSheet.grid.length;
-        const cols = currentSheet.grid[0] ? currentSheet.grid[0].length : 0;
-
-        if (sheetNameEl) {
-            sheetNameEl.textContent = currentSheet.name || "Arkusz";
-        }
-
-        if (sheetMetaEl) {
-            sheetMetaEl.textContent =
-                `Kategoria: ${currentSheet.category || "Bez kategorii"} | ` +
-                `Rozmiar: ${rows} × ${cols} | ` +
-                `Utworzono: ${formatDate(currentSheet.createdAt)} | ` +
-                `Aktualizacja: ${formatDate(currentSheet.updatedAt)}`;
-        }
+        const normalized = String(value ?? "").trim().replace(/\s+/g, "").replace(",", ".");
+        return normalized !== "" && !Number.isNaN(Number(normalized));
     }
 
     function escapeHtml(value) {
@@ -305,12 +275,339 @@ document.addEventListener("DOMContentLoaded", function () {
             .replace(/&/g, "&amp;")
             .replace(/</g, "&lt;")
             .replace(/>/g, "&gt;")
-            .replace(/"/g, "&quot;")
-            .replace(/'/g, "&#039;");
+            .replace(/"/g, "&quot;");
     }
 
-    function renderSpecialCell(raw) {
-        const value = String(raw ?? "");
+    function setAutosaveState(state, text) {
+        autosaveBadge?.classList.remove("saving", "saved", "error");
+        if (state) autosaveBadge?.classList.add(state);
+        if (autosaveBadge) autosaveBadge.textContent = text;
+    }
+
+    function scheduleAutosave() {
+        if (autosaveTimer) clearTimeout(autosaveTimer);
+        autosaveTimer = setTimeout(() => {
+            saveSheet();
+        }, 1200);
+    }
+
+    function markDirty() {
+        if (!currentSheet || isRestoringHistory) return;
+        setAutosaveState("saving", "Niezapisane zmiany");
+        scheduleAutosave();
+        rerenderGeneratedObjects();
+    }
+
+    function cloneSheetState() {
+        return {
+            grid: JSON.parse(JSON.stringify(currentSheet.grid || [])),
+            styles: JSON.parse(JSON.stringify(currentSheet.styles || {})),
+            name: currentSheet.name,
+            category: currentSheet.category
+        };
+    }
+
+    function pushHistorySnapshot() {
+        if (!currentSheet || isRestoringHistory) return;
+        historyStack.push(cloneSheetState());
+        if (historyStack.length > 100) {
+            historyStack.shift();
+        }
+    }
+
+    function undoLastChange() {
+        if (!currentSheet || !historyStack.length) return;
+
+        isRestoringHistory = true;
+        const snapshot = historyStack.pop();
+
+        currentSheet.grid = snapshot.grid;
+        currentSheet.styles = snapshot.styles || {};
+        currentSheet.name = snapshot.name;
+        currentSheet.category = snapshot.category;
+
+        const dims = inferDimensionsFromGrid(currentSheet.grid);
+        currentRows = dims.rows;
+        currentCols = dims.cols;
+
+        if (sheetNameEl) sheetNameEl.textContent = currentSheet.name || "Arkusz";
+        if (sheetMetaEl) sheetMetaEl.textContent = `Wiersze: ${currentRows} • Kolumny: ${currentCols}`;
+
+        renderGrid();
+        isRestoringHistory = false;
+        setAutosaveState("saving", "Cofnięto zmianę");
+        scheduleAutosave();
+    }
+
+    function getCellStyleKey(row, col) {
+        return `${row}:${col}`;
+    }
+
+    function getCellStyle(row, col) {
+        if (!currentSheet.styles) currentSheet.styles = {};
+        return currentSheet.styles[getCellStyleKey(row, col)] || {};
+    }
+
+    function setCellStyle(row, col, patch) {
+        if (!currentSheet.styles) currentSheet.styles = {};
+        const key = getCellStyleKey(row, col);
+        const current = currentSheet.styles[key] || {};
+        currentSheet.styles[key] = { ...current, ...patch };
+    }
+
+    function getSelectionBounds() {
+        if (!selectionStart || !selectionEnd) return null;
+
+        return {
+            rowStart: Math.min(selectionStart.row, selectionEnd.row),
+            rowEnd: Math.max(selectionStart.row, selectionEnd.row),
+            colStart: Math.min(selectionStart.col, selectionEnd.col),
+            colEnd: Math.max(selectionStart.col, selectionEnd.col)
+        };
+    }
+
+    function hasMultiSelection() {
+        const bounds = getSelectionBounds();
+        if (!bounds) return false;
+        return bounds.rowStart !== bounds.rowEnd || bounds.colStart !== bounds.colEnd;
+    }
+
+    function forEachSelectedCell(callback) {
+        const bounds = getSelectionBounds();
+
+        if (!bounds) {
+            callback(activeCell.row, activeCell.col);
+            return;
+        }
+
+        for (let row = bounds.rowStart; row <= bounds.rowEnd; row += 1) {
+            for (let col = bounds.colStart; col <= bounds.colEnd; col += 1) {
+                callback(row, col);
+            }
+        }
+    }
+
+    function isCellInSelection(row, col) {
+        const bounds = getSelectionBounds();
+        if (!bounds) return false;
+
+        return (
+            row >= bounds.rowStart &&
+            row <= bounds.rowEnd &&
+            col >= bounds.colStart &&
+            col <= bounds.colEnd
+        );
+    }
+
+    function clearSelection() {
+        selectionStart = null;
+        selectionEnd = null;
+    }
+
+    function updateSelectionHighlight() {
+        document.querySelectorAll(".we-sheet-table td").forEach(td => {
+            td.classList.remove("active-cell", "selected-range");
+
+            const row = parseInt(td.dataset.row, 10);
+            const col = parseInt(td.dataset.col, 10);
+
+            if (isCellInSelection(row, col)) {
+                td.classList.add("selected-range");
+            }
+
+            if (row === activeCell.row && col === activeCell.col) {
+                td.classList.add("active-cell");
+            }
+        });
+    }
+
+    function applyStyleToSelectionOrActive(patch) {
+        if (!currentSheet) return;
+        pushHistorySnapshot();
+
+        forEachSelectedCell((row, col) => {
+            setCellStyle(row, col, patch);
+        });
+
+        renderGrid();
+        markDirty();
+    }
+
+    function toggleStyleFlag(flagName) {
+        const current = getCellStyle(activeCell.row, activeCell.col);
+        applyStyleToSelectionOrActive({
+            [flagName]: !current[flagName]
+        });
+    }
+
+    function applyCellStyleToElement(td, row, col) {
+        const style = getCellStyle(row, col);
+
+        td.style.fontFamily = style.fontFamily || "";
+        td.style.fontSize = style.fontSize ? `${style.fontSize}px` : "";
+        td.style.fontWeight = style.bold ? "700" : "";
+        td.style.fontStyle = style.italic ? "italic" : "";
+        td.style.textDecoration = style.underline ? "underline" : "";
+        td.style.color = style.textColor || "";
+        td.style.backgroundColor = style.fillColor || "";
+        td.style.textAlign = style.align || "";
+    }
+
+    function refreshStartControlsFromCell() {
+        if (!currentSheet) return;
+
+        const style = getCellStyle(activeCell.row, activeCell.col);
+
+        if (fontFamilySelect) {
+            fontFamilySelect.value = style.fontFamily || "Arial, sans-serif";
+        }
+
+        if (fontSizeInput) {
+            fontSizeInput.value = style.fontSize || 14;
+        }
+
+        if (textColorInput) {
+            textColorInput.value = style.textColor || "#eef3ff";
+        }
+
+        if (fillColorInput) {
+            fillColorInput.value = style.fillColor || "#0f1728";
+        }
+
+        boldBtn?.classList.toggle("active", !!style.bold);
+        italicBtn?.classList.toggle("active", !!style.italic);
+        underlineBtn?.classList.toggle("active", !!style.underline);
+
+        alignLeftBtn?.classList.toggle("active", (style.align || "left") === "left");
+        alignCenterBtn?.classList.toggle("active", style.align === "center");
+        alignRightBtn?.classList.toggle("active", style.align === "right");
+    }
+
+    function buildFormulaContext() {
+        return {
+            cellRefToIndex,
+            getCellComputedValue,
+            getRangeMatrix,
+            normalizeScalarToken,
+            extractRangeValues: (rangeText, visited) => getRangeMatrix(rangeText, true, visited).flat(),
+            parseNumber,
+            isNumericValue,
+            labelToCol,
+            colToLabel
+        };
+    }
+
+    function normalizeScalarToken(token, visited) {
+        const trimmed = String(token ?? "").trim();
+        if (!trimmed) return "";
+
+        if (trimmed.startsWith('"') && trimmed.endsWith('"')) {
+            return trimmed.slice(1, -1);
+        }
+
+        const ref = cellRefToIndex(trimmed);
+        if (ref) {
+            return getCellComputedValue(ref.row, ref.col, visited);
+        }
+
+        if (trimmed.startsWith("=")) {
+            return FormulaEngine.evaluate(trimmed, buildFormulaContext(), visited);
+        }
+
+        if (isNumericValue(trimmed)) {
+            return parseNumber(trimmed);
+        }
+
+        if (trimmed.toUpperCase() === "TRUE") return true;
+        if (trimmed.toUpperCase() === "FALSE") return false;
+
+        return trimmed;
+    }
+
+    function getRangeMatrix(rangeText, computed = true, visited = new Set()) {
+        const parts = String(rangeText || "").trim().toUpperCase().split(":");
+        if (parts.length !== 2) return [];
+
+        const start = cellRefToIndex(parts[0]);
+        const end = cellRefToIndex(parts[1]);
+        if (!start || !end) return [];
+
+        const rowStart = Math.min(start.row, end.row);
+        const rowEnd = Math.max(start.row, end.row);
+        const colStart = Math.min(start.col, end.col);
+        const colEnd = Math.max(start.col, end.col);
+
+        const rows = [];
+        for (let r = rowStart; r <= rowEnd; r += 1) {
+            const row = [];
+            for (let c = colStart; c <= colEnd; c += 1) {
+                row.push(computed ? getCellComputedValue(r, c, visited) : currentSheet.grid[r][c]);
+            }
+            rows.push(row);
+        }
+        return rows;
+    }
+
+    function clearSpills() {
+        if (!currentSheet) return;
+
+        for (let r = 0; r < currentRows; r += 1) {
+            for (let c = 0; c < currentCols; c += 1) {
+                const value = currentSheet.grid[r][c];
+                if (typeof value === "string" && value.startsWith(SPILL_PREFIX)) {
+                    currentSheet.grid[r][c] = "";
+                }
+            }
+        }
+    }
+
+    function applySpills() {
+        if (!currentSheet) return;
+        clearSpills();
+
+        for (let r = 0; r < currentRows; r += 1) {
+            for (let c = 0; c < currentCols; c += 1) {
+                const raw = currentSheet.grid[r][c];
+                if (typeof raw === "string" && raw.trim().startsWith("=")) {
+                    const result = FormulaEngine.evaluate(raw.trim(), buildFormulaContext(), new Set());
+                    if (Array.isArray(result)) {
+                        const matrix = Array.isArray(result[0]) ? result : result.map(v => [v]);
+                        ensureDimensions(r + matrix.length, c + Math.max(...matrix.map(row => row.length), 1));
+
+                        matrix.forEach((spillRow, rr) => {
+                            spillRow.forEach((spillValue, cc) => {
+                                if (rr === 0 && cc === 0) return;
+                                currentSheet.grid[r + rr][c + cc] = `${SPILL_PREFIX}${spillValue ?? ""}`;
+                            });
+                        });
+                    }
+                }
+            }
+        }
+    }
+
+    function getCellComputedValue(row, col, visited = new Set()) {
+        const key = `${row}:${col}`;
+        if (visited.has(key)) return "#CYCLE!";
+
+        const raw = currentSheet?.grid?.[row]?.[col] ?? "";
+
+        if (typeof raw === "string" && raw.startsWith(SPILL_PREFIX)) {
+            return raw.slice(SPILL_PREFIX.length);
+        }
+
+        if (typeof raw === "string" && raw.trim().startsWith("=")) {
+            visited.add(key);
+            const result = FormulaEngine.evaluate(raw.trim(), buildFormulaContext(), visited);
+            visited.delete(key);
+            return result;
+        }
+
+        return raw;
+    }
+
+    function renderSpecialCellContent(value) {
+        if (typeof value !== "string") return null;
 
         if (value.startsWith("=LINK(") && value.endsWith(")")) {
             const inner = value.slice(6, -1);
@@ -319,1028 +616,1369 @@ document.addEventListener("DOMContentLoaded", function () {
         }
 
         if (value.startsWith("=CHECKBOX(") && value.endsWith(")")) {
-            const inner = value.slice(10, -1).trim();
-            const checked = inner === "true";
-            return `<label class="we-checkbox-wrap"><input type="checkbox" class="we-cell-checkbox" ${checked ? "checked" : ""}></label>`;
+            const checked = value.slice(10, -1).trim().toLowerCase() === "true" ? "checked" : "";
+            return `<div class="we-checkbox-wrap"><input class="we-cell-checkbox" type="checkbox" ${checked}></div>`;
         }
 
         if (value.startsWith("=DROPDOWN(") && value.endsWith(")")) {
-            const inner = value.slice(10, -1);
-            const [selected, optionsRaw] = inner.split("|");
-            const options = String(optionsRaw || "").split(",").map(x => x.trim()).filter(Boolean);
-
-            return `
-                <select class="we-cell-dropdown">
-                    ${options.map(opt => `<option value="${escapeHtml(opt)}" ${opt === selected ? "selected" : ""}>${escapeHtml(opt)}</option>`).join("")}
-                </select>
-            `;
+            const options = value.slice(10, -1).split("|").map(v => v.trim()).filter(Boolean);
+            return `<select class="we-cell-dropdown">${options.map(o => `<option>${escapeHtml(o)}</option>`).join("")}</select>`;
         }
 
         if (value.startsWith("=IMAGE(") && value.endsWith(")")) {
-            const inner = value.slice(7, -1);
-            return `<img src="${inner}" class="we-cell-image" alt="obraz">`;
-        }
-
-        if (value.startsWith("=DRAW(") && value.endsWith(")")) {
-            const inner = value.slice(6, -1);
-            return `<div class="we-cell-draw">${escapeHtml(inner)}</div>`;
+            return `<img class="we-cell-image" src="${escapeHtml(value.slice(7, -1).trim())}" alt="Obraz">`;
         }
 
         if (value.startsWith("=COMMENT(") && value.endsWith(")")) {
-            const inner = value.slice(9, -1);
-            return `<div class="we-cell-indicator comment" title="${escapeHtml(inner)}">💬</div>`;
+            return `<div class="we-cell-indicator" title="${escapeHtml(value.slice(9, -1))}">💬</div>`;
         }
 
         if (value.startsWith("=NOTE(") && value.endsWith(")")) {
-            const inner = value.slice(6, -1);
-            return `<div class="we-cell-indicator note" title="${escapeHtml(inner)}">📝</div>`;
-        }
-
-        if (value === "=SMART_DATE") {
-            return `<span class="we-smart-chip">${new Date().toLocaleDateString("pl-PL")}</span>`;
-        }
-
-        if (value.startsWith("=SMART_STATUS(") && value.endsWith(")")) {
-            const inner = value.slice(14, -1);
-            return `<span class="we-smart-chip">${escapeHtml(inner)}</span>`;
-        }
-
-        if (value.startsWith("=SMART_PROGRESS(") && value.endsWith(")")) {
-            const inner = Number(value.slice(16, -1));
-            const pct = Number.isFinite(inner) ? Math.max(0, Math.min(100, inner)) : 0;
-            return `
-                <div class="we-smart-progress">
-                    <div class="we-smart-progress-bar" style="width:${pct}%"></div>
-                    <span>${pct}%</span>
-                </div>
-            `;
+            return `<div class="we-cell-indicator" title="${escapeHtml(value.slice(6, -1))}">📝</div>`;
         }
 
         return null;
     }
 
-    function renderGrid() {
-        if (!currentSheet || !head || !body) return;
+    function cellDisplayValue(row, col) {
+        const raw = currentSheet.grid[row][col] ?? "";
+        const special = typeof raw === "string" ? renderSpecialCellContent(raw.trim()) : null;
 
-        currentSheet.grid = ensureRectangularGrid(currentSheet.grid);
-        const grid = currentSheet.grid;
-        const cols = grid[0].length;
+        if (special !== null) {
+            return { html: special, special: true };
+        }
+
+        if (typeof raw === "string" && raw.startsWith(SPILL_PREFIX)) {
+            return {
+                html: `<span class="we-formula-result">${escapeHtml(raw.slice(SPILL_PREFIX.length))}</span>`,
+                special: true
+            };
+        }
+
+        if (typeof raw === "string" && raw.trim().startsWith("=")) {
+            const result = getCellComputedValue(row, col);
+            if (Array.isArray(result)) {
+                return { html: `<span class="we-formula-result">[tablica]</span>`, special: true };
+            }
+            return {
+                html: `<span class="we-formula-result">${escapeHtml(result)}</span>`,
+                special: true
+            };
+        }
+
+        return { html: escapeHtml(raw), special: false };
+    }
+
+    function updateFormulaBar() {
+        if (!currentSheet) return;
+        const value = currentSheet.grid[activeCell.row][activeCell.col] ?? "";
+        if (formulaInput) formulaInput.value = value;
+        if (activeCellLabel) activeCellLabel.textContent = `${colToLabel(activeCell.col)}${activeCell.row + 1}`;
+    }
+
+    function setActiveCell(row, col, focus = false) {
+        activeCell = { row, col };
+        updateFormulaBar();
+        updateSelectionHighlight();
+        refreshStartControlsFromCell();
+
+        if (focus) {
+            const cell = body.querySelector(`td[data-row="${row}"][data-col="${col}"]`);
+            if (cell) cell.focus();
+        }
+    }
+
+    function renderGrid() {
+        if (!currentSheet) return;
+
+        applySpills();
 
         head.innerHTML = "";
         body.innerHTML = "";
 
-        const trHead = document.createElement("tr");
+        const headerRow = document.createElement("tr");
         const corner = document.createElement("th");
-        corner.className = "row-header";
         corner.textContent = "#";
-        trHead.appendChild(corner);
+        headerRow.appendChild(corner);
 
-        for (let c = 0; c < cols; c++) {
+        for (let col = 0; col < currentCols; col += 1) {
             const th = document.createElement("th");
-            th.textContent = columnIndexToLabel(c);
-            trHead.appendChild(th);
+            th.textContent = colToLabel(col);
+            headerRow.appendChild(th);
         }
+        head.appendChild(headerRow);
 
-        head.appendChild(trHead);
-
-        grid.forEach((row, rowIndex) => {
+        for (let row = 0; row < currentRows; row += 1) {
             const tr = document.createElement("tr");
 
             const rowHeader = document.createElement("th");
             rowHeader.className = "row-header";
-            rowHeader.textContent = rowIndex + 1;
+            rowHeader.textContent = row + 1;
             tr.appendChild(rowHeader);
 
-            row.forEach((value, colIndex) => {
+            for (let col = 0; col < currentCols; col += 1) {
                 const td = document.createElement("td");
-                td.dataset.row = rowIndex;
-                td.dataset.col = colIndex;
+                td.dataset.row = String(row);
+                td.dataset.col = String(col);
+                td.tabIndex = 0;
 
-                const specialHtml = renderSpecialCell(value);
+                const rawValue = currentSheet.grid[row][col] ?? "";
+                const display = cellDisplayValue(row, col);
 
-                if (specialHtml) {
-                    td.innerHTML = specialHtml;
-                    td.contentEditable = "false";
+                td.innerHTML = display.html;
+
+                const editableBlocked =
+                    display.special ||
+                    (typeof rawValue === "string" && rawValue.startsWith(SPILL_PREFIX));
+
+                if (editableBlocked) {
                     td.classList.add("we-special-cell");
+                    td.contentEditable = "false";
                 } else {
-                    td.innerText = value ?? "";
                     td.contentEditable = "true";
+                    td.spellcheck = false;
                 }
 
-                td.addEventListener("click", (e) => {
-                    activeCell = { row: rowIndex, col: colIndex };
-                    setActiveCellLabel();
+                applyCellStyleToElement(td, row, col);
 
-                    if (formulaInput) {
-                        formulaInput.value = currentSheet.grid[rowIndex][colIndex] ?? "";
-                    }
+                td.addEventListener("mousedown", event => {
+                    if (event.button !== 0) return;
 
-                    const checkbox = e.target.closest(".we-cell-checkbox");
-                    const dropdown = e.target.closest(".we-cell-dropdown");
+                    isMouseSelecting = true;
+                    selectionStart = { row, col };
+                    selectionEnd = { row, col };
+                    setActiveCell(row, col, false);
+                    updateSelectionHighlight();
 
-                    if (checkbox) {
-                        currentSheet.grid[rowIndex][colIndex] = `=CHECKBOX(${checkbox.checked ? "true" : "false"})`;
-                        markDirty();
-                    }
-
-                    if (dropdown) {
-                        const raw = String(currentSheet.grid[rowIndex][colIndex] || "");
-                        if (raw.startsWith("=DROPDOWN(") && raw.endsWith(")")) {
-                            const inner = raw.slice(10, -1);
-                            const [, optionsRaw] = inner.split("|");
-                            currentSheet.grid[rowIndex][colIndex] = `=DROPDOWN(${dropdown.value}|${optionsRaw || ""})`;
-                            markDirty();
-                        }
+                    if (!editableBlocked) {
+                        td.focus();
                     }
                 });
 
-                td.addEventListener("focus", () => {
-                    activeCell = { row: rowIndex, col: colIndex };
-                    setActiveCellLabel();
+                td.addEventListener("mouseover", () => {
+                    if (!isMouseSelecting) return;
+                    selectionEnd = { row, col };
+                    updateSelectionHighlight();
+                });
 
-                    if (formulaInput) {
-                        formulaInput.value = currentSheet.grid[rowIndex][colIndex] ?? "";
+                td.addEventListener("click", () => {
+                    setActiveCell(row, col, false);
+                    if (!editableBlocked) td.focus();
+                });
+
+                td.addEventListener("focus", () => {
+                    setActiveCell(row, col, false);
+                    const currentRaw = currentSheet.grid[row][col] ?? "";
+                    if (formulaInput) formulaInput.value = currentRaw;
+                    if (!editableBlocked) td.textContent = currentRaw;
+                });
+
+                td.addEventListener("blur", () => {
+                    if (!editableBlocked) {
+                        const newValue = td.textContent ?? "";
+                        if (newValue !== (currentSheet.grid[row][col] ?? "")) {
+                            pushHistorySnapshot();
+                            currentSheet.grid[row][col] = newValue;
+                            td.innerHTML = cellDisplayValue(row, col).html;
+                            applyCellStyleToElement(td, row, col);
+                            markDirty();
+                        } else {
+                            td.innerHTML = cellDisplayValue(row, col).html;
+                            applyCellStyleToElement(td, row, col);
+                        }
                     }
                 });
 
                 td.addEventListener("input", () => {
-                    if (!td.classList.contains("we-special-cell")) {
-                        currentSheet.grid[rowIndex][colIndex] = td.innerText;
-                        if (activeCell.row === rowIndex && activeCell.col === colIndex && formulaInput) {
-                            formulaInput.value = td.innerText;
-                        }
-                        markDirty();
+                    if (!editableBlocked && formulaInput) {
+                        formulaInput.value = td.textContent ?? "";
                     }
                 });
 
-                td.addEventListener("change", (e) => {
-                    const checkbox = e.target.closest(".we-cell-checkbox");
-                    const dropdown = e.target.closest(".we-cell-dropdown");
-
-                    if (checkbox) {
-                        currentSheet.grid[rowIndex][colIndex] = `=CHECKBOX(${checkbox.checked ? "true" : "false"})`;
-                        markDirty();
-                    }
-
-                    if (dropdown) {
-                        const raw = String(currentSheet.grid[rowIndex][colIndex] || "");
-                        if (raw.startsWith("=DROPDOWN(") && raw.endsWith(")")) {
-                            const inner = raw.slice(10, -1);
-                            const [, optionsRaw] = inner.split("|");
-                            currentSheet.grid[rowIndex][colIndex] = `=DROPDOWN(${dropdown.value}|${optionsRaw || ""})`;
-                            markDirty();
-                        }
+                td.addEventListener("keydown", event => {
+                    if (event.key === "Enter") {
+                        event.preventDefault();
+                        td.blur();
+                        clearSelection();
+                        setActiveCell(Math.min(currentRows - 1, row + 1), col, true);
                     }
                 });
 
                 tr.appendChild(td);
-            });
+            }
 
             body.appendChild(tr);
-        });
-
-        updateHeaderInfo();
-        setActiveCellLabel();
-    }
-
-    function getRangeValues(arg) {
-        if (!currentSheet) return [];
-
-        if (!arg.includes(":")) {
-            const ref = parseCellRef(arg);
-            if (!ref) return [];
-            return [currentSheet.grid?.[ref.row]?.[ref.col] ?? ""];
         }
 
-        const [startRef, endRef] = arg.split(":");
-        const start = parseCellRef(startRef);
-        const end = parseCellRef(endRef);
-        if (!start || !end) return [];
+        updateSelectionHighlight();
+        autoFitColumns();
+        rerenderGeneratedObjects();
+    }
 
-        const values = [];
-        const rowStart = Math.min(start.row, end.row);
-        const rowEnd = Math.max(start.row, end.row);
-        const colStart = Math.min(start.col, end.col);
-        const colEnd = Math.max(start.col, end.col);
+    document.addEventListener("mouseup", () => {
+        if (isMouseSelecting) {
+            isMouseSelecting = false;
+            updateSelectionHighlight();
+        }
+    });
 
-        for (let r = rowStart; r <= rowEnd; r++) {
-            for (let c = colStart; c <= colEnd; c++) {
-                values.push(currentSheet.grid?.[r]?.[c] ?? "");
+    function autoFitColumns() {
+        const colWidths = Array.from({ length: currentCols }, () => 120);
+
+        for (let col = 0; col < currentCols; col += 1) {
+            colWidths[col] = Math.max(colWidths[col], (colToLabel(col).length * 12) + 42);
+
+            for (let row = 0; row < currentRows; row += 1) {
+                const raw = currentSheet.grid[row][col] ?? "";
+                const text = String(
+                    typeof raw === "string" && raw.trim().startsWith("=")
+                        ? getCellComputedValue(row, col)
+                        : raw
+                );
+                colWidths[col] = Math.min(420, Math.max(colWidths[col], (text.length * 8) + 34));
             }
         }
 
-        return values;
-    }
+        const headerCells = head.querySelectorAll("th");
+        headerCells.forEach((cell, index) => {
+            if (index > 0) cell.style.minWidth = `${colWidths[index - 1]}px`;
+        });
 
-    function median(values) {
-        const arr = [...values].sort((a, b) => a - b);
-        const mid = Math.floor(arr.length / 2);
-        return arr.length % 2 ? arr[mid] : (arr[mid - 1] + arr[mid]) / 2;
-    }
-
-    function variance(values) {
-        const mean = values.reduce((a, b) => a + b, 0) / values.length;
-        return values.reduce((sum, v) => sum + Math.pow(v - mean, 2), 0) / values.length;
-    }
-
-    function stddev(values) {
-        return Math.sqrt(variance(values));
-    }
-
-    function evaluateFormula(text) {
-        const raw = (text || "").trim();
-
-        if (!raw.startsWith("=")) {
-            return raw;
-        }
-
-        const match = /^=([A-ZĄĆĘŁŃÓŚŹŻ.]+)\((.*)\)$/i.exec(raw);
-        if (!match) return raw;
-
-        const fn = normalizeFunctionName(match[1]);
-        const arg = match[2].trim();
-
-        const numericFns = ["SUMA", "SREDNIA", "MEDIANA", "MINIMUM", "MAXIMUM", "ZLICZ", "ODCHYLENIE", "WARIANCJA"];
-        if (numericFns.includes(fn)) {
-            const values = getRangeValues(arg).map(toNumber).filter(v => !Number.isNaN(v));
-            if (!values.length) return "";
-            if (fn === "SUMA") return values.reduce((a, b) => a + b, 0);
-            if (fn === "SREDNIA") return values.reduce((a, b) => a + b, 0) / values.length;
-            if (fn === "MEDIANA") return median(values);
-            if (fn === "MINIMUM") return Math.min(...values);
-            if (fn === "MAXIMUM") return Math.max(...values);
-            if (fn === "ZLICZ") return values.length;
-            if (fn === "ODCHYLENIE") return stddev(values);
-            if (fn === "WARIANCJA") return variance(values);
-        }
-
-        if (fn === "ABS") {
-            const v = toNumber(arg);
-            return Number.isNaN(v) ? "" : Math.abs(v);
-        }
-
-        if (fn === "ROUND") {
-            const parts = arg.split(",");
-            const v = toNumber(parts[0]);
-            const decimals = Number(parts[1] ?? 0);
-            return Number.isNaN(v) ? "" : Number(v.toFixed(decimals));
-        }
-
-        if (fn === "PIERWIASTEK") {
-            const v = toNumber(arg);
-            return Number.isNaN(v) ? "" : Math.sqrt(v);
-        }
-
-        if (fn === "MOC") {
-            const parts = arg.split(",");
-            const base = toNumber(parts[0]);
-            const power = toNumber(parts[1]);
-            return Number.isNaN(base) || Number.isNaN(power) ? "" : Math.pow(base, power);
-        }
-
-        if (fn === "LEN") {
-            return String(arg).length;
-        }
-
-        if (fn === "CONCAT") {
-            return arg.split(",").map(x => x.trim()).join("");
-        }
-
-        if (fn === "LEWO") {
-            const parts = arg.split(",");
-            const txt = String(parts[0] ?? "").trim();
-            const n = Number(parts[1] ?? 1);
-            return txt.substring(0, n);
-        }
-
-        if (fn === "PRAWO") {
-            const parts = arg.split(",");
-            const txt = String(parts[0] ?? "").trim();
-            const n = Number(parts[1] ?? 1);
-            return txt.slice(-n);
-        }
-
-        if (fn === "DZISIAJ") {
-            return new Date().toLocaleDateString("pl-PL");
-        }
-
-        if (fn === "TERAZ") {
-            return new Date().toLocaleString("pl-PL");
-        }
-
-        return raw;
-    }
-
-    async function loadSheet() {
-        if (!sheetId) {
-            if (sheetNameEl) sheetNameEl.textContent = "Brak identyfikatora arkusza";
-            if (sheetMetaEl) sheetMetaEl.textContent = "Nie podano parametru ?sheet=";
-            return;
-        }
-
-        try {
-            const data = await getJson(`/ares/api/sheets/${sheetId}/`);
-
-            currentSheet = {
-                id: data.id,
-                name: data.name || "Arkusz",
-                category: data.category || "Bez kategorii",
-                grid: ensureRectangularGrid(data.grid || []),
-                createdAt: data.createdAt || null,
-                updatedAt: data.updatedAt || null
-            };
-
-            renderGrid();
-            hasUnsavedChanges = false;
-            setAutosaveStatus("", "Brak zmian");
-        } catch (e) {
-            console.error("loadSheet error:", e);
-            if (sheetNameEl) sheetNameEl.textContent = "Nie znaleziono arkusza";
-            if (sheetMetaEl) sheetMetaEl.textContent = "Nie udało się pobrać danych.";
-            setAutosaveStatus("error", "Błąd ładowania");
-        }
-    }
-
-    async function saveSheet() {
-        if (!currentSheet) return;
-
-        try {
-            await postJson(`/ares/api/sheets/${currentSheet.id}/save/`, {
-                name: currentSheet.name,
-                category: currentSheet.category,
-                grid: currentSheet.grid,
-                action: "Zapisano arkusz"
+        body.querySelectorAll("tr").forEach(tr => {
+            tr.querySelectorAll("td").forEach((td, index) => {
+                td.style.minWidth = `${colWidths[index]}px`;
             });
-
-            const refreshed = await getJson(`/ares/api/sheets/${currentSheet.id}/`);
-            currentSheet = {
-                id: refreshed.id,
-                name: refreshed.name || currentSheet.name,
-                category: refreshed.category || currentSheet.category,
-                grid: ensureRectangularGrid(refreshed.grid || currentSheet.grid),
-                createdAt: refreshed.createdAt || currentSheet.createdAt,
-                updatedAt: refreshed.updatedAt || currentSheet.updatedAt
-            };
-
-            updateHeaderInfo();
-            hasUnsavedChanges = false;
-            setAutosaveStatus("saved", "Zapisano ręcznie");
-        } catch (e) {
-            console.error("saveSheet error:", e);
-            setAutosaveStatus("error", "Błąd zapisu");
-            alert("Nie udało się zapisać arkusza.");
-        }
-    }
-
-    function parseCsv(text) {
-        const rows = text
-            .split(/\r?\n/)
-            .filter(line => line.trim() !== "")
-            .map(line => line.split(";"));
-
-        return ensureRectangularGrid(rows);
-    }
-
-    function gridToCsv(grid) {
-        return grid.map(row =>
-            row.map(cell => {
-                const value = String(cell ?? "");
-                if (value.includes(";") || value.includes('"') || value.includes("\n")) {
-                    return `"${value.replace(/"/g, '""')}"`;
-                }
-                return value;
-            }).join(";")
-        ).join("\n");
+        });
     }
 
     function applyFormulaToActiveCell() {
-        if (!currentSheet || !formulaInput || !activeCell) return;
-        const result = evaluateFormula(formulaInput.value);
-        currentSheet.grid[activeCell.row][activeCell.col] = String(result);
-        renderGrid();
-        markDirty();
-    }
+        if (!currentSheet) return;
+        const value = formulaInput?.value ?? "";
 
-    function insertRowAbove() {
-        const cols = currentSheet.grid[0]?.length || 8;
-        currentSheet.grid.splice(activeCell.row, 0, Array(cols).fill(""));
-        renderGrid();
-        markDirty();
-    }
+        pushHistorySnapshot();
 
-    function insertRowBelow() {
-        const cols = currentSheet.grid[0]?.length || 8;
-        currentSheet.grid.splice(activeCell.row + 1, 0, Array(cols).fill(""));
-        renderGrid();
-        markDirty();
-    }
-
-    function insertColLeft() {
-        currentSheet.grid.forEach(row => row.splice(activeCell.col, 0, ""));
-        renderGrid();
-        markDirty();
-    }
-
-    function insertColRight() {
-        currentSheet.grid.forEach(row => row.splice(activeCell.col + 1, 0, ""));
-        renderGrid();
-        markDirty();
-    }
-
-    function clearRow() {
-        const cols = currentSheet.grid[0]?.length || 8;
-        currentSheet.grid[activeCell.row] = Array(cols).fill("");
-        renderGrid();
-        markDirty();
-    }
-
-    function clearCol() {
-        currentSheet.grid.forEach(row => {
-            row[activeCell.col] = "";
-        });
-        renderGrid();
-        markDirty();
-    }
-
-    function applyTemplate(type) {
-        let grid = [];
-
-        if (type === "tpl-budget") {
-            grid = [
-                ["Kategoria", "Plan", "Wykonanie", "Różnica"],
-                ["Czynsz", "", "", ""],
-                ["Jedzenie", "", "", ""],
-                ["Transport", "", "", ""],
-                ["Rozrywka", "", "", ""],
-                ["SUMA", "", "", ""]
-            ];
+        if (hasMultiSelection()) {
+            forEachSelectedCell((row, col) => {
+                ensureDimensions(row + 1, col + 1);
+                currentSheet.grid[row][col] = value;
+            });
+        } else {
+            ensureDimensions(activeCell.row + 1, activeCell.col + 1);
+            currentSheet.grid[activeCell.row][activeCell.col] = value;
         }
 
-        if (type === "tpl-tasks") {
-            grid = [
-                ["Zadanie", "Status", "Priorytet", "Termin"],
-                ["", "Nowe", "Średni", ""],
-                ["", "W toku", "Wysoki", ""],
-                ["", "Zrobione", "Niski", ""]
-            ];
-        }
-
-        if (type === "tpl-schedule") {
-            grid = [
-                ["Godzina", "Pon", "Wt", "Śr", "Czw", "Pt"],
-                ["08:00", "", "", "", "", ""],
-                ["10:00", "", "", "", "", ""],
-                ["12:00", "", "", "", "", ""],
-                ["14:00", "", "", "", "", ""]
-            ];
-        }
-
-        if (type === "tpl-report") {
-            grid = [
-                ["Miesiąc", "Sprzedaż", "Koszty", "Wynik"],
-                ["Styczeń", "", "", ""],
-                ["Luty", "", "", ""],
-                ["Marzec", "", "", ""]
-            ];
-        }
-
-        if (grid.length) {
-            currentSheet.grid = ensureRectangularGrid(grid);
-            activeCell = { row: 0, col: 0 };
-            renderGrid();
-            markDirty();
-        }
+        renderGrid();
+        markDirty();
     }
 
-    function openModal(modal) {
-        if (modal) modal.classList.add("open");
-    }
+    function renderFormulaCategories() {
+        if (!formulaCategoriesEl || !window.FORMULA_CATALOG) return;
 
-    function closeModal(modal) {
-        if (modal) modal.classList.remove("open");
-    }
+        formulaCategoriesEl.innerHTML = "";
+        const categories = Object.keys(window.FORMULA_CATALOG);
 
-    function showGeneratedObject(title, html) {
-        generatedObjectsCard.hidden = false;
-        const wrapper = document.createElement("div");
-        wrapper.className = "we-object-card";
-        wrapper.innerHTML = `
-            <div class="we-object-top"><strong>${escapeHtml(title)}</strong></div>
-            <div class="we-object-body">${html}</div>
-        `;
-        generatedObjectsArea.prepend(wrapper);
-    }
+        if (!activeFormulaCategory && categories.length) {
+            activeFormulaCategory = categories[0];
+        }
 
-    function getRangeData(rangeText) {
-        const parsed = parseRange(rangeText);
-        if (!parsed) return [];
+        categories.forEach(category => {
+            const btn = document.createElement("button");
+            btn.type = "button";
+            btn.className = "we-formula-category-btn";
+            btn.textContent = category.replaceAll("_", " ").toUpperCase();
 
-        const rows = [];
-        for (let r = parsed.rowStart; r <= parsed.rowEnd; r++) {
-            const row = [];
-            for (let c = parsed.colStart; c <= parsed.colEnd; c++) {
-                row.push(currentSheet.grid?.[r]?.[c] ?? "");
+            if (category === activeFormulaCategory) {
+                btn.classList.add("active");
             }
-            rows.push(row);
-        }
-        return rows;
+
+            btn.addEventListener("click", () => {
+                activeFormulaCategory = category;
+                activeFormulaName = null;
+                renderFormulaCategories();
+                renderFormulaList();
+                renderFormulaDetails();
+            });
+
+            formulaCategoriesEl.appendChild(btn);
+        });
     }
 
-    function buildChartHtml(rangeText, type) {
-        const data = getRangeData(rangeText);
-        if (!data.length) return "<div>Nieprawidłowy zakres.</div>";
+    function renderFormulaList() {
+        if (!formulaListEl || !window.FORMULA_CATALOG || !activeFormulaCategory) return;
+
+        const items = window.FORMULA_CATALOG[activeFormulaCategory] || [];
+        formulaListEl.innerHTML = "";
+
+        if (formulaCategoryTitleEl) {
+            formulaCategoryTitleEl.textContent = activeFormulaCategory.replaceAll("_", " ").toUpperCase();
+        }
+
+        if (!activeFormulaName && items.length) {
+            activeFormulaName = items[0].name;
+        }
+
+        items.forEach(fn => {
+            const item = document.createElement("div");
+            item.className = "we-formula-item";
+
+            if (fn.name === activeFormulaName) {
+                item.classList.add("active");
+            }
+
+            item.innerHTML = `
+                <div class="we-formula-item-name">${escapeHtml(fn.name)}</div>
+                <div class="we-formula-item-syntax">${escapeHtml(fn.syntax)}</div>
+            `;
+
+            item.addEventListener("click", () => {
+                activeFormulaName = fn.name;
+                renderFormulaList();
+                renderFormulaDetails();
+            });
+
+            formulaListEl.appendChild(item);
+        });
+    }
+
+    function renderFormulaDetails() {
+        if (!formulaDetailsEl || !window.FORMULA_CATALOG || !activeFormulaCategory) return;
+
+        const items = window.FORMULA_CATALOG[activeFormulaCategory] || [];
+        const selected = items.find(fn => fn.name === activeFormulaName);
+
+        if (!selected) {
+            formulaDetailsEl.innerHTML = `
+                <div class="we-formula-details-empty">
+                    Wybierz funkcję z listy, aby zobaczyć opis i przykład użycia.
+                </div>
+            `;
+            return;
+        }
+
+        formulaDetailsEl.innerHTML = `
+            <div class="we-formula-details-card">
+                <div class="we-formula-details-name">${escapeHtml(selected.name)}</div>
+
+                <div>
+                    <div class="we-formula-details-label">Składnia</div>
+                    <div class="we-formula-details-box">${escapeHtml(selected.syntax)}</div>
+                </div>
+
+                <div>
+                    <div class="we-formula-details-label">Opis</div>
+                    <div class="we-formula-details-box">${escapeHtml(selected.description)}</div>
+                </div>
+
+                <div>
+                    <div class="we-formula-details-label">Przykład</div>
+                    <div class="we-formula-details-box">${escapeHtml(selected.example)}</div>
+                </div>
+
+                <button type="button" class="btn btn-primary we-formula-insert-btn" id="insert-selected-formula-btn">
+                    Wstaw do komórki
+                </button>
+            </div>
+        `;
+
+        document.getElementById("insert-selected-formula-btn")?.addEventListener("click", () => {
+            if (formulaInput) {
+                formulaInput.value = selected.syntax;
+                formulaInput.focus();
+            }
+        });
+    }
+
+    function initializeFormulaBrowser() {
+        renderFormulaCategories();
+        renderFormulaList();
+        renderFormulaDetails();
+    }
+
+    function openModal(modalEl) {
+        modalEl?.classList.add("open");
+    }
+
+    function closeModal(modalEl) {
+        modalEl?.classList.remove("open");
+    }
+
+    function buildGridLines(width, height, padding, showGrid) {
+        if (!showGrid) return "";
+        const lines = [];
+        for (let i = 0; i < 5; i += 1) {
+            const y = padding + ((height - padding * 2) * i / 4);
+            lines.push(`<line class="we-chart-grid-line" x1="${padding}" y1="${y}" x2="${width - padding}" y2="${y}"></line>`);
+        }
+        return lines.join("");
+    }
+
+    function buildChartHtml(chart) {
+        const {
+            rangeText,
+            type,
+            useHeader,
+            title,
+            xTitle,
+            yTitle,
+            showLegend,
+            showGrid,
+            showLabels,
+            color
+        } = chart;
+
+        const matrix = getRangeMatrix(rangeText, true);
+        if (!matrix.length || !matrix[0].length) {
+            return "<div>Nie udało się odczytać zakresu.</div>";
+        }
 
         let labels = [];
-        let values = [];
+        let rows = matrix;
 
-        if (data[0].length >= 2) {
-            labels = data.map(r => String(r[0] ?? ""));
-            values = data.map(r => toNumber(r[1])).filter(v => !Number.isNaN(v));
-        } else {
-            labels = data.map((_, i) => `Pozycja ${i + 1}`);
-            values = data.map(r => toNumber(r[0])).filter(v => !Number.isNaN(v));
+        if (useHeader && matrix.length > 1) {
+            labels = matrix[0].map(item => String(item ?? ""));
+            rows = matrix.slice(1);
         }
 
-        if (!values.length) return "<div>Zakres nie zawiera danych liczbowych do wykresu.</div>";
+        if (!labels.length) {
+            labels = rows.map((_, index) => `Wiersz ${index + 1}`);
+        }
 
-        const max = Math.max(...values, 1);
+        const chartColor = color || DEFAULT_CHART_COLOR;
+        const titleHtml = title ? `<div class="we-chart-main-title">${escapeHtml(title)}</div>` : "";
+        const legendHtml = showLegend
+            ? `<div class="we-chart-legend-box"><span class="we-chart-legend-item"><span class="we-chart-legend-swatch" style="background:${chartColor}"></span><span>${escapeHtml(yTitle || "Seria")}</span></span></div>`
+            : "";
 
         if (type === "bar") {
-            return `
-                <div class="we-chart-list">
-                    ${values.map((v, i) => `
-                        <div class="we-chart-row">
-                            <div class="we-chart-label">${escapeHtml(labels[i] || `P${i + 1}`)}</div>
-                            <div class="we-chart-track">
-                                <div class="we-chart-fill" style="width:${(v / max) * 100}%"></div>
-                            </div>
-                            <div class="we-chart-value">${v}</div>
+            const series = rows.map((row, index) => ({
+                label: String(row[0] ?? labels[index] ?? `P${index + 1}`),
+                value: parseNumber(row[row.length - 1])
+            }));
+
+            const maxValue = Math.max(...series.map(item => item.value), 1);
+
+            const rowsHtml = series.map(item => {
+                const ratio = (item.value / maxValue) * 100;
+                const label = showLabels ? `<div class="we-chart-value">${item.value}</div>` : `<div class="we-chart-value"></div>`;
+                return `
+                    <div class="we-chart-row">
+                        <div class="we-chart-label">${escapeHtml(item.label)}</div>
+                        <div class="we-chart-track">
+                            <div class="we-chart-fill" style="width:${ratio}%; background:${chartColor}"></div>
                         </div>
-                    `).join("")}
+                        ${label}
+                    </div>
+                `;
+            }).join("");
+
+            return `${titleHtml}${rowsHtml}${legendHtml}`;
+        }
+
+        if (type === "column") {
+            const series = rows.map((row, index) => ({
+                label: String(row[0] ?? labels[index] ?? `P${index + 1}`),
+                value: parseNumber(row[row.length - 1])
+            }));
+
+            const width = 760;
+            const height = 320;
+            const padding = 48;
+            const innerWidth = width - padding * 2;
+            const innerHeight = height - padding * 2;
+            const maxValue = Math.max(...series.map(item => item.value), 1);
+            const colWidth = innerWidth / Math.max(series.length, 1);
+
+            const gridLines = buildGridLines(width, height, padding, showGrid);
+
+            const bars = series.map((item, index) => {
+                const barHeight = (item.value / maxValue) * innerHeight;
+                const x = padding + index * colWidth + 8;
+                const y = height - padding - barHeight;
+                const w = Math.max(colWidth - 16, 10);
+
+                return `
+                    <rect x="${x}" y="${y}" width="${w}" height="${barHeight}" rx="4" fill="${chartColor}"></rect>
+                    ${showLabels ? `<text class="we-chart-label-text" x="${x + w / 2}" y="${y - 8}" text-anchor="middle">${item.value}</text>` : ""}
+                `;
+            }).join("");
+
+            const xLabels = series.map((item, index) => {
+                const x = padding + index * colWidth + colWidth / 2;
+                return `<text x="${x}" y="${height - 16}" text-anchor="middle" font-size="11" fill="#c9d6ef">${escapeHtml(item.label)}</text>`;
+            }).join("");
+
+            const yLabels = Array.from({ length: 5 }, (_, i) => {
+                const value = Math.round(maxValue - (maxValue * i / 4));
+                const y = padding + (innerHeight * i / 4) + 4;
+                return `<text x="${padding - 10}" y="${y}" text-anchor="end" font-size="11" fill="#c9d6ef">${value}</text>`;
+            }).join("");
+
+            return `
+                ${titleHtml}
+                <div class="we-chart-svg-wrap">
+                    <svg class="we-line-svg" viewBox="0 0 ${width} ${height}">
+                        ${gridLines}
+                        <line class="we-axis-line" x1="${padding}" y1="${height - padding}" x2="${width - padding}" y2="${height - padding}"></line>
+                        <line class="we-axis-line" x1="${padding}" y1="${padding}" x2="${padding}" y2="${height - padding}"></line>
+                        ${bars}
+                        ${xLabels}
+                        ${yLabels}
+                        ${xTitle ? `<text class="we-chart-axis-title" x="${width / 2}" y="${height - 2}" text-anchor="middle">${escapeHtml(xTitle)}</text>` : ""}
+                        ${yTitle ? `<text class="we-chart-axis-title" transform="translate(16 ${height / 2}) rotate(-90)" text-anchor="middle">${escapeHtml(yTitle)}</text>` : ""}
+                    </svg>
                 </div>
+                ${legendHtml}
             `;
         }
 
-        if (type === "line") {
-            const width = 520;
-            const height = 220;
-            const step = values.length > 1 ? width / (values.length - 1) : width;
-            const points = values.map((v, i) => {
-                const x = i * step;
-                const y = height - ((v / max) * (height - 20)) - 10;
-                return `${x},${y}`;
+        if (type === "line" || type === "area") {
+            const series = rows.map((row, index) => ({
+                label: String(row[0] ?? labels[index] ?? `P${index + 1}`),
+                value: parseNumber(row[row.length - 1])
+            }));
+
+            const max = Math.max(...series.map(point => point.value), 1);
+            const width = 760;
+            const height = 280;
+            const padding = 42;
+
+            const gridLines = buildGridLines(width, height, padding, showGrid);
+
+            const path = series.map((point, index) => {
+                const x = padding + ((width - padding * 2) * (series.length === 1 ? 0.5 : index / (series.length - 1)));
+                const y = height - padding - ((height - padding * 2) * (point.value / max));
+                return `${index === 0 ? "M" : "L"} ${x} ${y}`;
             }).join(" ");
 
+            const areaPath = `${path} L ${width - padding} ${height - padding} L ${padding} ${height - padding} Z`;
+
+            const circles = series.map((point, index) => {
+                const x = padding + ((width - padding * 2) * (series.length === 1 ? 0.5 : index / (series.length - 1)));
+                const y = height - padding - ((height - padding * 2) * (point.value / max));
+                const labelText = showLabels ? `<text class="we-chart-label-text" x="${x}" y="${y - 10}" text-anchor="middle">${point.value}</text>` : "";
+                return `${labelText}<circle cx="${x}" cy="${y}" r="4.5" fill="${chartColor}"></circle>`;
+            }).join("");
+
+            const ticks = series.map((point, index) => {
+                const x = padding + ((width - padding * 2) * (series.length === 1 ? 0.5 : index / (series.length - 1)));
+                return `<text x="${x}" y="${height - 10}" text-anchor="middle" font-size="11" fill="#c9d6ef">${escapeHtml(point.label)}</text>`;
+            }).join("");
+
             return `
-                <svg viewBox="0 0 ${width} ${height}" class="we-line-svg">
-                    <polyline fill="none" stroke="#7ba8ff" stroke-width="3" points="${points}" />
-                    ${values.map((v, i) => {
-                        const x = i * step;
-                        const y = height - ((v / max) * (height - 20)) - 10;
-                        return `<circle cx="${x}" cy="${y}" r="5" fill="#4f8cff"></circle>`;
-                    }).join("")}
-                </svg>
-                <div class="we-line-legend">
-                    ${labels.map((l, i) => `<span>${escapeHtml(l || `P${i + 1}`)}: ${values[i]}</span>`).join("")}
+                ${titleHtml}
+                <div class="we-chart-svg-wrap">
+                    <svg class="we-line-svg" viewBox="0 0 ${width} ${height}">
+                        ${gridLines}
+                        <line class="we-axis-line" x1="${padding}" y1="${height - padding}" x2="${width - padding}" y2="${height - padding}"></line>
+                        <line class="we-axis-line" x1="${padding}" y1="${padding}" x2="${padding}" y2="${height - padding}"></line>
+                        ${type === "area" ? `<path d="${areaPath}" fill="${chartColor}" opacity="0.18"></path>` : ""}
+                        <path d="${path}" fill="none" stroke="${chartColor}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"></path>
+                        ${circles}
+                        ${ticks}
+                        ${xTitle ? `<text class="we-chart-axis-title" x="${width / 2}" y="${height - 2}" text-anchor="middle">${escapeHtml(xTitle)}</text>` : ""}
+                        ${yTitle ? `<text class="we-chart-axis-title" transform="translate(14 ${height / 2}) rotate(-90)" text-anchor="middle">${escapeHtml(yTitle)}</text>` : ""}
+                    </svg>
                 </div>
+                ${legendHtml}
             `;
         }
 
         if (type === "pie") {
-            const total = values.reduce((a, b) => a + b, 0) || 1;
-            return `
-                <div class="we-chart-list">
-                    ${values.map((v, i) => `
-                        <div class="we-chart-row">
-                            <div class="we-chart-label">${escapeHtml(labels[i] || `P${i + 1}`)}</div>
-                            <div class="we-chart-track">
-                                <div class="we-chart-fill" style="width:${(v / total) * 100}%"></div>
-                            </div>
-                            <div class="we-chart-value">${((v / total) * 100).toFixed(1)}%</div>
+            const items = rows.map((row, index) => ({
+                label: String(row[0] ?? labels[index] ?? `Element ${index + 1}`),
+                value: Math.max(0, parseNumber(row[row.length - 1]))
+            }));
+
+            const total = items.reduce((acc, item) => acc + item.value, 0) || 1;
+            let startAngle = 0;
+
+            const slices = items.map((item, index) => {
+                const angle = (item.value / total) * Math.PI * 2;
+                const endAngle = startAngle + angle;
+
+                const x1 = 120 + 90 * Math.cos(startAngle - Math.PI / 2);
+                const y1 = 120 + 90 * Math.sin(startAngle - Math.PI / 2);
+                const x2 = 120 + 90 * Math.cos(endAngle - Math.PI / 2);
+                const y2 = 120 + 90 * Math.sin(endAngle - Math.PI / 2);
+
+                const largeArc = angle > Math.PI ? 1 : 0;
+                const sliceColor = STATIC_PALETTE[index % STATIC_PALETTE.length];
+
+                const path = `<path d="M120,120 L${x1},${y1} A90,90 0 ${largeArc},1 ${x2},${y2} z" fill="${sliceColor}"></path>`;
+                startAngle = endAngle;
+                return path;
+            }).join("");
+
+            const labelsHtml = showLabels
+                ? items.map(item => `
+                    <div class="we-chart-row">
+                        <div class="we-chart-label">${escapeHtml(item.label)}</div>
+                        <div class="we-chart-track">
+                            <div class="we-chart-fill" style="width:${(item.value / total) * 100}%"></div>
                         </div>
-                    `).join("")}
+                        <div class="we-chart-value">${item.value}</div>
+                    </div>
+                `).join("")
+                : "";
+
+            return `
+                ${titleHtml}
+                <div class="we-chart-svg-wrap">
+                    <svg class="we-line-svg" viewBox="0 0 320 260">
+                        ${slices}
+                    </svg>
                 </div>
+                ${labelsHtml}
+                ${showLegend ? `
+                    <div class="we-chart-legend-box">
+                        ${items.map((item, index) => `
+                            <span class="we-chart-legend-item">
+                                <span class="we-chart-legend-swatch" style="background:${STATIC_PALETTE[index % STATIC_PALETTE.length]}"></span>
+                                <span>${escapeHtml(item.label)}</span>
+                            </span>
+                        `).join("")}
+                    </div>
+                ` : ""}
+            `;
+        }
+
+        if (type === "scatter") {
+            const points = rows.map((row, index) => ({
+                x: parseNumber(row[0]),
+                y: parseNumber(row[1]),
+                label: `P${index + 1}`
+            }));
+
+            const maxX = Math.max(...points.map(point => point.x), 1);
+            const maxY = Math.max(...points.map(point => point.y), 1);
+            const width = 760;
+            const height = 280;
+            const padding = 42;
+
+            const gridLines = buildGridLines(width, height, padding, showGrid);
+
+            const circles = points.map(point => {
+                const x = padding + ((width - padding * 2) * (point.x / maxX));
+                const y = height - padding - ((height - padding * 2) * (point.y / maxY));
+                return `
+                    <circle cx="${x}" cy="${y}" r="5" fill="${chartColor}"></circle>
+                    ${showLabels ? `<text class="we-chart-label-text" x="${x + 8}" y="${y - 8}">${escapeHtml(point.label)}</text>` : ""}
+                `;
+            }).join("");
+
+            return `
+                ${titleHtml}
+                <div class="we-chart-svg-wrap">
+                    <svg class="we-line-svg" viewBox="0 0 ${width} ${height}">
+                        ${gridLines}
+                        <line class="we-axis-line" x1="${padding}" y1="${height - padding}" x2="${width - padding}" y2="${height - padding}"></line>
+                        <line class="we-axis-line" x1="${padding}" y1="${padding}" x2="${padding}" y2="${height - padding}"></line>
+                        ${circles}
+                        ${xTitle ? `<text class="we-chart-axis-title" x="${width / 2}" y="${height - 2}" text-anchor="middle">${escapeHtml(xTitle)}</text>` : ""}
+                        ${yTitle ? `<text class="we-chart-axis-title" transform="translate(14 ${height / 2}) rotate(-90)" text-anchor="middle">${escapeHtml(yTitle)}</text>` : ""}
+                    </svg>
+                </div>
+                ${legendHtml}
+            `;
+        }
+
+        if (type === "histogram") {
+            const numericValues = rows.flat().map(parseNumber).filter(value => Number.isFinite(value));
+
+            if (!numericValues.length) {
+                return "<div>Brak danych liczbowych do histogramu.</div>";
+            }
+
+            const min = Math.min(...numericValues);
+            const max = Math.max(...numericValues);
+            const bucketCount = Math.min(8, Math.max(4, Math.round(Math.sqrt(numericValues.length))));
+            const range = max - min || 1;
+            const bucketSize = range / bucketCount;
+
+            const counts = Array.from({ length: bucketCount }, () => 0);
+            const bucketLabels = [];
+
+            for (let i = 0; i < bucketCount; i += 1) {
+                const start = min + i * bucketSize;
+                const end = i === bucketCount - 1 ? max : start + bucketSize;
+                bucketLabels.push(`${start.toFixed(1)}–${end.toFixed(1)}`);
+            }
+
+            numericValues.forEach(value => {
+                let idx = Math.floor((value - min) / bucketSize);
+                if (!Number.isFinite(idx) || idx < 0) idx = 0;
+                if (idx >= bucketCount) idx = bucketCount - 1;
+                counts[idx] += 1;
+            });
+
+            const width = 760;
+            const height = 320;
+            const padding = 48;
+            const innerWidth = width - padding * 2;
+            const innerHeight = height - padding * 2;
+            const maxCount = Math.max(...counts, 1);
+            const barWidth = innerWidth / bucketCount;
+
+            const yGrid = buildGridLines(width, height, padding, showGrid);
+
+            const bars = counts.map((count, index) => {
+                const barHeight = (count / maxCount) * innerHeight;
+                const x = padding + index * barWidth + 4;
+                const y = height - padding - barHeight;
+                const w = Math.max(barWidth - 8, 6);
+
+                return `
+                    <rect x="${x}" y="${y}" width="${w}" height="${barHeight}" rx="4" fill="${chartColor}"></rect>
+                    ${showLabels ? `<text class="we-chart-label-text" x="${x + w / 2}" y="${y - 8}" text-anchor="middle">${count}</text>` : ""}
+                `;
+            }).join("");
+
+            const xLabels = bucketLabels.map((label, index) => {
+                const x = padding + index * barWidth + barWidth / 2;
+                return `<text x="${x}" y="${height - 16}" text-anchor="middle" font-size="10" fill="#c9d6ef">${escapeHtml(label)}</text>`;
+            }).join("");
+
+            const yLabels = Array.from({ length: 5 }, (_, i) => {
+                const value = Math.round(maxCount - (maxCount * i / 4));
+                const y = padding + (innerHeight * i / 4) + 4;
+                return `<text x="${padding - 10}" y="${y}" text-anchor="end" font-size="11" fill="#c9d6ef">${value}</text>`;
+            }).join("");
+
+            return `
+                ${titleHtml}
+                <div class="we-chart-svg-wrap">
+                    <svg class="we-line-svg" viewBox="0 0 ${width} ${height}">
+                        ${yGrid}
+                        <line class="we-axis-line" x1="${padding}" y1="${height - padding}" x2="${width - padding}" y2="${height - padding}"></line>
+                        <line class="we-axis-line" x1="${padding}" y1="${padding}" x2="${padding}" y2="${height - padding}"></line>
+                        ${bars}
+                        ${xLabels}
+                        ${yLabels}
+                        ${xTitle ? `<text class="we-chart-axis-title" x="${width / 2}" y="${height - 2}" text-anchor="middle">${escapeHtml(xTitle || "Przedziały")}</text>` : ""}
+                        ${yTitle ? `<text class="we-chart-axis-title" transform="translate(16 ${height / 2}) rotate(-90)" text-anchor="middle">${escapeHtml(yTitle || "Liczność")}</text>` : ""}
+                    </svg>
+                </div>
+                ${legendHtml}
             `;
         }
 
         return "<div>Nieobsługiwany typ wykresu.</div>";
     }
 
-    function buildPivotHtml(rangeText) {
-        const data = getRangeData(rangeText);
-        if (!data.length || data[0].length < 2) {
-            return "<div>Do tabeli przestawnej light wybierz zakres z co najmniej 2 kolumnami.</div>";
+    function buildPivotHtml(config) {
+        const matrix = getRangeMatrix(config.rangeText, true);
+        if (matrix.length < 1 || matrix[0].length < 2) {
+            return "<div>Za mało danych do tabeli przestawnej.</div>";
         }
 
-        const map = new Map();
+        const rowField = config.rowField ?? 0;
+        const valueField = config.valueField ?? 1;
+        const agg = config.agg || "sum";
 
-        data.forEach(row => {
-            const key = String(row[0] ?? "").trim();
-            const val = toNumber(row[1]);
-            if (!key) return;
-            map.set(key, (map.get(key) || 0) + (Number.isNaN(val) ? 1 : val));
+        const grouped = new Map();
+
+        matrix.forEach(row => {
+            const key = String(row[rowField] ?? "");
+            const value = parseNumber(row[valueField]);
+
+            if (!grouped.has(key)) grouped.set(key, []);
+            grouped.get(key).push(value);
         });
 
-        const rows = [...map.entries()];
-        if (!rows.length) return "<div>Brak danych do zestawienia.</div>";
+        const renderedRows = Array.from(grouped.entries()).map(([key, values]) => {
+            let result = 0;
+
+            if (agg === "sum") result = values.reduce((a, b) => a + b, 0);
+            if (agg === "count") result = values.length;
+            if (agg === "avg") result = values.length ? values.reduce((a, b) => a + b, 0) / values.length : 0;
+            if (agg === "min") result = values.length ? Math.min(...values) : 0;
+            if (agg === "max") result = values.length ? Math.max(...values) : 0;
+            if (agg === "median") {
+                const sorted = [...values].sort((a, b) => a - b);
+                const mid = Math.floor(sorted.length / 2);
+                result = sorted.length
+                    ? (sorted.length % 2 === 0 ? (sorted[mid - 1] + sorted[mid]) / 2 : sorted[mid])
+                    : 0;
+            }
+
+            return `<tr><td>${escapeHtml(key)}</td><td>${Number(result.toFixed(4))}</td></tr>`;
+        }).join("");
 
         return `
             <table class="we-pivot-table">
                 <thead>
                     <tr><th>Klucz</th><th>Wartość</th></tr>
                 </thead>
-                <tbody>
-                    ${rows.map(([k, v]) => `<tr><td>${escapeHtml(k)}</td><td>${v}</td></tr>`).join("")}
-                </tbody>
+                <tbody>${renderedRows}</tbody>
             </table>
         `;
     }
 
-    tabs.forEach(tab => {
-        tab.addEventListener("click", () => {
-            const target = tab.dataset.tab;
-            tabs.forEach(t => t.classList.remove("active"));
-            panels.forEach(p => p.classList.remove("active"));
+    function rerenderGeneratedObjects() {
+        if (!generatedObjectsArea || !generatedObjectsCard) return;
 
-            tab.classList.add("active");
-            const panel = document.querySelector(`.we-ribbon-panel[data-panel="${target}"]`);
-            if (panel) panel.classList.add("active");
-        });
-    });
+        generatedObjectsArea.innerHTML = "";
 
-    insertMenuItems.forEach(btn => {
-        btn.addEventListener("mouseenter", () => {
-            insertMenuItems.forEach(item => item.classList.remove("active"));
-            btn.classList.add("active");
-
-            const submenuId = btn.dataset.submenu;
-            if (!submenuId) return;
-
-            insertSubmenus.forEach(sm => sm.classList.remove("active"));
-            const target = document.getElementById(submenuId);
-            if (target) target.classList.add("active");
+        chartObjects.forEach((chart, index) => {
+            const html = buildChartHtml(chart);
+            const card = document.createElement("div");
+            card.className = "we-object-card";
+            card.innerHTML = `
+                <div class="we-chart-object-title">Wykres ${index + 1}</div>
+                <div class="we-chart-object-subtitle">${escapeHtml(chart.rangeText)} • ${escapeHtml(chart.type)}</div>
+                <div class="we-object-body">${html}</div>
+            `;
+            generatedObjectsArea.appendChild(card);
         });
 
-        btn.addEventListener("click", async () => {
-            const action = btn.dataset.action;
-            if (!action || !currentSheet) return;
-
-            if (action === "new-sheet") {
-                const name = prompt("Nazwa nowego arkusza:", "Nowy arkusz");
-                if (!name) return;
-                const category = prompt("Kategoria:", "Bez kategorii") || "Bez kategorii";
-
-                try {
-                    const created = await postJson("/ares/api/sheets/create/", { name, category });
-                    window.location.href = `/worksheets/editor/?sheet=${created.id}`;
-                } catch (e) {
-                    console.error(e);
-                    alert("Nie udało się utworzyć nowego arkusza.");
-                }
-            }
-
-            if (action === "chart") {
-                openModal(chartModal);
-            }
-
-            if (action === "pivot") {
-                openModal(pivotModal);
-            }
-
-            if (action === "image") {
-                imageInsertInput.click();
-            }
-
-            if (action === "drawing") {
-                const draw = prompt("Podaj znak / emoji / krótki rysunek tekstowy:", "★");
-                if (draw !== null) {
-                    currentSheet.grid[activeCell.row][activeCell.col] = `=DRAW(${draw})`;
-                    renderGrid();
-                    markDirty();
-                }
-            }
-
-            if (action === "function-helper") {
-                const fn = prompt("Podaj nazwę funkcji, np. SUMA", "SUMA");
-                const range = prompt("Podaj zakres, np. A1:A10", "A1:A10");
-                if (fn && range) {
-                    formulaInput.value = `=${normalizeFunctionName(fn)}(${range})`;
-                    formulaInput.focus();
-                }
-            }
-
-            if (action === "link") {
-                const text = prompt("Tekst linku:", "OpenAI");
-                if (text === null) return;
-                const url = prompt("Adres URL:", "https://example.com");
-                if (url === null) return;
-                currentSheet.grid[activeCell.row][activeCell.col] = `=LINK(${text}|${url})`;
-                renderGrid();
-                markDirty();
-            }
-
-            if (action === "checkbox") {
-                currentSheet.grid[activeCell.row][activeCell.col] = "=CHECKBOX(false)";
-                renderGrid();
-                markDirty();
-            }
-
-            if (action === "dropdown") {
-                const options = prompt("Podaj opcje oddzielone przecinkami:", "Nowe,W toku,Zrobione");
-                if (!options) return;
-                const first = options.split(",")[0]?.trim() || "";
-                currentSheet.grid[activeCell.row][activeCell.col] = `=DROPDOWN(${first}|${options})`;
-                renderGrid();
-                markDirty();
-            }
-
-            if (action === "emoji") {
-                const emoji = prompt("Wpisz emotikon / emoji:", "😀");
-                if (emoji !== null) {
-                    currentSheet.grid[activeCell.row][activeCell.col] = emoji;
-                    renderGrid();
-                    markDirty();
-                }
-            }
-
-            if (action === "comment") {
-                const text = prompt("Treść komentarza:");
-                if (text !== null && text.trim() !== "") {
-                    currentSheet.grid[activeCell.row][activeCell.col] = `=COMMENT(${text})`;
-                    renderGrid();
-                    markDirty();
-                }
-            }
-
-            if (action === "note") {
-                const text = prompt("Treść notatki:");
-                if (text !== null && text.trim() !== "") {
-                    currentSheet.grid[activeCell.row][activeCell.col] = `=NOTE(${text})`;
-                    renderGrid();
-                    markDirty();
-                }
-            }
+        pivotObjects.forEach((pivot, index) => {
+            const html = buildPivotHtml(pivot);
+            const card = document.createElement("div");
+            card.className = "we-object-card";
+            card.innerHTML = `
+                <div class="we-chart-object-title">Tabela przestawna ${index + 1}</div>
+                <div class="we-chart-object-subtitle">${escapeHtml(pivot.rangeText)} • ${escapeHtml(pivot.agg)}</div>
+                <div class="we-object-body">${html}</div>
+            `;
+            generatedObjectsArea.appendChild(card);
         });
-    });
 
-    insertSubmenuItems.forEach(btn => {
-        btn.addEventListener("click", () => {
-            const action = btn.dataset.action;
-            if (!action || !currentSheet) return;
-
-            if (action === "clear-cell") {
-                currentSheet.grid[activeCell.row][activeCell.col] = "";
-                renderGrid();
-                markDirty();
-                return;
-            }
-
-            if (action === "clear-row") {
-                clearRow();
-                return;
-            }
-
-            if (action === "clear-col") {
-                clearCol();
-                return;
-            }
-
-            if (action === "row-above") {
-                insertRowAbove();
-                return;
-            }
-
-            if (action === "row-below") {
-                insertRowBelow();
-                return;
-            }
-
-            if (action === "col-left") {
-                insertColLeft();
-                return;
-            }
-
-            if (action === "col-right") {
-                insertColRight();
-                return;
-            }
-
-            if (action.startsWith("tpl-")) {
-                applyTemplate(action);
-                return;
-            }
-
-            if (action === "smart-date") {
-                currentSheet.grid[activeCell.row][activeCell.col] = "=SMART_DATE";
-                renderGrid();
-                markDirty();
-                return;
-            }
-
-            if (action === "smart-status") {
-                const status = prompt("Podaj status:", "Nowe");
-                if (status !== null) {
-                    currentSheet.grid[activeCell.row][activeCell.col] = `=SMART_STATUS(${status})`;
-                    renderGrid();
-                    markDirty();
-                }
-                return;
-            }
-
-            if (action === "smart-progress") {
-                const pct = prompt("Podaj postęp 0-100:", "50");
-                if (pct !== null) {
-                    currentSheet.grid[activeCell.row][activeCell.col] = `=SMART_PROGRESS(${pct})`;
-                    renderGrid();
-                    markDirty();
-                }
-            }
-        });
-    });
-
-    modalCloseButtons.forEach(btn => {
-        btn.addEventListener("click", () => {
-            const modal = document.getElementById(btn.dataset.closeModal);
-            closeModal(modal);
-        });
-    });
-
-    if (buildChartBtn) {
-        buildChartBtn.addEventListener("click", () => {
-            const range = chartRangeInput.value.trim();
-            const type = chartTypeSelect.value;
-            const html = buildChartHtml(range, type);
-            showGeneratedObject(`Wykres: ${range} (${type})`, html);
-            closeModal(chartModal);
-        });
+        generatedObjectsCard.hidden = chartObjects.length === 0 && pivotObjects.length === 0;
     }
 
-    if (buildPivotBtn) {
-        buildPivotBtn.addEventListener("click", () => {
-            const range = pivotRangeInput.value.trim();
-            const html = buildPivotHtml(range);
-            showGeneratedObject(`Tabela przestawna light: ${range}`, html);
-            closeModal(pivotModal);
-        });
+    async function saveSheet() {
+        if (!currentSheet) return;
+
+        setAutosaveState("saving", "Zapisywanie...");
+        try {
+            await postJson(`/ares/api/sheets/${sheetId}/save/`, {
+                name: currentSheet.name,
+                category: currentSheet.category || "Bez kategorii",
+                grid: currentSheet.grid,
+                styles: currentSheet.styles || {},
+                action: "Zapisano arkusz"
+            });
+
+            setAutosaveState("saved", "Wszystkie zmiany zapisane");
+        } catch (error) {
+            console.error(error);
+            setAutosaveState("error", "Błąd zapisu");
+        }
     }
 
-    if (imageInsertInput) {
-        imageInsertInput.addEventListener("change", () => {
-            const file = imageInsertInput.files?.[0];
-            if (!file || !currentSheet) return;
+    async function loadSheet() {
+        try {
+            console.log("Ładowanie arkusza, sheetId =", sheetId);
 
-            const reader = new FileReader();
-            reader.onload = function (e) {
-                currentSheet.grid[activeCell.row][activeCell.col] = `=IMAGE(${e.target.result})`;
-                renderGrid();
-                markDirty();
-            };
-            reader.readAsDataURL(file);
-            imageInsertInput.value = "";
-        });
+            const data = await getJson(`/ares/api/sheets/${sheetId}/`);
+            console.log("Dane arkusza z API:", data);
+
+            currentSheet = normalizeLoadedSheet({
+                ...data,
+                category: data.category || "Bez kategorii"
+            });
+
+            historyStack = [];
+
+            if (sheetNameEl) sheetNameEl.textContent = currentSheet.name || "Arkusz";
+            if (sheetMetaEl) sheetMetaEl.textContent = `Wiersze: ${currentRows} • Kolumny: ${currentCols}`;
+
+            initializeFormulaBrowser();
+            renderGrid();
+            setAutosaveState("", "Brak zmian");
+        } catch (error) {
+            console.error("Błąd w loadSheet():", error);
+            if (sheetMetaEl) sheetMetaEl.textContent = "Nie udało się załadować danych arkusza.";
+            setAutosaveState("error", "Błąd ładowania");
+        }
     }
 
-    if (saveBtn) {
-        saveBtn.addEventListener("click", async () => {
-            await saveSheet();
-        });
+    function downloadCsv() {
+        if (!currentSheet) return;
+
+        const csv = currentSheet.grid.map(row => row.map(cell => {
+            const value = String(cell ?? "");
+            if (value.includes(";") || value.includes('"') || value.includes("\n")) {
+                return `"${value.replace(/"/g, '""')}"`;
+            }
+            return value;
+        }).join(";")).join("\n");
+
+        const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = `${currentSheet.name || "arkusz"}.csv`;
+        link.click();
+        URL.revokeObjectURL(url);
     }
 
-    if (renameBtn) {
-        renameBtn.addEventListener("click", () => {
-            if (!currentSheet) return;
-            const name = prompt("Nowa nazwa arkusza:", currentSheet.name || "");
-            if (!name) return;
-            currentSheet.name = name.trim();
-            updateHeaderInfo();
-            markDirty();
-        });
-    }
+    function importCsv(file) {
+        const reader = new FileReader();
+        reader.onload = event => {
+            const text = String(event.target?.result ?? "");
+            const rows = text.split(/\r?\n/).filter(Boolean).map(line => line.split(";"));
 
-    if (addRowBtn) {
-        addRowBtn.addEventListener("click", () => {
-            if (!currentSheet) return;
-            const cols = currentSheet.grid[0]?.length || 8;
-            currentSheet.grid.push(Array(cols).fill(""));
+            pushHistorySnapshot();
+
+            currentRows = Math.max(rows.length, 20);
+            currentCols = Math.max(10, ...rows.map(row => row.length));
+            currentSheet.grid = emptyGrid(currentRows, currentCols);
+
+            rows.forEach((row, r) => {
+                row.forEach((cell, c) => {
+                    currentSheet.grid[r][c] = cell;
+                });
+            });
+
             renderGrid();
             markDirty();
-        });
+        };
+        reader.readAsText(file, "utf-8");
     }
 
-    if (addColBtn) {
-        addColBtn.addEventListener("click", () => {
-            if (!currentSheet) return;
-            currentSheet.grid.forEach(row => row.push(""));
+    function renameSheet() {
+        if (!currentSheet) return;
+        const nextName = prompt("Podaj nową nazwę arkusza:", currentSheet.name || "Arkusz");
+        if (!nextName) return;
+
+        pushHistorySnapshot();
+        currentSheet.name = nextName.trim();
+        if (sheetNameEl) sheetNameEl.textContent = currentSheet.name;
+        markDirty();
+    }
+
+    function sortActiveColumn(direction = "asc") {
+        if (!currentSheet) return;
+        const col = activeCell.col;
+        const dataRows = currentSheet.grid.slice(0);
+
+        pushHistorySnapshot();
+
+        dataRows.sort((a, b) => {
+            const first = a[col];
+            const second = b[col];
+
+            const firstNum = isNumericValue(first) ? parseNumber(first) : null;
+            const secondNum = isNumericValue(second) ? parseNumber(second) : null;
+
+            if (firstNum !== null && secondNum !== null) {
+                return direction === "asc" ? firstNum - secondNum : secondNum - firstNum;
+            }
+
+            return direction === "asc"
+                ? String(first ?? "").localeCompare(String(second ?? ""), "pl")
+                : String(second ?? "").localeCompare(String(first ?? ""), "pl");
+        });
+
+        currentSheet.grid = dataRows;
+        renderGrid();
+        markDirty();
+    }
+
+    function clearActiveCell() {
+        if (!currentSheet) return;
+        pushHistorySnapshot();
+
+        forEachSelectedCell((row, col) => {
+            currentSheet.grid[row][col] = "";
+        });
+
+        renderGrid();
+        markDirty();
+    }
+
+    function toggleFullWidth() {
+        fullWidthMode = !fullWidthMode;
+        sheetEditorCard?.classList.toggle("full-width-mode", fullWidthMode);
+    }
+
+    function toggleGrid() {
+        gridHidden = !gridHidden;
+        renderGrid();
+    }
+
+    function applyInsertAction(action) {
+        if (!currentSheet) return;
+
+        if (action === "clear-cell") return clearActiveCell();
+
+        if (action === "clear-row") {
+            pushHistorySnapshot();
+            currentSheet.grid[activeCell.row] = Array.from({ length: currentCols }, () => "");
             renderGrid();
-            markDirty();
-        });
-    }
+            return markDirty();
+        }
 
-    if (clearCellBtn) {
-        clearCellBtn.addEventListener("click", () => {
-            if (!currentSheet) return;
-            currentSheet.grid[activeCell.row][activeCell.col] = "";
+        if (action === "clear-col") {
+            pushHistorySnapshot();
+            currentSheet.grid.forEach(row => {
+                row[activeCell.col] = "";
+            });
             renderGrid();
-            markDirty();
-        });
-    }
+            return markDirty();
+        }
 
-    if (sortAscBtn) {
-        sortAscBtn.addEventListener("click", () => {
-            if (!currentSheet) return;
-            const col = activeCell.col;
-            currentSheet.grid.sort((a, b) => String(a[col] ?? "").localeCompare(String(b[col] ?? ""), "pl"));
+        if (action === "row-above") {
+            pushHistorySnapshot();
+            currentSheet.grid.splice(activeCell.row, 0, Array.from({ length: currentCols }, () => ""));
+            currentRows += 1;
             renderGrid();
-            markDirty();
-        });
-    }
+            return markDirty();
+        }
 
-    if (sortDescBtn) {
-        sortDescBtn.addEventListener("click", () => {
-            if (!currentSheet) return;
-            const col = activeCell.col;
-            currentSheet.grid.sort((a, b) => String(b[col] ?? "").localeCompare(String(a[col] ?? ""), "pl"));
+        if (action === "row-below") {
+            pushHistorySnapshot();
+            currentSheet.grid.splice(activeCell.row + 1, 0, Array.from({ length: currentCols }, () => ""));
+            currentRows += 1;
             renderGrid();
-            markDirty();
-        });
-    }
+            return markDirty();
+        }
 
-    if (toggleFullWidthBtn) {
-        toggleFullWidthBtn.addEventListener("click", () => {
-            if (sheetEditorCard) sheetEditorCard.classList.toggle("full-width-mode");
-        });
-    }
+        if (action === "col-left") {
+            pushHistorySnapshot();
+            currentSheet.grid.forEach(row => row.splice(activeCell.col, 0, ""));
+            currentCols += 1;
+            renderGrid();
+            return markDirty();
+        }
 
-    if (toggleGridBtn) {
-        toggleGridBtn.addEventListener("click", () => {
-            if (sheetGridTable) sheetGridTable.classList.toggle("hide-grid");
-        });
-    }
+        if (action === "col-right") {
+            pushHistorySnapshot();
+            currentSheet.grid.forEach(row => row.splice(activeCell.col + 1, 0, ""));
+            currentCols += 1;
+            renderGrid();
+            return markDirty();
+        }
 
-    if (exportBtn) {
-        exportBtn.addEventListener("click", () => {
-            if (!currentSheet) return;
+        if (action === "chart") return openModal(chartModal);
+        if (action === "pivot") return openModal(pivotModal);
+        if (action === "solver") return openModal(solverModal);
 
-            const csv = gridToCsv(currentSheet.grid);
-            const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-            const url = URL.createObjectURL(blob);
+        if (action === "function-helper") {
+            formulaInput?.focus();
+            return;
+        }
 
-            const a = document.createElement("a");
-            a.href = url;
-            a.download = `${(currentSheet.name || "arkusz").replace(/[^\w\-]+/g, "_")}.csv`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-        });
-    }
-
-    if (importInput) {
-        importInput.addEventListener("change", async (e) => {
-            const file = e.target.files?.[0];
-            if (!file || !currentSheet) return;
-
-            try {
-                const text = await file.text();
-                currentSheet.grid = parseCsv(text);
+        if (action === "link") {
+            const text = prompt("Tekst linku:", "Otwórz");
+            const url = prompt("Adres URL:", "https://");
+            if (url) {
+                pushHistorySnapshot();
+                currentSheet.grid[activeCell.row][activeCell.col] = `=LINK(${text || url}|${url})`;
                 renderGrid();
                 markDirty();
-            } catch (err) {
-                console.error("import csv error:", err);
-                alert("Nie udało się zaimportować CSV.");
-            } finally {
-                importInput.value = "";
             }
+            return;
+        }
+
+        if (action === "checkbox") {
+            pushHistorySnapshot();
+            currentSheet.grid[activeCell.row][activeCell.col] = "=CHECKBOX(false)";
+            renderGrid();
+            return markDirty();
+        }
+
+        if (action === "dropdown") {
+            const options = prompt("Opcje rozdziel pionową kreską |", "Nowe|W toku|Gotowe");
+            if (options) {
+                pushHistorySnapshot();
+                currentSheet.grid[activeCell.row][activeCell.col] = `=DROPDOWN(${options})`;
+                renderGrid();
+                markDirty();
+            }
+            return;
+        }
+
+        if (action === "emoji") {
+            const emoji = prompt("Podaj emoji:", "📌");
+            if (emoji !== null) {
+                pushHistorySnapshot();
+                currentSheet.grid[activeCell.row][activeCell.col] = emoji;
+                renderGrid();
+                markDirty();
+            }
+            return;
+        }
+
+        if (action === "comment") {
+            const comment = prompt("Treść komentarza:");
+            if (comment !== null) {
+                pushHistorySnapshot();
+                currentSheet.grid[activeCell.row][activeCell.col] = `=COMMENT(${comment})`;
+                renderGrid();
+                markDirty();
+            }
+            return;
+        }
+
+        if (action === "note") {
+            const note = prompt("Treść notatki:");
+            if (note !== null) {
+                pushHistorySnapshot();
+                currentSheet.grid[activeCell.row][activeCell.col] = `=NOTE(${note})`;
+                renderGrid();
+                markDirty();
+            }
+        }
+    }
+
+    function buildPivotFromModal() {
+        const rangeText = pivotRangeInput?.value?.trim();
+        const agg = pivotAggSelect?.value || "sum";
+
+        if (!rangeText) {
+            alert("Podaj zakres danych.");
+            return;
+        }
+
+        const rowField = parseInt(prompt("Numer kolumny dla klucza (od 1):", "1") || "1", 10) - 1;
+        const valueField = parseInt(prompt("Numer kolumny dla wartości (od 1):", "2") || "2", 10) - 1;
+
+        pivotObjects.push({ rangeText, agg, rowField, valueField });
+        rerenderGeneratedObjects();
+        closeModal(pivotModal);
+    }
+
+    function runSolverFromModal() {
+        if (!currentSheet) return;
+
+        const targetRef = solverTargetInput?.value?.trim().toUpperCase();
+        const variablesRaw = solverVariableInput?.value?.trim().toUpperCase();
+        const mode = solverModeSelect?.value || "max";
+        const step = parseNumber(solverStepInput?.value ?? 1);
+        const min = parseNumber(solverMinInput?.value ?? 0);
+        const max = parseNumber(solverMaxInput?.value ?? 100);
+
+        const target = cellRefToIndex(targetRef);
+        if (!target || !variablesRaw) {
+            alert("Podaj poprawną komórkę celu i co najmniej jedną komórkę zmiennej.");
+            return;
+        }
+
+        const variableRefs = variablesRaw
+            .split(",")
+            .map(v => v.trim())
+            .filter(Boolean)
+            .map(cellRefToIndex)
+            .filter(Boolean);
+
+        if (!variableRefs.length) {
+            alert("Nie znaleziono poprawnych komórek zmiennych.");
+            return;
+        }
+
+        pushHistorySnapshot();
+
+        const originalValues = variableRefs.map(v => currentSheet.grid[v.row][v.col]);
+
+        let bestValue = mode === "max" ? -Infinity : Infinity;
+        let bestCombination = variableRefs.map(() => min);
+
+        function setVariables(values) {
+            variableRefs.forEach((ref, idx) => {
+                currentSheet.grid[ref.row][ref.col] = values[idx];
+            });
+        }
+
+        function search(index, currentCombination) {
+            if (index === variableRefs.length) {
+                setVariables(currentCombination);
+                const result = parseNumber(getCellComputedValue(target.row, target.col));
+
+                if ((mode === "max" && result > bestValue) || (mode === "min" && result < bestValue)) {
+                    bestValue = result;
+                    bestCombination = [...currentCombination];
+                }
+                return;
+            }
+
+            for (let test = min; test <= max; test += (step || 1)) {
+                currentCombination[index] = test;
+                search(index + 1, currentCombination);
+            }
+        }
+
+        search(0, Array.from({ length: variableRefs.length }, () => min));
+        setVariables(bestCombination);
+
+        renderGrid();
+        markDirty();
+
+        const card = document.createElement("div");
+        card.className = "we-object-card";
+        card.innerHTML = `
+            <div class="we-chart-object-title">Solver</div>
+            <div class="we-object-body">
+                <div><strong>Komórka celu:</strong> ${escapeHtml(targetRef)}</div>
+                <div><strong>Komórki zmienne:</strong> ${escapeHtml(variablesRaw)}</div>
+                <div><strong>Tryb:</strong> ${mode === "max" ? "maksymalizacja" : "minimalizacja"}</div>
+                <div><strong>Najlepsze wartości:</strong> ${escapeHtml(bestCombination.join(", "))}</div>
+                <div><strong>Wynik funkcji celu:</strong> ${bestValue}</div>
+            </div>
+        `;
+        generatedObjectsCard.hidden = false;
+        generatedObjectsArea.prepend(card);
+
+        closeModal(solverModal);
+
+        variableRefs.forEach((ref, idx) => {
+            currentSheet.grid[ref.row][ref.col] = bestCombination[idx] ?? originalValues[idx];
         });
     }
 
-    if (applyFormulaBtn) {
-        applyFormulaBtn.addEventListener("click", applyFormulaToActiveCell);
+    function initializeMenus() {
+        insertMenuItems.forEach(item => {
+            item.addEventListener("click", () => {
+                const submenuId = item.dataset.submenu;
+                const action = item.dataset.action;
+
+                insertMenuItems.forEach(btn => btn.classList.remove("active"));
+                item.classList.add("active");
+
+                if (submenuId) {
+                    insertSubmenus.forEach(submenu => submenu.classList.remove("active"));
+                    document.getElementById(submenuId)?.classList.add("active");
+                    return;
+                }
+
+                if (action) applyInsertAction(action);
+            });
+        });
+
+        insertSubmenuItems.forEach(item => {
+            item.addEventListener("click", () => {
+                const action = item.dataset.action;
+                if (action) applyInsertAction(action);
+            });
+        });
     }
 
-    if (formulaInput) {
-        formulaInput.addEventListener("keydown", (e) => {
-            if (e.key === "Enter") {
-                e.preventDefault();
+    function initializeTabs() {
+        tabs.forEach(tab => {
+            tab.addEventListener("click", () => {
+                const target = tab.dataset.tab;
+                tabs.forEach(item => item.classList.remove("active"));
+                panels.forEach(panel => panel.classList.remove("active"));
+                tab.classList.add("active");
+                document.querySelector(`.we-ribbon-panel[data-panel="${target}"]`)?.classList.add("active");
+            });
+        });
+    }
+
+    function initializeModals() {
+        modalCloseButtons.forEach(button => {
+            button.addEventListener("click", () => {
+                const target = button.dataset.closeModal;
+                const modal = document.getElementById(target);
+                closeModal(modal);
+            });
+        });
+
+        [chartModal, pivotModal, solverModal].forEach(modal => {
+            modal?.addEventListener("click", event => {
+                if (event.target === modal) closeModal(modal);
+            });
+        });
+    }
+
+    function initializeEvents() {
+        saveBtn?.addEventListener("click", saveSheet);
+        exportBtn?.addEventListener("click", downloadCsv);
+        renameBtn?.addEventListener("click", renameSheet);
+        undoBtn?.addEventListener("click", undoLastChange);
+
+        importInput?.addEventListener("change", event => {
+            const file = event.target.files?.[0];
+            if (file) importCsv(file);
+        });
+
+        applyFormulaBtn?.addEventListener("click", applyFormulaToActiveCell);
+        formulaInput?.addEventListener("keydown", event => {
+            if (event.key === "Enter") {
+                event.preventDefault();
                 applyFormulaToActiveCell();
             }
         });
+
+        sortAscBtn?.addEventListener("click", () => sortActiveColumn("asc"));
+        sortDescBtn?.addEventListener("click", () => sortActiveColumn("desc"));
+        clearCellBtn?.addEventListener("click", clearActiveCell);
+        toggleFullWidthBtn?.addEventListener("click", toggleFullWidth);
+        toggleGridBtn?.addEventListener("click", toggleGrid);
+        autofitBtn?.addEventListener("click", autoFitColumns);
+
+        fontFamilySelect?.addEventListener("change", () => {
+            applyStyleToSelectionOrActive({ fontFamily: fontFamilySelect.value });
+        });
+
+        fontSizeInput?.addEventListener("change", () => {
+            applyStyleToSelectionOrActive({ fontSize: parseInt(fontSizeInput.value || "14", 10) });
+        });
+
+        boldBtn?.addEventListener("click", () => {
+            toggleStyleFlag("bold");
+        });
+
+        italicBtn?.addEventListener("click", () => {
+            toggleStyleFlag("italic");
+        });
+
+        underlineBtn?.addEventListener("click", () => {
+            toggleStyleFlag("underline");
+        });
+
+        textColorInput?.addEventListener("input", () => {
+            applyStyleToSelectionOrActive({ textColor: textColorInput.value });
+        });
+
+        fillColorInput?.addEventListener("input", () => {
+            applyStyleToSelectionOrActive({ fillColor: fillColorInput.value });
+        });
+
+        alignLeftBtn?.addEventListener("click", () => {
+            applyStyleToSelectionOrActive({ align: "left" });
+        });
+
+        alignCenterBtn?.addEventListener("click", () => {
+            applyStyleToSelectionOrActive({ align: "center" });
+        });
+
+        alignRightBtn?.addEventListener("click", () => {
+            applyStyleToSelectionOrActive({ align: "right" });
+        });
+
+        buildChartBtn?.addEventListener("click", () => {
+            const rangeText = chartRangeInput?.value?.trim();
+            if (!rangeText) {
+                alert("Podaj zakres danych.");
+                return;
+            }
+
+            chartObjects.push({
+                rangeText,
+                type: chartTypeSelect?.value || "line",
+                useHeader: chartFirstRowHeaderInput?.checked ?? true,
+                title: chartTitleInput?.value?.trim() || "",
+                xTitle: chartXTitleInput?.value?.trim() || "",
+                yTitle: chartYTitleInput?.value?.trim() || "",
+                showLegend: chartShowLegendInput?.checked ?? true,
+                showGrid: chartShowGridInput?.checked ?? true,
+                showLabels: chartShowLabelsInput?.checked ?? false,
+                color: chartSeriesColorInput?.value || DEFAULT_CHART_COLOR
+            });
+
+            rerenderGeneratedObjects();
+            closeModal(chartModal);
+        });
+
+        buildPivotBtn?.addEventListener("click", buildPivotFromModal);
+        runSolverBtn?.addEventListener("click", runSolverFromModal);
     }
 
-    formulaChips.forEach(btn => {
-        btn.addEventListener("click", () => {
-            const fn = normalizeFunctionName(btn.dataset.fn);
-            if (!formulaInput) return;
-            formulaInput.value = `=${fn}()`;
-            formulaInput.focus();
-        });
-    });
-
-    window.addEventListener("pagehide", saveOnExit);
-
-    window.addEventListener("beforeunload", () => {
-        if (hasUnsavedChanges) saveOnExit();
-    });
-
+    initializeTabs();
+    initializeMenus();
+    initializeModals();
+    initializeEvents();
     loadSheet();
 });
