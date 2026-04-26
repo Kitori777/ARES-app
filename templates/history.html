@@ -77,6 +77,16 @@
         padding: 10px 12px;
     }
 
+    .filters-grid select option {
+        background: #131d31;
+        color: #eef3ff;
+    }
+
+    .filters-grid select option:checked {
+        background: #4f8cff;
+        color: #ffffff;
+    }
+
     .timeline {
         display: grid;
         gap: 14px;
@@ -181,6 +191,14 @@
                     <option value="csv_export">Eksport CSV</option>
                     <option value="sheet_create">Utworzenie arkusza</option>
                     <option value="sheet_delete">Usunięcie arkusza</option>
+                    <option value="cell_edit">Edycja komórki</option>
+                    <option value="formula_apply">Formuła</option>
+                    <option value="table_template">Szablon tabeli</option>
+                    <option value="pivot_create">Tabela przestawna</option>
+                    <option value="solver_run">Solver</option>
+                    <option value="undo">Cofnięcie</option>
+                    <option value="redo">Ponowienie</option>
+                    <option value="style_change">Zmiana stylu</option>
                 </select>
             </div>
 
@@ -249,6 +267,26 @@ document.addEventListener("DOMContentLoaded", function () {
         return ms / (1000 * 60 * 60 * 24);
     }
 
+    function actionLabel(type) {
+        const labels = {
+            save_sheet: "Zapis arkusza",
+            csv_import: "Import CSV",
+            csv_export: "Eksport CSV",
+            sheet_create: "Utworzenie arkusza",
+            sheet_delete: "Usunięcie arkusza",
+            cell_edit: "Edycja komórki",
+            formula_apply: "Formuła",
+            table_template: "Szablon tabeli",
+            pivot_create: "Tabela przestawna",
+            solver_run: "Solver",
+            undo: "Cofnięcie",
+            redo: "Ponowienie",
+            sheet_rename: "Zmiana nazwy",
+            style_change: "Zmiana stylu",
+        };
+        return labels[type] || type || "Inne";
+    }
+
     function renderStats(entries) {
         statTotal.textContent = entries.length;
         statSaves.textContent = entries.filter(e => (e.details?.type) === "save_sheet").length;
@@ -297,6 +335,13 @@ document.addEventListener("DOMContentLoaded", function () {
             const sheetName = entry.sheetName || details.sheetName || "—";
 
             const extras = [];
+            if (details.tabName) extras.push(`Zakładka: ${details.tabName}`);
+            if (details.activeCell) extras.push(`Aktywna komórka: ${details.activeCell}`);
+            if (details.cell) extras.push(`Komórka: ${details.cell}`);
+            if (details.formula) extras.push(`Formuła: ${details.formula}`);
+            if (details.template) extras.push(`Szablon: ${details.template}`);
+            if (details.range) extras.push(`Zakres: ${details.range}`);
+            if (details.target) extras.push(`Cel: ${details.target}`);
             if (details.fileName) extras.push(`Plik: ${details.fileName}`);
             if (details.rows) extras.push(`Wiersze: ${details.rows}`);
             if (details.cols) extras.push(`Kolumny: ${details.cols}`);
@@ -309,7 +354,7 @@ document.addEventListener("DOMContentLoaded", function () {
                     </div>
 
                     <div class="timeline-meta">
-                        <span class="pill">${type}</span>
+                        <span class="pill">${actionLabel(type)}</span>
                         <span>Arkusz: ${sheetName}</span>
                         ${extras.map(x => `<span>${x}</span>`).join("")}
                     </div>

@@ -126,6 +126,11 @@ def reports_view(request):
     return render(request, 'reports.html')
 
 
+@login_required
+def profile_view(request):
+    return render(request, 'profile.html')
+
+
 def logout_view(request):
     logout(request)
     messages.success(request, 'Zostałeś wylogowany.')

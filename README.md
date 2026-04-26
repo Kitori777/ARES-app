@@ -56,58 +56,207 @@ To rozwiązanie pozwala uruchomić działającą wersję demonstracyjną, ale ma
 
 ## Aktualny stan projektu
 
-Obecnie aplikacja realizuje następujące elementy:
+Obecnie aplikacja ARES realizuje następujące elementy:
 
 ### 1. Autoryzacja użytkownika
-- rejestracja,
+- rejestracja użytkownika,
 - logowanie,
 - wylogowanie,
-- weryfikacja e-mail kodem.
+- weryfikacja adresu e-mail kodem,
+- przypisanie arkuszy i danych do zalogowanego użytkownika.
 
-### 2. Panel ARES
+### 2. Panel główny ARES
 - strona startowa po zalogowaniu,
-- boczne menu aplikacji,
-- przejście do arkuszy, importu, historii i raportów.
+- czytelny dashboard aplikacji,
+- boczne menu nawigacyjne,
+- możliwość zwijania bocznego menu,
+- szybkie przejścia do najważniejszych modułów:
+  - arkusze,
+  - import danych,
+  - historia zmian,
+  - raporty,
+  - profil użytkownika,
+- dolny pasek szybkiego dostępu,
+- widok ostatnich zmian / changeloga,
+- podstawowe informacje o aktywnym użytkowniku i module.
 
-### 3. Moduł arkuszy
+### 3. Profil użytkownika i wygląd aplikacji
+- profil użytkownika dostępny z górnego paska,
+- możliwość ustawienia nazwy wyświetlanej,
+- kreator awatara użytkownika,
+- wybór koloru awatara,
+- wybór kształtu awatara,
+- szybkie symbole awatara,
+- możliwość wgrania własnego obrazka profilowego,
+- motywy kolorystyczne aplikacji,
+- wybór wariantu kolorystyki interfejsu,
+- zapisywanie ustawień wyglądu w `localStorage`,
+- zastosowanie motywu w głównych modułach aplikacji.
+
+### 4. Moduł arkuszy
 - tworzenie nowych arkuszy,
 - nazwa arkusza,
-- kategoria,
+- kategoria arkusza,
 - prezentacja rozmiaru arkusza w MB,
 - lista zapisanych arkuszy,
-- otwieranie arkusza w osobnym edytorze.
+- otwieranie arkusza w osobnym edytorze,
+- usuwanie arkuszy,
+- oznaczanie arkuszy jako ulubione,
+- sortowanie arkuszy tak, aby ulubione były wyświetlane wyżej,
+- podsumowanie liczby arkuszy i liczby arkuszy ulubionych.
 
-### 4. Edytor arkusza
+### 5. Edytor arkusza
 - siatka w stylu arkusza kalkulacyjnego,
 - wiersze numerowane `1-n`,
 - kolumny oznaczone `A, B, C, D...`,
 - aktywna komórka,
 - zaznaczanie zakresów,
 - pasek formuł,
+- ręczne wpisywanie wartości i formuł,
+- trwały zapis arkusza,
+- autozapis zmian,
+- ładowanie arkusza po parametrze `?sheet=ID`,
+- obsługa wielu zakładek w jednym arkuszu,
+- dodawanie nowych zakładek,
+- zmiana nazwy zakładki,
+- duplikowanie zakładki,
+- przenoszenie zakładek,
+- ustawianie koloru zakładki,
 - import CSV,
 - eksport CSV,
 - dodawanie wierszy i kolumn,
-- zmiana nazwy arkusza.
+- usuwanie wierszy i kolumn,
+- podstawowe formatowanie komórek,
+- wybór koloru tekstu i tła,
+- obramowania komórek,
+- cofanie i ponawianie zmian,
+- komentarze i notatki do komórek,
+- menu kontekstowe po kliknięciu prawym przyciskiem myszy na komórkę.
 
-### 5. Funkcje zaimplementowane lub przygotowane do rozwoju
-- `SUMA`,
-- `ŚREDNIA`,
-- `MEDIANA`,
-- `MINIMUM`,
-- `MAXIMUM`,
-- `ZLICZ`,
-- `ODCHYLENIE`,
-- `WARIANCJA`,
-- `STANDARYZACJA` dla zaznaczonego zakresu.
+### 6. Menu kontekstowe komórek
+- wytnij,
+- kopiuj,
+- wklej,
+- wklej specjalnie,
+- wstaw wiersz powyżej,
+- wstaw kolumnę po lewej,
+- wstaw komórki,
+- usuń wiersz,
+- usuń kolumnę,
+- usuń komórki,
+- utwórz wykres,
+- wstaw link,
+- komentarz,
+- wstaw notatkę,
+- otwarcie solvera.
 
-### 6. Historia zmian
+### 7. Funkcje arkusza i podpowiedzi
+- podpowiedzi składni funkcji podczas wpisywania formuł,
+- opisy działania funkcji,
+- walidacja części formuł,
+- obsługa blokowania odwołań przez `$`, podobnie jak w arkuszach kalkulacyjnych,
+- kopiowanie formuł z dostosowaniem odwołań,
+- funkcje podstawowe:
+  - `SUMA`,
+  - `ŚREDNIA`,
+  - `MEDIANA`,
+  - `MINIMUM`,
+  - `MAXIMUM`,
+  - `ZLICZ`,
+  - `ODCHYLENIE`,
+  - `WARIANCJA`,
+  - `STANDARYZACJA`,
+- funkcje finansowe i analityczne przygotowane do dalszej rozbudowy,
+- funkcje akademickie przygotowane pod matematykę, statystykę, optymalizację i badania operacyjne.
+
+### 8. Tabele, szablony i analiza danych
+- zakładka z gotowymi tabelami,
+- szablony tabel do szybkiego użycia,
+- przykładowe tabele pod:
+  - matematykę finansową,
+  - zwykłą matematykę,
+  - statystykę,
+  - solver,
+  - analizę danych,
+- wstawianie gotowych struktur tabel do arkusza,
+- podstawowa obsługa tabel przestawnych,
+- panel tabeli przestawnej wzorowany na arkuszach kalkulacyjnych,
+- możliwość wyboru pól do analizy,
+- przygotowanie pod łączenie danych z wielu arkuszy.
+
+### 9. Wykresy
+- moduł tworzenia wykresów z danych arkusza,
+- większy wybór typów wykresów,
+- możliwość konfiguracji danych wejściowych,
+- podstawowa edycja wyglądu wykresów,
+- przygotowanie pod dalszą rozbudowę wykresów analitycznych.
+
+### 10. Solver
+- panel solvera wzorowany na dodatkach typu OpenSolver,
+- wybór arkusza,
+- wybór komórki celu,
+- wybór komórek zmiennych,
+- definiowanie ograniczeń,
+- tryby optymalizacji:
+  - minimalizacja,
+  - maksymalizacja,
+  - wartość docelowa,
+- ustawianie zakresu przeszukiwania:
+  - minimum,
+  - maksimum,
+  - krok,
+- opcja ograniczenia zmiennych do wartości nieujemnych,
+- czytelne podsumowanie konfiguracji solvera,
+- przyciski pomocnicze:
+  - bieżący arkusz,
+  - pobierz z aktywnej komórki,
+  - zakres zaznaczenia,
+  - wyczyść.
+
+### 11. Import i eksport danych
+- import danych CSV,
+- import danych do istniejącego arkusza,
+- tworzenie nowego arkusza z importowanego pliku,
+- podgląd danych przed importem,
+- eksport arkusza do CSV,
+- przygotowanie pod import XLSX,
+- przygotowanie pod scalanie danych z wielu arkuszy według kolumn.
+
+### 12. Historia zmian
 - wejście do modułów,
 - utworzenie arkusza,
 - usunięcie arkusza,
 - import CSV,
 - eksport CSV,
 - zapis arkusza,
-- zmiany wykonywane w edytorze.
+- edycja komórki,
+- wpisywanie formuł,
+- zmiany formatowania,
+- użycie solvera,
+- utworzenie tabeli przestawnej,
+- wstawienie gotowego szablonu tabeli,
+- cofanie i ponawianie zmian,
+- filtrowanie historii po:
+  - arkuszu,
+  - typie akcji,
+  - zakresie czasu,
+- wykresy aktywności w historii zmian.
+
+### 13. Raporty
+- raport aktywności użytkownika,
+- liczba arkuszy,
+- liczba wszystkich akcji,
+- aktywność dzienna,
+- aktywność z ostatnich 30 dni,
+- najczęściej używany arkusz,
+- najczęstszy typ akcji,
+- liczba edycji komórek,
+- liczba użytych formuł,
+- liczba użyć solvera,
+- wykres aktywności z ostatnich 7 dni,
+- wykres aktywności tygodniowej z ostatnich 30 dni,
+- zestawienia top arkuszy,
+- zestawienia typów działań.
 
 ---
 
@@ -116,11 +265,34 @@ Obecnie aplikacja realizuje następujące elementy:
 Poniżej znajduje się uproszczona struktura aktualnego projektu ARES po zmianach funkcjonalnych i wizualnych:
 
 ```text
-projekt_baza_merged/
+ARES-main/
 ├── manage.py
-├── requirements.txt
-├── db.sqlite3                      # pojawi się po migracjach
-├── README.md                       # ten plik
+├── pyproject.toml
+├── uv.lock
+├── README.md
+├── CHANGELOG.md
+├── db.sqlite3
+├── data.json
+├── .gitignore
+│
+├── ares/
+│   ├── __init__.py
+│   ├── admin.py
+│   ├── apps.py
+│   ├── models.py
+│   ├── tests.py
+│   ├── urls.py
+│   ├── views.py
+│   └── migrations/
+│       ├── __init__.py
+│       └── 0001_initial.py
+│
+├── ares.egg-info/
+│   ├── PKG-INFO
+│   ├── SOURCES.txt
+│   ├── dependency_links.txt
+│   ├── requires.txt
+│   └── top_level.txt
 │
 ├── projekt_baza/
 │   ├── __init__.py
@@ -133,39 +305,45 @@ projekt_baza_merged/
 │   ├── __init__.py
 │   ├── forms.py
 │   ├── models.py
+│   ├── settings.py
 │   ├── urls.py
 │   ├── views.py
 │   └── migrations/
-│       └── ...
-│
+│       ├── __init__.py
+│       └── 0001_initial.py
 │
 ├── templates/
-│   ├── base.html
-│   ├── login.html
-│   ├── register.html
-│   ├── verify_email.html
-│   ├── dashboard.html
 │   ├── app_home.html
-│   ├── worksheets.html
-│   ├── worksheet_editor.html
-│   ├── import_data.html
+│   ├── base.html
+│   ├── dashboard.html
 │   ├── history.html
-│   └── reports.html
+│   ├── import_data.html
+│   ├── index.html
+│   ├── login.html
+│   ├── profile.html
+│   ├── register.html
+│   ├── reports.html
+│   ├── verify_email.html
+│   ├── worksheet_editor.html
+│   └── worksheets.html
 │
 ├── static/
 │   ├── css/
-│   │   └── style.css
+│   │   ├── style.css
+│   │   └── worksheet_editor.css
 │   ├── img/
 │   │   └── ares-logo.svg
 │   └── js/
+│       ├── ares_api.js
+│       ├── ares_sheet.js
 │       ├── ares_storage.js
-│       ├── worksheets_page.js
-│       ├── worksheet_editor.js
+│       ├── formula_catalog.js
+│       ├── formula_engine.js
+│       ├── history_page.js
 │       ├── import_data.js
-│       └── history_page.js
-│
-└── media/
-    └── ...
+│       ├── worksheet_editor.js
+│       └── worksheets_page.js
+
 ```
 
 ---
@@ -232,12 +410,11 @@ Najbardziej logiczne kolejne kroki rozwoju projektu to:
 ## Uruchomienie projektu
 
 ```bash
-python -m venv venv
-venv\Scripts\activate
-pip install -r requirements.txt
-python manage.py makemigrations
-python manage.py migrate
-python manage.py runserver
+uv venv
+uv sync
+uv run python manage.py makemigrations
+uv run python manage.py migrate
+uv run python manage.py runserver
 ```
 
 ---

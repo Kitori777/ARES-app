@@ -10,6 +10,7 @@ from .views import (
     import_data_view,
     history_view,
     reports_view,
+    profile_view,
 )
 
 urlpatterns = [
@@ -22,5 +23,6 @@ urlpatterns = [
     path('import-data/', import_data_view, name='import_data'),
     path('history/', history_view, name='history'),
     path('reports/', reports_view, name='reports'),
+    path('profile/', profile_view, name='profile'),
     path('logout/', logout_view, name='logout'),
 ]

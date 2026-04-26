@@ -221,6 +221,25 @@ document.addEventListener("DOMContentLoaded", function () {
         return map;
     }
 
+    function actionLabel(type) {
+        const labels = {
+            save_sheet: "Zapisy arkusza",
+            csv_import: "Importy CSV",
+            csv_export: "Eksporty CSV",
+            sheet_create: "Nowe arkusze",
+            sheet_delete: "Usunięte arkusze",
+            cell_edit: "Edycje komórek",
+            formula_apply: "Wpisane formuły",
+            table_template: "Szablony tabel",
+            pivot_create: "Tabele przestawne",
+            solver_run: "Uruchomienia solvera",
+            undo: "Cofnięcia",
+            redo: "Ponowienia",
+            sheet_rename: "Zmiany nazw",
+        };
+        return labels[type] || type || "Inne";
+    }
+
     function renderMiniList(el, items) {
         el.innerHTML = items.map(item => `
             <div class="mini-item">
@@ -271,7 +290,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
         const actionTypeCounts = countBy(
             history,
-            e => e.details?.type || e.action || "inne"
+            e => actionLabel(e.details?.type || e.action || "inne")
         );
 
         const topSheetArr = [...sheetCounts.entries()]
@@ -287,6 +306,9 @@ document.addEventListener("DOMContentLoaded", function () {
         const mostUsedSheet = topSheetArr[0]?.label || "Brak danych";
         const mostUsedAction = topActionArr[0]?.label || "Brak danych";
         const lastActivity = history[0]?.createdAt || null;
+        const cellEdits = history.filter(e => e.details?.type === "cell_edit").length;
+        const formulas = history.filter(e => e.details?.type === "formula_apply").length;
+        const solverRuns = history.filter(e => e.details?.type === "solver_run").length;
 
         renderMiniList(insightsList, [
             {
@@ -300,6 +322,10 @@ document.addEventListener("DOMContentLoaded", function () {
             {
                 title: `Ostatnia aktywność: ${formatDate(lastActivity)}`,
                 desc: "Ostatnie zapisane działanie użytkownika."
+            },
+            {
+                title: `Edycje komórek: ${cellEdits} | Formuły: ${formulas} | Solver: ${solverRuns}`,
+                desc: "Raport bierze pod uwagę także bieżące działania wykonywane wewnątrz edytora arkusza."
             }
         ]);
 

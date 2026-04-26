@@ -20,9 +20,13 @@
             </div>
         </div>
 
+
         <div class="we-formula-bar">
             <div class="we-cell-address" id="active-cell-label">A1</div>
-            <input id="formula-input" type="text" class="we-formula-input" placeholder="Wpisz wartość lub formułę, np. =SUMA(A1:A10)">
+            <div class="we-formula-input-wrap">
+                <input id="formula-input" type="text" class="we-formula-input" placeholder="Wpisz wartość lub formułę, np. =SUMA(A1:A10)" autocomplete="off">
+                <div id="formula-helper-popover" class="we-formula-helper-popover" hidden></div>
+            </div>
             <button id="apply-formula-btn" class="btn btn-primary" type="button">Zastosuj</button>
         </div>
 
@@ -30,6 +34,8 @@
             <button class="we-tab active" data-tab="start" type="button">Start</button>
             <button class="we-tab" data-tab="insert" type="button">Wstaw</button>
             <button class="we-tab" data-tab="formulas" type="button">Formuły</button>
+            <button class="we-tab" data-tab="tables" type="button">Tabele</button>
+            <button class="we-tab" data-tab="university" type="button">Matematyka akademicka</button>
             <button class="we-tab" data-tab="data" type="button">Dane</button>
             <button class="we-tab" data-tab="view" type="button">Widok</button>
         </div>
@@ -38,14 +44,12 @@
             <div class="we-ribbon-panel active" data-panel="start">
                 <div class="we-start-toolbar">
                     <div class="we-toolbar-group">
-                        <button id="undo-btn" class="btn btn-secondary" type="button">Cofnij</button>
-                        <button id="rename-sheet-btn" class="btn btn-secondary" type="button">Zmień nazwę</button>
-                        <button id="save-sheet-btn" class="btn btn-primary" type="button">Zapisz</button>
-                        <button id="export-csv-btn" class="btn btn-ghost" type="button">Eksport CSV</button>
-                        <label class="we-upload-btn">
-                            <span>Import CSV</span>
-                            <input id="csv-import-input" type="file" accept=".csv">
-                        </label>
+                        <button id="undo-btn" class="btn btn-secondary we-icon-btn" type="button" title="Cofnij" aria-label="Cofnij"><span class="we-svg-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M7 7H3V3"/><path d="M3.5 7.5A8 8 0 1 1 6 19"/></svg></span></button>
+                        <button id="redo-btn" class="btn btn-secondary we-icon-btn" type="button" title="Ponów" aria-label="Ponów"><span class="we-svg-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M17 7h4V3"/><path d="M20.5 7.5A8 8 0 1 0 18 19"/></svg></span></button>
+                        <button id="rename-sheet-btn" class="btn btn-secondary we-icon-btn" type="button" title="Zmień nazwę" aria-label="Zmień nazwę"><span class="we-svg-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></span></button>
+                        <button id="save-sheet-btn" class="btn btn-primary we-icon-btn" type="button" title="Zapisz" aria-label="Zapisz"><span class="we-svg-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2Z"/><path d="M17 21v-8H7v8"/><path d="M7 3v5h8"/></svg></span></button>
+                        <button id="export-csv-btn" class="btn btn-ghost we-icon-btn" type="button" title="Eksport CSV" aria-label="Eksport CSV"><span class="we-svg-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg></span></button>
+                        <label class="we-upload-btn we-icon-btn" title="Import CSV" aria-label="Import CSV"><span class="we-svg-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 21V9"/><path d="m7 14 5-5 5 5"/><path d="M5 3h14"/></svg></span><input id="csv-import-input" type="file" accept=".csv"></label>
                     </div>
 
                     <div class="we-toolbar-sep"></div>
@@ -66,9 +70,9 @@
 
                         <input id="font-size-input" type="number" min="8" max="72" value="14" class="we-toolbar-number">
 
-                        <button id="bold-btn" class="btn btn-secondary we-mini-btn" type="button"><strong>B</strong></button>
-                        <button id="italic-btn" class="btn btn-secondary we-mini-btn" type="button"><em>I</em></button>
-                        <button id="underline-btn" class="btn btn-secondary we-mini-btn" type="button"><u>U</u></button>
+                        <button id="bold-btn" class="btn btn-secondary we-mini-btn" type="button" title="Pogrubienie"><strong>B</strong></button>
+                        <button id="italic-btn" class="btn btn-secondary we-mini-btn" type="button" title="Kursywa"><em>I</em></button>
+                        <button id="underline-btn" class="btn btn-secondary we-mini-btn" type="button" title="Podkreślenie"><u>U</u></button>
                     </div>
 
                     <div class="we-toolbar-sep"></div>
@@ -88,9 +92,26 @@
                     <div class="we-toolbar-sep"></div>
 
                     <div class="we-toolbar-group">
-                        <button id="align-left-btn" class="btn btn-secondary we-mini-btn" type="button">⯇</button>
-                        <button id="align-center-btn" class="btn btn-secondary we-mini-btn" type="button">≡</button>
-                        <button id="align-right-btn" class="btn btn-secondary we-mini-btn" type="button">⯈</button>
+                        <button id="align-left-btn" class="btn btn-secondary we-mini-btn we-icon-btn" type="button" title="Wyrównaj do lewej"><span class="we-svg-icon"><svg viewBox="0 0 24 24"><path d="M4 6h16"/><path d="M4 10h10"/><path d="M4 14h16"/><path d="M4 18h10"/></svg></span></button>
+                        <button id="align-center-btn" class="btn btn-secondary we-mini-btn we-icon-btn" type="button" title="Wyśrodkuj"><span class="we-svg-icon"><svg viewBox="0 0 24 24"><path d="M4 6h16"/><path d="M7 10h10"/><path d="M4 14h16"/><path d="M7 18h10"/></svg></span></button>
+                        <button id="align-right-btn" class="btn btn-secondary we-mini-btn we-icon-btn" type="button" title="Wyrównaj do prawej"><span class="we-svg-icon"><svg viewBox="0 0 24 24"><path d="M4 6h16"/><path d="M10 10h10"/><path d="M4 14h16"/><path d="M10 18h10"/></svg></span></button>
+                    </div>
+
+                    <div class="we-toolbar-sep"></div>
+
+                    <div class="we-toolbar-group we-google-like-tools" aria-label="Dodatkowe narzędzia arkusza">
+                        <select id="zoom-select" class="we-toolbar-select we-compact-select" title="Powiększenie">
+                            <option>75%</option><option selected>100%</option><option>125%</option><option>150%</option>
+                        </select>
+                        <button class="btn btn-secondary we-mini-btn" data-ribbon-action="currency" type="button" title="Format walutowy">zł</button>
+                        <button class="btn btn-secondary we-mini-btn" data-ribbon-action="percent" type="button" title="Format procentowy">%</button>
+                        <button class="btn btn-secondary we-mini-btn" data-ribbon-action="decimal-down" type="button" title="Mniej miejsc po przecinku">.0←</button>
+                        <button class="btn btn-secondary we-mini-btn" data-ribbon-action="decimal-up" type="button" title="Więcej miejsc po przecinku">.00→</button>
+                        <button class="btn btn-secondary we-mini-btn we-icon-btn" data-ribbon-action="borders" type="button" title="Obramowania"><span class="we-svg-icon"><svg viewBox="0 0 24 24"><path d="M4 4h16v16H4z"/><path d="M12 4v16"/><path d="M4 12h16"/></svg></span></button>
+                        <button class="btn btn-secondary we-mini-btn we-icon-btn" data-ribbon-action="merge" type="button" title="Scal komórki"><span class="we-svg-icon"><svg viewBox="0 0 24 24"><path d="M4 6h16v12H4z"/><path d="M8 10h8"/><path d="m14 8 2 2-2 2"/><path d="m10 8-2 2 2 2"/></svg></span></button>
+                        <button class="btn btn-secondary we-mini-btn we-icon-btn" data-ribbon-action="wrap" type="button" title="Zawijanie tekstu"><span class="we-svg-icon"><svg viewBox="0 0 24 24"><path d="M4 7h16"/><path d="M4 12h11a3 3 0 0 1 0 6H9"/><path d="m11 15-3 3 3 3"/></svg></span></button>
+                        <button class="btn btn-secondary we-mini-btn we-icon-btn" data-ribbon-action="text-rotation" type="button" title="Obrót tekstu"><span class="we-svg-icon"><svg viewBox="0 0 24 24"><path d="M5 19 19 5"/><path d="M8 5h11v11"/><path d="M4 12h8"/></svg></span></button>
+                        <button class="btn btn-secondary we-mini-btn we-icon-btn" data-ribbon-action="more-tools" type="button" title="Więcej"><span class="we-svg-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="5" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="12" cy="19" r="1.6"/></svg></span></button>
                     </div>
                 </div>
             </div>
@@ -152,19 +173,60 @@
                 </div>
             </div>
 
+
+            <div class="we-ribbon-panel" data-panel="tables">
+                <div class="we-template-panel">
+                    <div class="we-template-head">
+                        <div>
+                            <strong>Gotowe tabele</strong>
+                            <p>Wstaw przykładowy układ do aktualnego arkusza i od razu testuj funkcje, matematykę finansową albo Solver.</p>
+                        </div>
+                        <button id="clear-before-template" class="btn btn-secondary" type="button">Wyczyść arkusz przed wstawieniem</button>
+                    </div>
+                    <div id="table-template-grid" class="we-template-grid"></div>
+                </div>
+            </div>
+
+
+
+            <div class="we-ribbon-panel" data-panel="university">
+                <div class="we-university-panel">
+                    <div class="we-university-head">
+                        <div>
+                            <strong>Arkusz akademicki</strong>
+                            <p>Gotowe układy do przedmiotów: równania różniczkowe, analiza matematyczna, statystyka, kombinatoryka, optymalizacja, ekonometria i badania operacyjne. Wstawiają się od aktywnej komórki, a formuły dopasowują adresy.</p>
+                        </div>
+                        <button id="clear-before-university-template" class="btn btn-secondary" type="button">Wyczyść arkusz przed wstawieniem</button>
+                    </div>
+                    <div id="university-template-grid" class="we-university-grid"></div>
+                </div>
+            </div>
+
             <div class="we-ribbon-panel" data-panel="data">
-                <div class="we-toolbar-buttons">
+                <div class="we-toolbar-buttons we-rich-toolbar">
                     <button id="sort-asc-btn" class="btn btn-secondary" type="button">Sortuj A-Z</button>
                     <button id="sort-desc-btn" class="btn btn-secondary" type="button">Sortuj Z-A</button>
                     <button id="clear-cell-btn" class="btn btn-secondary" type="button">Wyczyść komórkę</button>
+                    <button class="btn btn-secondary" data-ribbon-action="filter" type="button">Filtr</button>
+                    <button class="btn btn-secondary" data-ribbon-action="pivot" type="button">Tabela przestawna</button>
+                    <button class="btn btn-secondary" data-ribbon-action="dropdown" type="button">Sprawdzanie danych / menu</button>
+                    <button class="btn btn-secondary" data-ribbon-action="checkbox" type="button">Pole wyboru</button>
+                    <button class="btn btn-secondary" data-ribbon-action="chart" type="button">Wykres</button>
+                    <button class="btn btn-secondary" data-ribbon-action="solver" type="button">Solver</button>
+                    <button class="btn btn-secondary" data-ribbon-action="merge-sheets" type="button">Scal arkusze w jedną tabelę</button>
                 </div>
             </div>
 
             <div class="we-ribbon-panel" data-panel="view">
-                <div class="we-toolbar-buttons">
+                <div class="we-toolbar-buttons we-rich-toolbar">
                     <button id="toggle-full-width-btn" class="btn btn-secondary" type="button">Tryb pełnej szerokości</button>
                     <button id="toggle-grid-btn" class="btn btn-secondary" type="button">Pokaż / ukryj siatkę</button>
-                    <button id="autofit-cols-btn" class="btn btn-secondary" type="button">Wyrównaj tabelę do tekstu</button>
+                    <button id="autofit-cols-btn" class="btn btn-secondary" type="button">Dopasuj kolumny</button>
+                    <button class="btn btn-secondary" data-ribbon-action="freeze-first-row" type="button">Zablokuj pierwszy wiersz</button>
+                    <button class="btn btn-secondary" data-ribbon-action="freeze-first-col" type="button">Zablokuj pierwszą kolumnę</button>
+                    <button class="btn btn-secondary" data-ribbon-action="comments" type="button">Komentarze i notatki</button>
+                    <button class="btn btn-secondary" data-ribbon-action="zoom-100" type="button">Zoom 100%</button>
+                    <button class="btn btn-secondary" data-ribbon-action="compact-view" type="button">Widok kompaktowy</button>
                 </div>
             </div>
         </div>
@@ -179,6 +241,8 @@
         </div>
     </section>
 
+    <section class="we-workbook-tabs" id="workbook-tabs"></section>
+
     <section class="we-objects-card" id="generated-objects-card" hidden>
         <div class="we-label">OBIEKTY / PODGLĄDY</div>
         <div id="generated-objects-area"></div>
@@ -186,78 +250,117 @@
 </section>
 
 <div class="we-modal" id="chart-modal">
-    <div class="we-modal-box">
+    <div class="we-modal-box we-chart-builder-modal">
         <div class="we-modal-top">
-            <strong>Wstaw wykres</strong>
+            <div>
+                <strong>Wstaw wykres</strong>
+                <div class="we-pivot-subtitle">Wybierz typ, zakres i wygląd wykresu. Zakres może pochodzić z zaznaczenia w arkuszu.</div>
+            </div>
             <button type="button" class="we-modal-close" data-close-modal="chart-modal">✕</button>
         </div>
 
-        <div class="we-modal-grid">
-            <div>
-                <label for="chart-range-input">Zakres danych</label>
-                <input id="chart-range-input" type="text" placeholder="A1:B10">
-            </div>
-
-            <div>
-                <label for="chart-type-select">Typ wykresu</label>
-                <select id="chart-type-select">
-                    <option value="line">Liniowy</option>
-                    <option value="bar">Słupkowy</option>
-                    <option value="column">Kolumnowy</option>
-                    <option value="area">Warstwowy</option>
-                    <option value="pie">Kołowy</option>
-                    <option value="scatter">Punktowy</option>
-                    <option value="histogram">Histogram</option>
+        <div class="we-chart-builder-layout">
+            <section class="we-chart-types-panel">
+                <div class="we-chart-types-title">Typ wykresu</div>
+                <div class="we-chart-types-grid" id="chart-type-cards">
+                    <button class="we-chart-type-card active" data-chart-type="line" type="button"><span>📈</span><strong>Liniowy</strong><small>trend w czasie</small></button>
+                    <button class="we-chart-type-card" data-chart-type="smooth-line" type="button"><span>〽️</span><strong>Liniowy wygładzony</strong><small>miękki trend</small></button>
+                    <button class="we-chart-type-card" data-chart-type="area" type="button"><span>🏔️</span><strong>Warstwowy</strong><small>wartość + obszar</small></button>
+                    <button class="we-chart-type-card" data-chart-type="stepped-area" type="button"><span>▰</span><strong>Schodkowy</strong><small>zmiany skokowe</small></button>
+                    <button class="we-chart-type-card" data-chart-type="column" type="button"><span>📊</span><strong>Kolumnowy</strong><small>porównanie kategorii</small></button>
+                    <button class="we-chart-type-card" data-chart-type="stacked-column" type="button"><span>▥</span><strong>Kolumnowy skumulowany</strong><small>wiele serii</small></button>
+                    <button class="we-chart-type-card" data-chart-type="bar" type="button"><span>▬</span><strong>Słupkowy poziomy</strong><small>ranking</small></button>
+                    <button class="we-chart-type-card" data-chart-type="stacked-bar" type="button"><span>▤</span><strong>Słupkowy skumulowany</strong><small>udziały w kategorii</small></button>
+                    <button class="we-chart-type-card" data-chart-type="pie" type="button"><span>🥧</span><strong>Kołowy</strong><small>udziały procentowe</small></button>
+                    <button class="we-chart-type-card" data-chart-type="doughnut" type="button"><span>🍩</span><strong>Pierścieniowy</strong><small>udziały z pustym środkiem</small></button>
+                    <button class="we-chart-type-card" data-chart-type="scatter" type="button"><span>✦</span><strong>Punktowy XY</strong><small>zależność dwóch zmiennych</small></button>
+                    <button class="we-chart-type-card" data-chart-type="bubble" type="button"><span>🫧</span><strong>Bąbelkowy</strong><small>X, Y i rozmiar</small></button>
+                    <button class="we-chart-type-card" data-chart-type="histogram" type="button"><span>▦</span><strong>Histogram</strong><small>rozkład wartości</small></button>
+                    <button class="we-chart-type-card" data-chart-type="pareto" type="button"><span>📉</span><strong>Pareto</strong><small>ranking + kumulacja</small></button>
+                    <button class="we-chart-type-card" data-chart-type="waterfall" type="button"><span>🌊</span><strong>Wodospadowy</strong><small>przyrosty i spadki</small></button>
+                    <button class="we-chart-type-card" data-chart-type="radar" type="button"><span>🕸️</span><strong>Radarowy</strong><small>profil wielowymiarowy</small></button>
+                    <button class="we-chart-type-card" data-chart-type="combo" type="button"><span>🔀</span><strong>Kombinowany</strong><small>kolumny + linia</small></button>
+                    <button class="we-chart-type-card" data-chart-type="sparkline" type="button"><span>〰️</span><strong>Miniwykres</strong><small>prosty trend</small></button>
+                </div>
+                <select id="chart-type-select" hidden>
+                    <option value="line" selected>line</option>
+                    <option value="smooth-line">smooth-line</option>
+                    <option value="area">area</option>
+                    <option value="stepped-area">stepped-area</option>
+                    <option value="column">column</option>
+                    <option value="stacked-column">stacked-column</option>
+                    <option value="bar">bar</option>
+                    <option value="stacked-bar">stacked-bar</option>
+                    <option value="pie">pie</option>
+                    <option value="doughnut">doughnut</option>
+                    <option value="scatter">scatter</option>
+                    <option value="bubble">bubble</option>
+                    <option value="histogram">histogram</option>
+                    <option value="pareto">pareto</option>
+                    <option value="waterfall">waterfall</option>
+                    <option value="radar">radar</option>
+                    <option value="combo">combo</option>
+                    <option value="sparkline">sparkline</option>
                 </select>
-            </div>
+            </section>
 
-            <div class="we-grid-span-2">
-                <label for="chart-title-input">Tytuł wykresu</label>
-                <input id="chart-title-input" type="text" placeholder="Np. Sprzedaż miesięczna">
-            </div>
+            <section class="we-chart-config-panel">
+                <div class="we-chart-types-title">Dane i wygląd</div>
+                <div class="we-chart-form-grid">
+                    <label class="we-grid-span-2">Zakres danych
+                        <input id="chart-range-input" type="text" placeholder="A1:B10 albo zaznacz zakres">
+                    </label>
+                    <label class="we-grid-span-2">Tytuł wykresu
+                        <input id="chart-title-input" type="text" placeholder="Np. Sprzedaż miesięczna">
+                    </label>
+                    <label>Tytuł osi X
+                        <input id="chart-x-title-input" type="text" placeholder="Np. Miesiąc">
+                    </label>
+                    <label>Tytuł osi Y
+                        <input id="chart-y-title-input" type="text" placeholder="Np. Wartość">
+                    </label>
+                    <label>Kolor serii
+                        <input id="chart-series-color" type="color" value="#4f8cff">
+                    </label>
+                    <label>Tło wykresu
+                        <input id="chart-bg-color" type="color" value="#111827">
+                    </label>
+                    <label>Szerokość
+                        <input id="chart-width-input" type="number" min="420" max="1400" value="900">
+                    </label>
+                    <label>Wysokość
+                        <input id="chart-height-input" type="number" min="220" max="900" value="360">
+                    </label>
+                    <label>Grubość linii
+                        <input id="chart-line-width-input" type="number" min="1" max="10" value="3">
+                    </label>
+                    <label>Rozmiar punktów
+                        <input id="chart-point-size-input" type="number" min="2" max="18" value="5">
+                    </label>
+                    <label>Sortowanie
+                        <select id="chart-sort-select">
+                            <option value="none">Bez sortowania</option>
+                            <option value="asc">Rosnąco po wartości</option>
+                            <option value="desc">Malejąco po wartości</option>
+                        </select>
+                    </label>
+                    <label>Styl legendy
+                        <select id="chart-legend-position-select">
+                            <option value="bottom">Na dole</option>
+                            <option value="right">Po prawej</option>
+                            <option value="none">Ukryj</option>
+                        </select>
+                    </label>
+                </div>
 
-            <div>
-                <label for="chart-x-title-input">Tytuł osi X</label>
-                <input id="chart-x-title-input" type="text" placeholder="Np. Miesiąc">
-            </div>
-
-            <div>
-                <label for="chart-y-title-input">Tytuł osi Y</label>
-                <input id="chart-y-title-input" type="text" placeholder="Np. Wartość">
-            </div>
-
-            <div>
-                <label for="chart-series-color">Kolor serii</label>
-                <input id="chart-series-color" type="color" value="#4f8cff">
-            </div>
-
-            <div class="we-check-row">
-                <label class="we-inline-check">
-                    <input id="chart-first-row-header" type="checkbox" checked>
-                    <span>Pierwszy wiersz jako nagłówek</span>
-                </label>
-            </div>
-
-            <div class="we-check-row">
-                <label class="we-inline-check">
-                    <input id="chart-show-legend" type="checkbox" checked>
-                    <span>Pokaż legendę</span>
-                </label>
-            </div>
-
-            <div class="we-check-row">
-                <label class="we-inline-check">
-                    <input id="chart-show-grid" type="checkbox" checked>
-                    <span>Pokaż siatkę</span>
-                </label>
-            </div>
-
-            <div class="we-check-row">
-                <label class="we-inline-check">
-                    <input id="chart-show-labels" type="checkbox">
-                    <span>Etykiety danych</span>
-                </label>
-            </div>
+                <div class="we-chart-checks">
+                    <label><input id="chart-first-row-header" type="checkbox" checked> Pierwszy wiersz jako nagłówek</label>
+                    <label><input id="chart-show-legend" type="checkbox" checked> Pokaż legendę</label>
+                    <label><input id="chart-show-grid" type="checkbox" checked> Pokaż siatkę</label>
+                    <label><input id="chart-show-labels" type="checkbox"> Etykiety danych</label>
+                </div>
+                <p class="we-chart-preview-note">Podpowiedź: zaznacz dane w arkuszu, kliknij „Wykres”, a zakres zostanie użyty automatycznie. Dla bąbelkowego najlepiej użyć 3 kolumn: X, Y, rozmiar.</p>
+            </section>
         </div>
 
         <div class="we-modal-actions">
@@ -267,72 +370,108 @@
 </div>
 
 <div class="we-modal" id="pivot-modal">
-    <div class="we-modal-box">
-        <div class="we-modal-top">
-            <strong>Tabela przestawna</strong>
+    <div class="we-modal-box we-pivot-editor-box">
+        <div class="we-modal-top we-pivot-top">
+            <div>
+                <strong>Edytor tabeli przestawnej</strong>
+                <div class="we-pivot-subtitle">Wybierz zakres danych, a potem dodawaj pola do wierszy, kolumn, wartości i filtrów.</div>
+            </div>
             <button type="button" class="we-modal-close" data-close-modal="pivot-modal">✕</button>
         </div>
-        <div class="we-modal-grid">
-            <div>
-                <label for="pivot-range-input">Zakres (np. A1:B10)</label>
-                <input id="pivot-range-input" type="text" placeholder="A1:B10">
-            </div>
-            <div>
-                <label for="pivot-agg-select">Agregacja</label>
-                <select id="pivot-agg-select">
-                    <option value="sum">Suma</option>
-                    <option value="count">Liczba</option>
-                    <option value="avg">Średnia</option>
-                    <option value="min">Minimum</option>
-                    <option value="max">Maksimum</option>
-                    <option value="median">Mediana</option>
-                </select>
-            </div>
+        <div class="we-pivot-layout">
+            <section class="we-pivot-config">
+                <label for="pivot-range-input">Zakres danych</label>
+                <div class="we-pivot-range-row">
+                    <input id="pivot-range-input" type="text" placeholder="A1:K500 albo zaznaczony zakres">
+                    <button id="pivot-use-selection-btn" class="btn btn-secondary" type="button">Użyj zaznaczenia</button>
+                </div>
+                <label for="pivot-search-input">Pola</label>
+                <input id="pivot-search-input" type="search" placeholder="Szukaj pola">
+                <div id="pivot-fields-list" class="we-pivot-fields-list"></div>
+            </section>
+            <section class="we-pivot-zones">
+                <div class="we-pivot-clear-row"><button id="pivot-clear-btn" class="btn btn-secondary" type="button">Wyczyść wszystko</button></div>
+                <div class="we-pivot-zone" data-zone="rows"><div class="we-pivot-zone-title">Wiersze</div><select class="we-pivot-zone-select" data-zone-select="rows"></select><button class="we-pivot-add-btn" data-pivot-add="rows" type="button">Dodaj</button><div id="pivot-zone-rows" class="we-pivot-zone-list"></div></div>
+                <div class="we-pivot-zone" data-zone="columns"><div class="we-pivot-zone-title">Kolumny</div><select class="we-pivot-zone-select" data-zone-select="columns"></select><button class="we-pivot-add-btn" data-pivot-add="columns" type="button">Dodaj</button><div id="pivot-zone-columns" class="we-pivot-zone-list"></div></div>
+                <div class="we-pivot-zone" data-zone="values"><div class="we-pivot-zone-title">Wartości</div><select class="we-pivot-zone-select" data-zone-select="values"></select><select id="pivot-agg-select" class="we-pivot-agg-select"><option value="sum">Suma</option><option value="count">Liczba</option><option value="avg">Średnia</option><option value="min">Minimum</option><option value="max">Maksimum</option><option value="median">Mediana</option></select><button class="we-pivot-add-btn" data-pivot-add="values" type="button">Dodaj</button><div id="pivot-zone-values" class="we-pivot-zone-list"></div></div>
+                <div class="we-pivot-zone" data-zone="filters"><div class="we-pivot-zone-title">Filtry</div><select class="we-pivot-zone-select" data-zone-select="filters"></select><button class="we-pivot-add-btn" data-pivot-add="filters" type="button">Dodaj</button><div id="pivot-zone-filters" class="we-pivot-zone-list"></div></div>
+            </section>
         </div>
-        <div class="we-modal-actions">
-            <button id="build-pivot-btn" class="btn btn-primary" type="button">Generuj tabelę</button>
+        <div class="we-modal-actions"><button id="build-pivot-btn" class="btn btn-primary" type="button">Generuj tabelę</button></div>
+    </div>
+</div>
+
+<div class="we-modal" id="comment-modal">
+    <div class="we-modal-box we-comment-box">
+        <div class="we-modal-top"><strong id="comment-modal-title">Komentarz</strong><button type="button" class="we-modal-close" data-close-modal="comment-modal">✕</button></div>
+        <label for="comment-textarea">Treść</label>
+        <textarea id="comment-textarea" rows="5" placeholder="Wpisz komentarz lub notatkę widoczną po najechaniu na komórkę"></textarea>
+        <div class="we-comment-preview-label">Podgląd</div>
+        <div id="comment-preview" class="we-comment-preview">Brak treści.</div>
+        <div class="we-modal-actions"><button id="comment-delete-btn" class="btn btn-secondary" type="button">Usuń</button><button id="comment-save-btn" class="btn btn-primary" type="button">Zapisz</button></div>
+    </div>
+</div>
+
+<div class="we-modal" id="emoji-modal">
+    <div class="we-modal-box we-emoji-box">
+        <div class="we-modal-top">
+            <div>
+                <strong>Emotikony</strong>
+                <div class="we-pivot-subtitle">Wybierz emotikonę jak w komunikatorze — kliknij, aby podejrzeć, dwuklik od razu wstawia do komórki.</div>
+            </div>
+            <button type="button" class="we-modal-close" data-close-modal="emoji-modal">✕</button>
+        </div>
+        <input id="emoji-search-input" type="search" placeholder="Szukaj, np. ok, błąd, wykres, uwaga">
+        <div id="emoji-category-buttons" class="we-emoji-categories"></div>
+        <div class="we-emoji-main">
+            <div id="emoji-grid" class="we-emoji-grid"></div>
+            <div class="we-emoji-side">
+                <div class="we-emoji-preview-label">Podgląd</div>
+                <div id="emoji-preview" class="we-emoji-preview">📌</div>
+                <button id="emoji-insert-btn" type="button" class="btn btn-primary">Wstaw do komórki</button>
+            </div>
         </div>
     </div>
 </div>
 
-<div class="we-modal" id="solver-modal">
-    <div class="we-modal-box">
+
+
+<div class="we-modal" id="smart-insert-modal">
+    <div class="we-modal-box we-smart-insert-box">
         <div class="we-modal-top">
-            <strong>Solver</strong>
-            <button type="button" class="we-modal-close" data-close-modal="solver-modal">✕</button>
+            <div>
+                <strong id="smart-insert-title">Wstaw element</strong>
+                <div id="smart-insert-subtitle" class="we-pivot-subtitle">Wypełnij pola i zobacz podgląd przed wstawieniem.</div>
+            </div>
+            <button type="button" class="we-modal-close" data-close-modal="smart-insert-modal">✕</button>
         </div>
-        <div class="we-modal-grid">
-            <div>
-                <label for="solver-target-input">Komórka celu</label>
-                <input id="solver-target-input" type="text" placeholder="C1">
-            </div>
-            <div>
-                <label for="solver-variable-input">Komórka zmiennej</label>
-                <input id="solver-variable-input" type="text" placeholder="A1,A2,A3">
-            </div>
-            <div>
-                <label for="solver-mode-select">Tryb</label>
-                <select id="solver-mode-select">
-                    <option value="max">Maksymalizacja</option>
-                    <option value="min">Minimalizacja</option>
-                </select>
-            </div>
-            <div>
-                <label for="solver-step-input">Krok</label>
-                <input id="solver-step-input" type="number" step="any" value="1">
-            </div>
-            <div>
-                <label for="solver-min-input">Minimum</label>
-                <input id="solver-min-input" type="number" step="any" value="0">
-            </div>
-            <div>
-                <label for="solver-max-input">Maksimum</label>
-                <input id="solver-max-input" type="number" step="any" value="100">
-            </div>
+        <div id="smart-insert-body" class="we-smart-insert-body"></div>
+        <div class="we-smart-preview-wrap">
+            <div class="we-comment-preview-label">Podgląd w komórce</div>
+            <div id="smart-insert-preview" class="we-smart-preview">—</div>
         </div>
         <div class="we-modal-actions">
-            <button id="run-solver-btn" class="btn btn-primary" type="button">Uruchom solver</button>
+            <button type="button" class="btn btn-secondary" data-close-modal="smart-insert-modal">Anuluj</button>
+            <button id="smart-insert-apply-btn" type="button" class="btn btn-primary">Wstaw</button>
         </div>
+    </div>
+</div>
+
+<div id="sheet-context-menu" class="we-sheet-context-menu" hidden></div>
+
+<div class="we-modal" id="solver-modal">
+    <div class="we-modal-box we-solver-box">
+        <div class="we-modal-top we-solver-top">
+            <strong>OpenSolver</strong>
+            <button type="button" class="we-modal-close" data-close-modal="solver-modal">✕</button>
+        </div>
+        <div class="we-solver-row we-solver-sheet-row"><label>Sheet:</label><select id="solver-sheet-select"><option>Arkusz1</option></select><button type="button" class="btn btn-secondary we-solver-small">Current Sheet</button></div>
+        <div class="we-solver-section"><label for="solver-target-input">Objective Cell:</label><div class="we-solver-inline"><input id="solver-target-input" type="text" placeholder="E2"><button type="button" class="btn btn-secondary we-solver-small" id="solver-target-update-btn">Update</button><button type="button" class="btn btn-secondary we-solver-small" id="solver-target-clear-btn">Clear</button></div></div>
+        <div class="we-solver-section"><div class="we-solver-section-title">Objective Sense:</div><label class="we-solver-radio"><input type="radio" name="solver-objective-sense" value="min"> minimise</label><label class="we-solver-radio"><input type="radio" name="solver-objective-sense" value="max" checked> maximise</label><label class="we-solver-radio we-solver-target-value"><input type="radio" name="solver-objective-sense" value="target"> target value:<input id="solver-target-value-input" type="number" step="any" value="0"></label></div>
+        <div class="we-solver-section"><label for="solver-variable-input">Variable Cells:</label><div class="we-solver-list-line"><textarea id="solver-variable-input" rows="5" placeholder="A2:B2"></textarea><div class="we-solver-list-actions"><button type="button" class="btn btn-secondary we-solver-small" id="solver-variable-add-btn">Add</button><button type="button" class="btn btn-secondary we-solver-small" id="solver-variable-update-btn">Update</button><button type="button" class="btn btn-secondary we-solver-small" id="solver-variable-delete-btn">Delete</button></div></div><label class="we-solver-check"><input id="solver-nonnegative-input" type="checkbox" checked> Unconstrained variables non-negative</label></div>
+        <div class="we-solver-section"><label for="solver-constraints-input">Constraints:</label><textarea id="solver-constraints-input" rows="5" placeholder="G7:G10 <= E7:E10"></textarea></div>
+        <div class="we-solver-advanced"><div><label for="solver-step-input">Search step</label><input id="solver-step-input" type="number" step="any" value="1"></div><div><label for="solver-min-input">Min</label><input id="solver-min-input" type="number" step="any" value="0"></div><div><label for="solver-max-input">Max</label><input id="solver-max-input" type="number" step="any" value="100"></div></div>
+        <div class="we-modal-actions we-solver-actions"><button type="button" class="btn btn-secondary" data-close-modal="solver-modal">Close</button><button id="run-solver-btn" class="btn btn-primary" type="button">Solve</button></div>
     </div>
 </div>
 {% endblock %}

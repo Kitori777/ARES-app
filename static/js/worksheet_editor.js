@@ -47,12 +47,52 @@ document.addEventListener("DOMContentLoaded", function () {
     const chartShowLegendInput = document.getElementById("chart-show-legend");
     const chartShowGridInput = document.getElementById("chart-show-grid");
     const chartShowLabelsInput = document.getElementById("chart-show-labels");
+    const chartTypeCards = document.getElementById("chart-type-cards");
+    const chartBgColorInput = document.getElementById("chart-bg-color");
+    const chartWidthInput = document.getElementById("chart-width-input");
+    const chartHeightInput = document.getElementById("chart-height-input");
+    const chartLineWidthInput = document.getElementById("chart-line-width-input");
+    const chartPointSizeInput = document.getElementById("chart-point-size-input");
+    const chartSortSelect = document.getElementById("chart-sort-select");
+    const chartLegendPositionSelect = document.getElementById("chart-legend-position-select");
     const buildChartBtn = document.getElementById("build-chart-btn");
 
     const pivotModal = document.getElementById("pivot-modal");
     const pivotRangeInput = document.getElementById("pivot-range-input");
     const pivotAggSelect = document.getElementById("pivot-agg-select");
     const buildPivotBtn = document.getElementById("build-pivot-btn");
+    const pivotUseSelectionBtn = document.getElementById("pivot-use-selection-btn");
+    const pivotSearchInput = document.getElementById("pivot-search-input");
+    const pivotFieldsList = document.getElementById("pivot-fields-list");
+    const pivotClearBtn = document.getElementById("pivot-clear-btn");
+    const workbookTabs = document.getElementById("workbook-tabs");
+    const menuBar = document.querySelector(".we-menu-bar");
+    const menuPopover = document.getElementById("we-menu-popover");
+    const tableTemplateGrid = document.getElementById("table-template-grid");
+    const clearBeforeTemplateBtn = document.getElementById("clear-before-template");
+    const universityTemplateGrid = document.getElementById("university-template-grid");
+    const clearBeforeUniversityTemplateBtn = document.getElementById("clear-before-university-template");
+    const smartInsertModal = document.getElementById("smart-insert-modal");
+    const smartInsertTitle = document.getElementById("smart-insert-title");
+    const smartInsertSubtitle = document.getElementById("smart-insert-subtitle");
+    const smartInsertBody = document.getElementById("smart-insert-body");
+    const smartInsertPreview = document.getElementById("smart-insert-preview");
+    const smartInsertApplyBtn = document.getElementById("smart-insert-apply-btn");
+    const sheetContextMenu = document.getElementById("sheet-context-menu");
+    const formulaHelperPopover = document.getElementById("formula-helper-popover");
+    const commentModal = document.getElementById("comment-modal");
+    const commentModalTitle = document.getElementById("comment-modal-title");
+    const commentTextarea = document.getElementById("comment-textarea");
+    const commentPreview = document.getElementById("comment-preview");
+    const commentSaveBtn = document.getElementById("comment-save-btn");
+    const commentDeleteBtn = document.getElementById("comment-delete-btn");
+
+    const emojiModal = document.getElementById("emoji-modal");
+    const emojiSearchInput = document.getElementById("emoji-search-input");
+    const emojiCategoryButtons = document.getElementById("emoji-category-buttons");
+    const emojiGrid = document.getElementById("emoji-grid");
+    const emojiPreview = document.getElementById("emoji-preview");
+    const emojiInsertBtn = document.getElementById("emoji-insert-btn");
 
     const solverModal = document.getElementById("solver-modal");
     const solverTargetInput = document.getElementById("solver-target-input");
@@ -61,6 +101,13 @@ document.addEventListener("DOMContentLoaded", function () {
     const solverStepInput = document.getElementById("solver-step-input");
     const solverMinInput = document.getElementById("solver-min-input");
     const solverMaxInput = document.getElementById("solver-max-input");
+    const solverConstraintsInput = document.getElementById("solver-constraints-input");
+    const solverNonnegativeInput = document.getElementById("solver-nonnegative-input");
+    const solverTargetValueInput = document.getElementById("solver-target-value-input");
+    const solverTargetUpdateBtn = document.getElementById("solver-target-update-btn");
+    const solverTargetClearBtn = document.getElementById("solver-target-clear-btn");
+    const solverVariableAddBtn = document.getElementById("solver-variable-add-btn");
+    const solverVariableDeleteBtn = document.getElementById("solver-variable-delete-btn");
     const runSolverBtn = document.getElementById("run-solver-btn");
 
     const modalCloseButtons = document.querySelectorAll("[data-close-modal]");
@@ -71,6 +118,7 @@ document.addEventListener("DOMContentLoaded", function () {
     const formulaCategoryTitleEl = document.getElementById("formula-category-title");
 
     const undoBtn = document.getElementById("undo-btn");
+    const redoBtn = document.getElementById("redo-btn");
 
     const fontFamilySelect = document.getElementById("font-family-select");
     const fontSizeInput = document.getElementById("font-size-input");
@@ -96,13 +144,35 @@ document.addEventListener("DOMContentLoaded", function () {
 
     let chartObjects = [];
     let pivotObjects = [];
+    let workbook = null;
+    let activeWorkbookSheetIndex = 0;
+    let pivotConfig = { rows: [], columns: [], values: [], filters: [] };
+    let commentEditMode = "comment";
+    let activeEmojiCategory = "popularne";
+    let selectedEmoji = "📌";
+    let smartInsertMode = null;
+    let pendingSheetTabIndex = null;
+    let cellClipboard = { text: "", matrix: null, cut: false, sourceRange: null };
+    const EMOJI_CATEGORIES = {
+        popularne: ["😀","😃","😄","😁","😊","😉","😍","🤩","😎","🙂","🤔","👍","👎","👏","🙏","💪","✅","❌","⚠️","📌","⭐","🔥","💡","📊","📈","📉","🧮","📝","📁","🔒","🔓","🚀"],
+        ludzie: ["😀","😂","🤣","😊","😇","😉","😋","😜","🤓","😎","🥳","😏","😐","🙄","😬","😴","😷","🤒","🤕","🤠","🥺","😢","😭","😤","😡","🤯","🤝","👏","🙌","👋","👌","✌️","🤞","🙏","💪","👀"],
+        praca: ["📌","📎","✂️","📐","📏","🖊️","🖋️","✏️","📝","📒","📔","📕","📗","📘","📙","📚","📁","📂","🗂️","🗃️","🧾","📊","📈","📉","🧮","💼","🗓️","⏱️","⏰","🔍","🔎","🔔","📣","📧","📤","📥"],
+        symbole: ["✅","☑️","✔️","❌","✖️","➕","➖","➗","✳️","⚠️","🚫","⛔","🔴","🟠","🟡","🟢","🔵","🟣","⚪","⚫","⬆️","⬇️","⬅️","➡️","↗️","↘️","🔁","🔄","💯","❓","❗","ℹ️","🔒","🔓","🔑","🔧"],
+        obiekty: ["🏠","🏢","🏭","🚗","🚆","✈️","⚽","🎯","🏆","🥇","☕","🍕","🍎","🌞","🌙","⭐","🌧️","❄️","🔥","💧","🌱","🌳","🌍","⚡","🔋","🧲","🧪","🧬","💻","🖥️","⌨️","🖱️","📱","📷","🎧","🎮"]
+    };
+    let activeTooltip = null;
+    let recentColors = JSON.parse(localStorage.getItem("ares_recent_colors") || "[]");
 
     let historyStack = [];
+    let redoStack = [];
     let isRestoringHistory = false;
 
     let selectionStart = null;
     let selectionEnd = null;
     let isMouseSelecting = false;
+    let fillDragStart = null;
+    let fillDragEnd = null;
+    let isFillDragging = false;
 
     const SPILL_PREFIX = "__SPILL__:";
     const DEFAULT_CHART_COLOR = "#4f8cff";
@@ -163,6 +233,27 @@ document.addEventListener("DOMContentLoaded", function () {
         return await response.json();
     }
 
+    function currentSheetLabel() {
+        return currentSheet?.activeTabName || workbook?.sheets?.[activeWorkbookSheetIndex]?.name || currentSheet?.name || "Arkusz";
+    }
+
+    async function logUserAction(action, details = {}) {
+        try {
+            await postJson("/ares/api/history/add/", {
+                sheetId: sheetId,
+                action,
+                details: {
+                    sheetName: currentSheet?.name || "Arkusz",
+                    tabName: currentSheetLabel(),
+                    activeCell: cellAddress(activeCell.row, activeCell.col),
+                    ...details,
+                }
+            });
+        } catch (error) {
+            console.warn("Nie udało się zapisać historii akcji:", action, error);
+        }
+    }
+
     function colToLabel(index) {
         let label = "";
         let n = index + 1;
@@ -176,6 +267,10 @@ document.addEventListener("DOMContentLoaded", function () {
         return label;
     }
 
+    function cellAddress(row, col) {
+        return `${colToLabel(col)}${row + 1}`;
+    }
+
     function labelToCol(label) {
         let result = 0;
         for (const ch of String(label).toUpperCase()) {
@@ -185,13 +280,68 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     function cellRefToIndex(ref) {
-        const match = String(ref || "").trim().toUpperCase().match(/^([A-Z]+)(\d+)$/);
+        const match = String(ref || "").trim().toUpperCase().match(/^\$?([A-Z]+)\$?(\d+)$/);
         if (!match) return null;
 
         return {
             col: labelToCol(match[1]),
             row: parseInt(match[2], 10) - 1
         };
+    }
+
+    function normalizeCellRefText(ref) {
+        return String(ref || "").trim().toUpperCase().replace(/\$/g, "");
+    }
+
+    function indexToCellRef(row, col, lockCol = false, lockRow = false) {
+        return `${lockCol ? "$" : ""}${colToLabel(Math.max(0, col))}${lockRow ? "$" : ""}${Math.max(0, row) + 1}`;
+    }
+
+    function toggleReferenceLockInFormulaInput() {
+        if (!formulaInput) return;
+
+        const value = formulaInput.value || "";
+        const cursor = formulaInput.selectionStart ?? value.length;
+        const refRegex = /\$?[A-Z]+\$?\d+/gi;
+        let match;
+
+        while ((match = refRegex.exec(value)) !== null) {
+            const start = match.index;
+            const end = start + match[0].length;
+            if (cursor < start || cursor > end) continue;
+
+            const refMatch = match[0].match(/^(\$?)([A-Z]+)(\$?)(\d+)$/i);
+            if (!refMatch) return;
+
+            const [, colLock, letters, rowLock, rowNumber] = refMatch;
+            let next;
+            if (!colLock && !rowLock) next = `$${letters.toUpperCase()}$${rowNumber}`;
+            else if (colLock && rowLock) next = `${letters.toUpperCase()}$${rowNumber}`;
+            else if (!colLock && rowLock) next = `$${letters.toUpperCase()}${rowNumber}`;
+            else next = `${letters.toUpperCase()}${rowNumber}`;
+
+            formulaInput.value = value.slice(0, start) + next + value.slice(end);
+            const nextCursor = start + next.length;
+            formulaInput.setSelectionRange(nextCursor, nextCursor);
+            return;
+        }
+    }
+
+    function adjustFormulaReferences(formula, rowOffset, colOffset) {
+        if (typeof formula !== "string" || !formula.trim().startsWith("=")) return formula;
+
+        return formula.replace(/\$?[A-Z]+\$?\d+/gi, ref => {
+            const match = ref.match(/^(\$?)([A-Z]+)(\$?)(\d+)$/i);
+            if (!match) return ref;
+
+            const [, colLock, letters, rowLock, rowNumber] = match;
+            const sourceCol = labelToCol(letters);
+            const sourceRow = parseInt(rowNumber, 10) - 1;
+            const nextCol = colLock ? sourceCol : sourceCol + colOffset;
+            const nextRow = rowLock ? sourceRow : sourceRow + rowOffset;
+
+            return indexToCellRef(nextRow, nextCol, !!colLock, !!rowLock);
+        });
     }
 
     function emptyGrid(rows = 20, cols = 10) {
@@ -209,25 +359,234 @@ document.addEventListener("DOMContentLoaded", function () {
         return { rows, cols };
     }
 
+    function normalizeWorkbookData(data) {
+        const rawGrid = data.grid;
+        if (rawGrid && !Array.isArray(rawGrid) && Array.isArray(rawGrid.sheets)) {
+            return {
+                activeSheetIndex: Math.min(rawGrid.activeSheetIndex || 0, rawGrid.sheets.length - 1),
+                sheets: rawGrid.sheets.map((sheet, index) => {
+                    const grid = Array.isArray(sheet.grid) ? sheet.grid : emptyGrid();
+                    return {
+                        name: sheet.name || `Arkusz ${index + 1}`,
+                        grid,
+                        styles: sheet.styles || {}
+                    };
+                })
+            };
+        }
+
+        return {
+            activeSheetIndex: 0,
+            sheets: [{
+                name: data.name || "Arkusz1",
+                grid: Array.isArray(rawGrid) ? rawGrid : emptyGrid(),
+                styles: data.styles || {}
+            }]
+        };
+    }
+
+    function commitActiveSheetToWorkbook() {
+        if (!workbook || !currentSheet) return;
+        workbook.sheets[activeWorkbookSheetIndex] = {
+            name: workbook.sheets[activeWorkbookSheetIndex]?.name || currentSheet.name || `Arkusz ${activeWorkbookSheetIndex + 1}`,
+            grid: currentSheet.grid,
+            styles: currentSheet.styles || {}
+        };
+    }
+
+    function activateWorkbookSheet(index, shouldRender = true) {
+        if (!workbook || !workbook.sheets[index]) return;
+        commitActiveSheetToWorkbook();
+        activeWorkbookSheetIndex = index;
+        workbook.activeSheetIndex = index;
+        const selected = workbook.sheets[index];
+        currentSheet.grid = selected.grid;
+        currentSheet.styles = selected.styles || {};
+        currentSheet.activeTabName = selected.name;
+        const dims = inferDimensionsFromGrid(currentSheet.grid);
+        currentRows = dims.rows;
+        currentCols = dims.cols;
+        ensureDimensions(currentRows, currentCols);
+        activeCell = { row: 0, col: 0 };
+        clearSelection();
+        if (sheetMetaEl) sheetMetaEl.textContent = `Zakładka: ${selected.name} • Wiersze: ${currentRows} • Kolumny: ${currentCols}`;
+        renderWorkbookTabs();
+        if (shouldRender) renderGrid();
+    }
+
+    function renderWorkbookTabs() {
+        if (!workbookTabs || !workbook) return;
+        workbookTabs.innerHTML = "";
+        workbook.sheets.forEach((sheet, index) => {
+            const btn = document.createElement("button");
+            btn.type = "button";
+            btn.className = "we-workbook-tab" + (index === activeWorkbookSheetIndex ? " active" : "") + (sheet.hidden ? " hidden-sheet" : "");
+            btn.style.borderBottomColor = sheet.color || "";
+            btn.innerHTML = `<span class="we-tab-title">${escapeHtml(sheet.name || `Arkusz ${index + 1}`)}</span> <span class="we-workbook-tab-actions" title="Opcje arkusza">▾</span>`;
+            btn.addEventListener("click", (event) => {
+                if (event.target.closest(".we-workbook-tab-actions")) {
+                    event.stopPropagation();
+                    showSheetContextMenu(index, btn);
+                    return;
+                }
+                activateWorkbookSheet(index);
+            });
+            btn.addEventListener("contextmenu", (event) => { event.preventDefault(); showSheetContextMenu(index, btn); });
+            btn.addEventListener("dblclick", () => renameWorkbookSheet(index));
+            workbookTabs.appendChild(btn);
+        });
+        const add = document.createElement("button");
+        add.type = "button";
+        add.className = "we-workbook-add-tab";
+        add.textContent = "+";
+        add.title = "Dodaj nowy arkusz w tym pliku";
+        add.addEventListener("click", addWorkbookSheet);
+        workbookTabs.appendChild(add);
+    }
+
+    function showSheetContextMenu(index, anchor) {
+        if (!sheetContextMenu || !workbook || !workbook.sheets[index]) return;
+        pendingSheetTabIndex = index;
+        const canMoveLeft = index > 0;
+        const canMoveRight = index < workbook.sheets.length - 1;
+        const tabColors = ["#ffffff", "#f28b82", "#fbbc04", "#fff475", "#ccff90", "#a7ffeb", "#cbf0f8", "#aecbfa", "#d7aefb", "#fdcfe8", "#4f8cff", "#3ccf91"];
+        sheetContextMenu.innerHTML = `
+            <button data-sheet-action="delete">Usuń</button>
+            <button data-sheet-action="duplicate">Duplikuj</button>
+            <button data-sheet-action="copy-to">Kopiuj do <span>›</span></button>
+            <button data-sheet-action="rename">Zmień nazwę</button>
+            <button data-sheet-action="protect">Chroń arkusz</button>
+            <button data-sheet-action="hide">Ukryj arkusz</button>
+            <button data-sheet-action="comments">Wyświetl komentarze</button>
+            <div class="we-menu-separator"></div>
+            <button type="button" disabled>Zmień kolor</button>
+            <div class="we-sheet-color-row">${tabColors.map(c => `<span class="we-sheet-color-swatch" data-sheet-action="tab-color:${c}" style="background:${c}" title="${c === "#ffffff" ? "Bez koloru" : c}"></span>`).join("")}</div>
+            <div class="we-menu-separator"></div>
+            <button data-sheet-action="move-right" ${canMoveRight ? "" : "disabled"}>Przenieś w prawo</button>
+            <button data-sheet-action="move-left" ${canMoveLeft ? "" : "disabled"}>Przenieś w lewo</button>
+        `;
+        const rect = anchor.getBoundingClientRect();
+        sheetContextMenu.hidden = false;
+        sheetContextMenu.style.visibility = "hidden";
+        sheetContextMenu.style.left = `${Math.max(8, Math.min(rect.left, window.innerWidth - 250))}px`;
+        const menuHeight = sheetContextMenu.offsetHeight || 360;
+        const topAbove = rect.top - menuHeight - 8;
+        sheetContextMenu.style.top = `${Math.max(8, topAbove)}px`;
+        sheetContextMenu.style.visibility = "visible";
+    }
+
+    function handleSheetContextAction(action) {
+        const index = pendingSheetTabIndex;
+        if (!workbook || index == null || !workbook.sheets[index]) return;
+        if (action === "comments") return openCommentEditor("comment");
+        if (action && action.startsWith("tab-color:")) {
+            const color = action.split(":")[1];
+            workbook.sheets[index].color = color === "#ffffff" ? "" : color;
+            renderWorkbookTabs();
+            return markDirty();
+        }
+        if (action === "rename") return renameWorkbookSheet(index);
+        if (action === "duplicate" || action === "copy-to") {
+            commitActiveSheetToWorkbook();
+            const original = workbook.sheets[index];
+            const copy = JSON.parse(JSON.stringify(original));
+            copy.name = `${original.name || `Arkusz ${index + 1}`} — kopia`;
+            workbook.sheets.splice(index + 1, 0, copy);
+            activateWorkbookSheet(index + 1);
+            return markDirty();
+        }
+        if (action === "delete") {
+            if (workbook.sheets.length <= 1) return alert("Nie można usunąć ostatniego arkusza.");
+            if (!confirm("Usunąć tę zakładkę?")) return;
+            workbook.sheets.splice(index, 1);
+            activeWorkbookSheetIndex = Math.min(activeWorkbookSheetIndex, workbook.sheets.length - 1);
+            activateWorkbookSheet(activeWorkbookSheetIndex);
+            return markDirty();
+        }
+        if (action === "move-left" && index > 0) {
+            [workbook.sheets[index - 1], workbook.sheets[index]] = [workbook.sheets[index], workbook.sheets[index - 1]];
+            activeWorkbookSheetIndex = index - 1;
+            activateWorkbookSheet(activeWorkbookSheetIndex);
+            return markDirty();
+        }
+        if (action === "move-right" && index < workbook.sheets.length - 1) {
+            [workbook.sheets[index + 1], workbook.sheets[index]] = [workbook.sheets[index], workbook.sheets[index + 1]];
+            activeWorkbookSheetIndex = index + 1;
+            activateWorkbookSheet(activeWorkbookSheetIndex);
+            return markDirty();
+        }
+        if (action === "color") {
+            const color = prompt("Kolor zakładki, np. #4f8cff:", workbook.sheets[index].color || "#4f8cff");
+            if (color) workbook.sheets[index].color = color;
+            renderWorkbookTabs();
+            return markDirty();
+        }
+        if (action === "protect") {
+            workbook.sheets[index].protected = !workbook.sheets[index].protected;
+            alert(workbook.sheets[index].protected ? "Arkusz oznaczony jako chroniony." : "Ochrona arkusza wyłączona.");
+            return markDirty();
+        }
+        if (action === "hide") {
+            workbook.sheets[index].hidden = !workbook.sheets[index].hidden;
+            renderWorkbookTabs();
+            return markDirty();
+        }
+    }
+
+    function addWorkbookSheet() {
+        if (!workbook) return;
+        commitActiveSheetToWorkbook();
+        const nextIndex = workbook.sheets.length + 1;
+        workbook.sheets.push({ name: `Arkusz ${nextIndex}`, grid: emptyGrid(), styles: {} });
+        activateWorkbookSheet(workbook.sheets.length - 1);
+        markDirty();
+    }
+
+    function renameWorkbookSheet(index) {
+        if (!workbook || !workbook.sheets[index]) return;
+        const currentName = workbook.sheets[index].name || `Arkusz ${index + 1}`;
+        const nextName = prompt("Podaj nazwę zakładki:", currentName);
+        if (!nextName) return;
+        workbook.sheets[index].name = nextName.trim();
+        if (index === activeWorkbookSheetIndex && currentSheet) currentSheet.activeTabName = nextName.trim();
+        renderWorkbookTabs();
+        if (sheetMetaEl) sheetMetaEl.textContent = `Zakładka: ${workbook.sheets[activeWorkbookSheetIndex].name} • Wiersze: ${currentRows} • Kolumny: ${currentCols}`;
+        markDirty();
+    }
+
+    function workbookPayloadForSave() {
+        commitActiveSheetToWorkbook();
+        if (!workbook) return currentSheet.grid;
+        return {
+            version: 2,
+            activeSheetIndex: activeWorkbookSheetIndex,
+            sheets: workbook.sheets
+        };
+    }
+
     function normalizeLoadedSheet(data) {
-        const initialGrid = Array.isArray(data.grid) ? data.grid : emptyGrid();
-        const dims = inferDimensionsFromGrid(initialGrid);
+        workbook = normalizeWorkbookData(data);
+        activeWorkbookSheetIndex = workbook.activeSheetIndex || 0;
+        const active = workbook.sheets[activeWorkbookSheetIndex] || workbook.sheets[0];
+        const dims = inferDimensionsFromGrid(active.grid);
 
         currentRows = dims.rows;
         currentCols = dims.cols;
 
         const normalized = emptyGrid(currentRows, currentCols);
-        initialGrid.forEach((row, r) => {
-            row.forEach((value, c) => {
+        active.grid.forEach((row, r) => {
+            (row || []).forEach((value, c) => {
                 normalized[r][c] = value ?? "";
             });
         });
+        active.grid = normalized;
 
         return {
             ...data,
             category: data.category || "Bez kategorii",
-            styles: data.styles || {},
-            grid: normalized
+            styles: active.styles || {},
+            grid: normalized,
+            activeTabName: active.name || "Arkusz1"
         };
     }
 
@@ -310,17 +669,13 @@ document.addEventListener("DOMContentLoaded", function () {
     function pushHistorySnapshot() {
         if (!currentSheet || isRestoringHistory) return;
         historyStack.push(cloneSheetState());
+        redoStack = [];
         if (historyStack.length > 100) {
             historyStack.shift();
         }
     }
 
-    function undoLastChange() {
-        if (!currentSheet || !historyStack.length) return;
-
-        isRestoringHistory = true;
-        const snapshot = historyStack.pop();
-
+    function restoreSheetSnapshot(snapshot) {
         currentSheet.grid = snapshot.grid;
         currentSheet.styles = snapshot.styles || {};
         currentSheet.name = snapshot.name;
@@ -331,12 +686,37 @@ document.addEventListener("DOMContentLoaded", function () {
         currentCols = dims.cols;
 
         if (sheetNameEl) sheetNameEl.textContent = currentSheet.name || "Arkusz";
-        if (sheetMetaEl) sheetMetaEl.textContent = `Wiersze: ${currentRows} • Kolumny: ${currentCols}`;
+        if (sheetMetaEl) sheetMetaEl.textContent = `Zakładka: ${currentSheet.activeTabName || workbook?.sheets?.[activeWorkbookSheetIndex]?.name || "Arkusz1"} • Wiersze: ${currentRows} • Kolumny: ${currentCols}`;
+    }
+
+    function undoLastChange() {
+        if (!currentSheet || !historyStack.length) return;
+
+        isRestoringHistory = true;
+        redoStack.push(cloneSheetState());
+        const snapshot = historyStack.pop();
+        restoreSheetSnapshot(snapshot);
 
         renderGrid();
         isRestoringHistory = false;
         setAutosaveState("saving", "Cofnięto zmianę");
         scheduleAutosave();
+        logUserAction("Cofnięto zmianę", { type: "undo" });
+    }
+
+    function redoLastChange() {
+        if (!currentSheet || !redoStack.length) return;
+
+        isRestoringHistory = true;
+        historyStack.push(cloneSheetState());
+        const snapshot = redoStack.pop();
+        restoreSheetSnapshot(snapshot);
+
+        renderGrid();
+        isRestoringHistory = false;
+        setAutosaveState("saving", "Ponowiono zmianę");
+        scheduleAutosave();
+        logUserAction("Ponowiono zmianę", { type: "redo" });
     }
 
     function getCellStyleKey(row, col) {
@@ -406,13 +786,23 @@ document.addEventListener("DOMContentLoaded", function () {
 
     function updateSelectionHighlight() {
         document.querySelectorAll(".we-sheet-table td").forEach(td => {
-            td.classList.remove("active-cell", "selected-range");
+            td.classList.remove("active-cell", "selected-range", "fill-preview");
 
             const row = parseInt(td.dataset.row, 10);
             const col = parseInt(td.dataset.col, 10);
 
             if (isCellInSelection(row, col)) {
                 td.classList.add("selected-range");
+            }
+
+            if (isFillDragging && fillDragStart && fillDragEnd) {
+                const rowStart = Math.min(fillDragStart.row, fillDragEnd.row);
+                const rowEnd = Math.max(fillDragStart.row, fillDragEnd.row);
+                const colStart = Math.min(fillDragStart.col, fillDragEnd.col);
+                const colEnd = Math.max(fillDragStart.col, fillDragEnd.col);
+                if (row >= rowStart && row <= rowEnd && col >= colStart && col <= colEnd) {
+                    td.classList.add("fill-preview");
+                }
             }
 
             if (row === activeCell.row && col === activeCell.col) {
@@ -431,6 +821,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
         renderGrid();
         markDirty();
+        logUserAction("Zmieniono styl komórki", { type: "style_change", cell: cellAddress(activeCell.row, activeCell.col) });
     }
 
     function toggleStyleFlag(flagName) {
@@ -451,6 +842,18 @@ document.addEventListener("DOMContentLoaded", function () {
         td.style.color = style.textColor || "";
         td.style.backgroundColor = style.fillColor || "";
         td.style.textAlign = style.align || "";
+        
+        td.style.border = style.border ? "2px solid rgba(91, 141, 239, 0.9)" : "";
+        const bColor = style.borderColor || "rgba(91, 141, 239, 0.9)";
+        const bStyle = style.borderLineStyle || "solid";
+        const bWidth = style.borderWidth || "2px";
+        const borderCss = `${bWidth} ${bStyle} ${bColor}`;
+        if (style.borderTop) td.style.borderTop = borderCss;
+        if (style.borderRight) td.style.borderRight = borderCss;
+        if (style.borderBottom) td.style.borderBottom = borderCss;
+        if (style.borderLeft) td.style.borderLeft = borderCss;
+        td.style.whiteSpace = style.wrap ? "normal" : "nowrap";
+        td.style.transform = style.rotate ? "rotate(-2deg)" : "";
     }
 
     function refreshStartControlsFromCell() {
@@ -630,11 +1033,11 @@ document.addEventListener("DOMContentLoaded", function () {
         }
 
         if (value.startsWith("=COMMENT(") && value.endsWith(")")) {
-            return `<div class="we-cell-indicator" title="${escapeHtml(value.slice(9, -1))}">💬</div>`;
+            return `<span class="we-cell-comment-marker" data-tooltip="${escapeHtml(value.slice(9, -1))}"></span>`;
         }
 
         if (value.startsWith("=NOTE(") && value.endsWith(")")) {
-            return `<div class="we-cell-indicator" title="${escapeHtml(value.slice(6, -1))}">📝</div>`;
+            return `<span class="we-cell-note-marker" data-tooltip="${escapeHtml(value.slice(6, -1))}"></span>`;
         }
 
         return null;
@@ -674,6 +1077,162 @@ document.addEventListener("DOMContentLoaded", function () {
         const value = currentSheet.grid[activeCell.row][activeCell.col] ?? "";
         if (formulaInput) formulaInput.value = value;
         if (activeCellLabel) activeCellLabel.textContent = `${colToLabel(activeCell.col)}${activeCell.row + 1}`;
+    }
+
+    function getSelectionMatrix(raw = true) {
+        const bounds = getSelectionBounds() || {
+            rowStart: activeCell.row,
+            rowEnd: activeCell.row,
+            colStart: activeCell.col,
+            colEnd: activeCell.col
+        };
+        const matrix = [];
+        for (let row = bounds.rowStart; row <= bounds.rowEnd; row += 1) {
+            const line = [];
+            for (let col = bounds.colStart; col <= bounds.colEnd; col += 1) {
+                line.push(raw ? (currentSheet.grid[row]?.[col] ?? "") : cellDisplayValue(row, col).text);
+            }
+            matrix.push(line);
+        }
+        return { bounds, matrix };
+    }
+
+    function matrixToClipboardText(matrix) {
+        return matrix.map(row => row.map(value => String(value ?? "")).join("\t")).join("\n");
+    }
+
+    async function writeClipboardText(text) {
+        try {
+            if (navigator.clipboard?.writeText) {
+                await navigator.clipboard.writeText(text);
+                return true;
+            }
+        } catch (error) {
+            console.warn("Clipboard write failed", error);
+        }
+        return false;
+    }
+
+    async function readClipboardText() {
+        try {
+            if (navigator.clipboard?.readText) {
+                return await navigator.clipboard.readText();
+            }
+        } catch (error) {
+            console.warn("Clipboard read failed", error);
+        }
+        return cellClipboard.text || "";
+    }
+
+    function clipboardTextToMatrix(text) {
+        return String(text || "").replace(/\r\n/g, "\n").replace(/\r/g, "\n").split("\n").map(row => row.split("\t"));
+    }
+
+    async function copySelectionToClipboard(cut = false) {
+        if (!currentSheet) return;
+        const { bounds, matrix } = getSelectionMatrix(true);
+        const text = matrixToClipboardText(matrix);
+        cellClipboard = { text, matrix, cut, sourceRange: bounds };
+        await writeClipboardText(text);
+        logUserAction(cut ? "Wycięto zakres komórek" : "Skopiowano zakres komórek", { type: cut ? "cell_cut" : "cell_copy", range: getCurrentSelectionRangeText() });
+    }
+
+    async function pasteClipboardToActiveCell() {
+        if (!currentSheet) return;
+        const text = await readClipboardText();
+        const matrix = text ? clipboardTextToMatrix(text) : cellClipboard.matrix;
+        if (!matrix || !matrix.length) return;
+
+        pushHistorySnapshot();
+        ensureDimensions(activeCell.row + matrix.length, activeCell.col + Math.max(...matrix.map(row => row.length)));
+        matrix.forEach((line, rowOffset) => {
+            line.forEach((value, colOffset) => {
+                currentSheet.grid[activeCell.row + rowOffset][activeCell.col + colOffset] = value;
+            });
+        });
+
+        if (cellClipboard.cut && cellClipboard.sourceRange) {
+            const targetRange = {
+                rowStart: activeCell.row,
+                rowEnd: activeCell.row + matrix.length - 1,
+                colStart: activeCell.col,
+                colEnd: activeCell.col + Math.max(...matrix.map(row => row.length)) - 1
+            };
+            for (let row = cellClipboard.sourceRange.rowStart; row <= cellClipboard.sourceRange.rowEnd; row += 1) {
+                for (let col = cellClipboard.sourceRange.colStart; col <= cellClipboard.sourceRange.colEnd; col += 1) {
+                    const insideTarget = row >= targetRange.rowStart && row <= targetRange.rowEnd && col >= targetRange.colStart && col <= targetRange.colEnd;
+                    if (!insideTarget && currentSheet.grid[row]) currentSheet.grid[row][col] = "";
+                }
+            }
+            cellClipboard.cut = false;
+        }
+
+        selectionStart = { row: activeCell.row, col: activeCell.col };
+        selectionEnd = { row: activeCell.row + matrix.length - 1, col: activeCell.col + Math.max(...matrix.map(row => row.length)) - 1 };
+        renderGrid();
+        markDirty();
+        logUserAction("Wklejono komórki", { type: "cell_paste", startCell: cellAddress(activeCell.row, activeCell.col) });
+    }
+
+    function showCellContextMenu(row, col, event) {
+        if (!sheetContextMenu || !currentSheet) return;
+        setActiveCell(row, col, false);
+        if (!isCellInSelection(row, col)) {
+            selectionStart = { row, col };
+            selectionEnd = { row, col };
+            updateSelectionHighlight();
+        }
+        const range = getCurrentSelectionRangeText();
+        const raw = currentSheet.grid[row]?.[col] ?? "";
+        const shownValue = raw === "" ? "pusta komórka" : String(raw).slice(0, 60);
+        sheetContextMenu.innerHTML = `
+            <div class="we-context-head">
+                <strong>${escapeHtml(range)}</strong>
+                <span>${escapeHtml(shownValue)}</span>
+            </div>
+            <button data-cell-action="copy">Kopiuj <span>Ctrl+C</span></button>
+            <button data-cell-action="cut">Wytnij <span>Ctrl+X</span></button>
+            <button data-cell-action="paste">Wklej <span>Ctrl+V</span></button>
+            <div class="we-menu-separator"></div>
+            <button data-cell-action="clear">Wyczyść komórkę / zakres</button>
+            <button data-cell-action="comment">Dodaj komentarz</button>
+            <div class="we-menu-separator"></div>
+            <button data-cell-action="row-above">Wstaw wiersz powyżej</button>
+            <button data-cell-action="row-below">Wstaw wiersz poniżej</button>
+            <button data-cell-action="col-left">Wstaw kolumnę z lewej</button>
+            <button data-cell-action="col-right">Wstaw kolumnę z prawej</button>
+            <div class="we-menu-separator"></div>
+            <button data-cell-action="solver-target">Solver: ustaw jako cel</button>
+            <button data-cell-action="solver-variable">Solver: dodaj jako zmienną</button>
+        `;
+        sheetContextMenu.hidden = false;
+        sheetContextMenu.style.visibility = "hidden";
+        const menuWidth = 260;
+        const menuHeight = sheetContextMenu.offsetHeight || 420;
+        sheetContextMenu.style.left = `${Math.max(8, Math.min(event.clientX, window.innerWidth - menuWidth - 8))}px`;
+        sheetContextMenu.style.top = `${Math.max(8, Math.min(event.clientY, window.innerHeight - menuHeight - 8))}px`;
+        sheetContextMenu.style.visibility = "visible";
+    }
+
+    function handleCellContextAction(action) {
+        if (!currentSheet) return;
+        if (action === "copy") return void copySelectionToClipboard(false);
+        if (action === "cut") return void copySelectionToClipboard(true);
+        if (action === "paste") return void pasteClipboardToActiveCell();
+        if (action === "clear") return clearActiveCell();
+        if (action === "comment") return openCommentEditor("comment");
+        if (["row-above", "row-below", "col-left", "col-right"].includes(action)) return applyInsertAction(action);
+        if (action === "solver-target") {
+            if (solverTargetInput) solverTargetInput.value = cellAddress(activeCell.row, activeCell.col);
+            return openModal(solverModal);
+        }
+        if (action === "solver-variable") {
+            const ref = cellAddress(activeCell.row, activeCell.col);
+            if (solverVariableInput && !solverVariableInput.value.split(/[;,\n]/).map(x => x.trim().toUpperCase()).includes(ref)) {
+                solverVariableInput.value = solverVariableInput.value.trim() ? `${solverVariableInput.value.trim()},${ref}` : ref;
+            }
+            return openModal(solverModal);
+        }
     }
 
     function setActiveCell(row, col, focus = false) {
@@ -726,6 +1285,16 @@ document.addEventListener("DOMContentLoaded", function () {
                 const display = cellDisplayValue(row, col);
 
                 td.innerHTML = display.html;
+                const tooltipMarker = td.querySelector("[data-tooltip]");
+                if (tooltipMarker) {
+                    td.addEventListener("mouseenter", event => showCellTooltip(tooltipMarker.dataset.tooltip || "", event.clientX, event.clientY));
+                    td.addEventListener("mousemove", event => { if (activeTooltip) { activeTooltip.style.left = `${Math.min(event.clientX + 12, window.innerWidth - 340)}px`; activeTooltip.style.top = `${Math.min(event.clientY + 12, window.innerHeight - 120)}px`; } });
+                    td.addEventListener("mouseleave", hideCellTooltip);
+                    td.addEventListener("dblclick", () => openCommentEditor((currentSheet.grid[row][col] || "").startsWith("=NOTE(") ? "note" : "comment"));
+                }
+                if (row === activeCell.row && col === activeCell.col) {
+                    td.insertAdjacentHTML("beforeend", '<span class="we-fill-handle" title="Przeciągnij, aby skopiować formułę lub wartość"></span>');
+                }
 
                 const editableBlocked =
                     display.special ||
@@ -743,6 +1312,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
                 td.addEventListener("mousedown", event => {
                     if (event.button !== 0) return;
+                    if (event.target?.classList?.contains("we-fill-handle")) return;
 
                     isMouseSelecting = true;
                     selectionStart = { row, col };
@@ -756,6 +1326,11 @@ document.addEventListener("DOMContentLoaded", function () {
                 });
 
                 td.addEventListener("mouseover", () => {
+                    if (isFillDragging) {
+                        fillDragEnd = { row, col };
+                        updateSelectionHighlight();
+                        return;
+                    }
                     if (!isMouseSelecting) return;
                     selectionEnd = { row, col };
                     updateSelectionHighlight();
@@ -766,11 +1341,30 @@ document.addEventListener("DOMContentLoaded", function () {
                     if (!editableBlocked) td.focus();
                 });
 
+                td.addEventListener("contextmenu", event => {
+                    event.preventDefault();
+                    if (document.activeElement === td) td.blur();
+                    showCellContextMenu(row, col, event);
+                });
+
                 td.addEventListener("focus", () => {
                     setActiveCell(row, col, false);
                     const currentRaw = currentSheet.grid[row][col] ?? "";
                     if (formulaInput) formulaInput.value = currentRaw;
-                    if (!editableBlocked) td.textContent = currentRaw;
+                    if (!editableBlocked) {
+                        td.textContent = currentRaw;
+                        if (row === activeCell.row && col === activeCell.col) {
+                            td.insertAdjacentHTML("beforeend", '<span class="we-fill-handle" contenteditable="false" title="Przeciągnij, aby skopiować formułę lub wartość"></span>');
+                            td.querySelector(".we-fill-handle")?.addEventListener("mousedown", event => {
+                                event.preventDefault();
+                                event.stopPropagation();
+                                isFillDragging = true;
+                                fillDragStart = { row, col };
+                                fillDragEnd = { row, col };
+                                updateSelectionHighlight();
+                            });
+                        }
+                    }
                 });
 
                 td.addEventListener("blur", () => {
@@ -782,6 +1376,7 @@ document.addEventListener("DOMContentLoaded", function () {
                             td.innerHTML = cellDisplayValue(row, col).html;
                             applyCellStyleToElement(td, row, col);
                             markDirty();
+                            logUserAction("Edycja komórki", { type: "cell_edit", cell: cellAddress(row, col), newValue });
                         } else {
                             td.innerHTML = cellDisplayValue(row, col).html;
                             applyCellStyleToElement(td, row, col);
@@ -804,6 +1399,15 @@ document.addEventListener("DOMContentLoaded", function () {
                     }
                 });
 
+                td.querySelector(".we-fill-handle")?.addEventListener("mousedown", event => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    isFillDragging = true;
+                    fillDragStart = { row, col };
+                    fillDragEnd = { row, col };
+                    updateSelectionHighlight();
+                });
+
                 tr.appendChild(td);
             }
 
@@ -814,6 +1418,56 @@ document.addEventListener("DOMContentLoaded", function () {
         autoFitColumns();
         rerenderGeneratedObjects();
     }
+
+
+    function applyFillDrag() {
+        if (!currentSheet || !fillDragStart || !fillDragEnd) return;
+
+        const sourceValue = currentSheet.grid[fillDragStart.row][fillDragStart.col] ?? "";
+        const sourceStyle = { ...getCellStyle(fillDragStart.row, fillDragStart.col) };
+
+        const rowStart = Math.min(fillDragStart.row, fillDragEnd.row);
+        const rowEnd = Math.max(fillDragStart.row, fillDragEnd.row);
+        const colStart = Math.min(fillDragStart.col, fillDragEnd.col);
+        const colEnd = Math.max(fillDragStart.col, fillDragEnd.col);
+
+        if (rowStart === rowEnd && colStart === colEnd) return;
+
+        pushHistorySnapshot();
+        ensureDimensions(rowEnd + 1, colEnd + 1);
+
+        for (let row = rowStart; row <= rowEnd; row += 1) {
+            for (let col = colStart; col <= colEnd; col += 1) {
+                if (row === fillDragStart.row && col === fillDragStart.col) continue;
+
+                const rowOffset = row - fillDragStart.row;
+                const colOffset = col - fillDragStart.col;
+                currentSheet.grid[row][col] = adjustFormulaReferences(sourceValue, rowOffset, colOffset);
+                currentSheet.styles[getCellStyleKey(row, col)] = { ...sourceStyle };
+            }
+        }
+
+        activeCell = { row: fillDragEnd.row, col: fillDragEnd.col };
+        fillDragStart = null;
+        fillDragEnd = null;
+        isFillDragging = false;
+        renderGrid();
+        markDirty();
+    }
+
+    document.addEventListener("keydown", event => {
+        const target = event.target;
+        const isPlainEditable = target?.tagName === "INPUT" || target?.tagName === "TEXTAREA" || target?.isContentEditable;
+        if (!event.ctrlKey && !event.metaKey) return;
+        const key = event.key.toLowerCase();
+        if (!["c", "x", "v"].includes(key)) return;
+        if (isPlainEditable && !target?.closest?.(".we-sheet-table")) return;
+        if (!document.activeElement?.closest?.(".we-sheet-table") && !target?.closest?.(".we-sheet-table")) return;
+        event.preventDefault();
+        if (key === "c") copySelectionToClipboard(false);
+        if (key === "x") copySelectionToClipboard(true);
+        if (key === "v") pasteClipboardToActiveCell();
+    });
 
     document.addEventListener("mouseup", () => {
         if (isMouseSelecting) {
@@ -854,6 +1508,13 @@ document.addEventListener("DOMContentLoaded", function () {
     function applyFormulaToActiveCell() {
         if (!currentSheet) return;
         const value = formulaInput?.value ?? "";
+        const validation = validateFormulaBeforeApply(value);
+        if (!validation.ok) {
+            alert(validation.message);
+            formulaInput?.focus();
+            renderFormulaHelper();
+            return;
+        }
 
         pushHistorySnapshot();
 
@@ -869,6 +1530,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
         renderGrid();
         markDirty();
+        logUserAction("Wpisano formułę", { type: "formula_apply", formula: value, cell: cellAddress(activeCell.row, activeCell.col) });
     }
 
     function renderFormulaCategories() {
@@ -995,6 +1657,13 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     function openModal(modalEl) {
+        if (modalEl === chartModal) {
+            if (chartRangeInput && !chartRangeInput.value.trim()) chartRangeInput.value = getCurrentSelectionRangeText();
+        }
+        if (modalEl === pivotModal) {
+            if (pivotRangeInput && !pivotRangeInput.value.trim()) pivotRangeInput.value = getCurrentSelectionRangeText();
+            renderPivotEditor();
+        }
         modalEl?.classList.add("open");
     }
 
@@ -1015,16 +1684,34 @@ document.addEventListener("DOMContentLoaded", function () {
     function buildChartHtml(chart) {
         const {
             rangeText,
-            type,
             useHeader,
             title,
             xTitle,
             yTitle,
-            showLegend,
             showGrid,
             showLabels,
             color
         } = chart;
+
+        const type = chart.type || "line";
+        const renderTypeMap = {
+            "smooth-line": "line",
+            "stepped-area": "area",
+            "stacked-column": "column",
+            "stacked-bar": "bar",
+            "pareto": "column",
+            "combo": "column",
+            "sparkline": "line"
+        };
+        const renderType = renderTypeMap[type] || type;
+        const width = Math.max(420, parseInt(chart.width || 900, 10));
+        const height = Math.max(220, parseInt(chart.height || 360, 10));
+        const padding = type === "sparkline" ? 18 : 50;
+        const lineWidth = Math.max(1, parseInt(chart.lineWidth || 3, 10));
+        const pointSize = Math.max(2, parseInt(chart.pointSize || 5, 10));
+        const chartColor = color || DEFAULT_CHART_COLOR;
+        const showLegend = chart.legendPosition === "none" ? false : (chart.showLegend ?? true);
+        const chartBgStyle = chart.backgroundColor ? ` style="--chart-bg:${chart.backgroundColor}"` : "";
 
         const matrix = getRangeMatrix(rangeText, true);
         if (!matrix.length || !matrix[0].length) {
@@ -1043,373 +1730,341 @@ document.addEventListener("DOMContentLoaded", function () {
             labels = rows.map((_, index) => `Wiersz ${index + 1}`);
         }
 
-        const chartColor = color || DEFAULT_CHART_COLOR;
+        function getSingleSeries() {
+            let series = rows.map((row, index) => ({
+                label: String(row[0] ?? labels[index] ?? `P${index + 1}`),
+                value: parseNumber(row[row.length - 1])
+            })).filter(item => Number.isFinite(item.value));
+            if (chart.sortOrder === "asc") series = series.sort((a, b) => a.value - b.value);
+            if (chart.sortOrder === "desc" || type === "pareto") series = series.sort((a, b) => b.value - a.value);
+            return series;
+        }
+
+        function axisLabels(maxValue, localHeight, localPadding) {
+            return Array.from({ length: 5 }, (_, i) => {
+                const value = Math.round(maxValue - (maxValue * i / 4));
+                const y = localPadding + ((localHeight - localPadding * 2) * i / 4) + 4;
+                return `<text x="${localPadding - 10}" y="${y}" text-anchor="end" font-size="11" fill="#c9d6ef">${value}</text>`;
+            }).join("");
+        }
+
         const titleHtml = title ? `<div class="we-chart-main-title">${escapeHtml(title)}</div>` : "";
         const legendHtml = showLegend
             ? `<div class="we-chart-legend-box"><span class="we-chart-legend-item"><span class="we-chart-legend-swatch" style="background:${chartColor}"></span><span>${escapeHtml(yTitle || "Seria")}</span></span></div>`
             : "";
 
-        if (type === "bar") {
-            const series = rows.map((row, index) => ({
-                label: String(row[0] ?? labels[index] ?? `P${index + 1}`),
-                value: parseNumber(row[row.length - 1])
-            }));
-
-            const maxValue = Math.max(...series.map(item => item.value), 1);
-
+        if (renderType === "bar") {
+            const series = getSingleSeries();
+            const maxValue = Math.max(...series.map(item => Math.abs(item.value)), 1);
             const rowsHtml = series.map(item => {
-                const ratio = (item.value / maxValue) * 100;
+                const ratio = (Math.abs(item.value) / maxValue) * 100;
                 const label = showLabels ? `<div class="we-chart-value">${item.value}</div>` : `<div class="we-chart-value"></div>`;
-                return `
-                    <div class="we-chart-row">
-                        <div class="we-chart-label">${escapeHtml(item.label)}</div>
-                        <div class="we-chart-track">
-                            <div class="we-chart-fill" style="width:${ratio}%; background:${chartColor}"></div>
-                        </div>
-                        ${label}
-                    </div>
-                `;
+                return `<div class="we-chart-row"><div class="we-chart-label">${escapeHtml(item.label)}</div><div class="we-chart-track"><div class="we-chart-fill" style="width:${ratio}%; background:${chartColor}"></div></div>${label}</div>`;
             }).join("");
-
-            return `${titleHtml}${rowsHtml}${legendHtml}`;
+            return `${titleHtml}<div${chartBgStyle} class="we-chart-svg-wrap">${rowsHtml}</div>${legendHtml}`;
         }
 
-        if (type === "column") {
-            const series = rows.map((row, index) => ({
-                label: String(row[0] ?? labels[index] ?? `P${index + 1}`),
-                value: parseNumber(row[row.length - 1])
-            }));
-
-            const width = 760;
-            const height = 320;
-            const padding = 48;
-            const innerWidth = width - padding * 2;
-            const innerHeight = height - padding * 2;
-            const maxValue = Math.max(...series.map(item => item.value), 1);
+        if (renderType === "column") {
+            const series = getSingleSeries();
+            const localHeight = height;
+            const localWidth = width;
+            const innerWidth = localWidth - padding * 2;
+            const innerHeight = localHeight - padding * 2;
+            const maxValue = Math.max(...series.map(item => Math.abs(item.value)), 1);
             const colWidth = innerWidth / Math.max(series.length, 1);
-
-            const gridLines = buildGridLines(width, height, padding, showGrid);
+            const gridLines = buildGridLines(localWidth, localHeight, padding, showGrid);
+            const cumulative = type === "pareto" ? series.reduce((a, b) => a + Math.max(0, b.value), 0) || 1 : 1;
+            let running = 0;
 
             const bars = series.map((item, index) => {
-                const barHeight = (item.value / maxValue) * innerHeight;
+                const barHeight = (Math.abs(item.value) / maxValue) * innerHeight;
                 const x = padding + index * colWidth + 8;
-                const y = height - padding - barHeight;
-                const w = Math.max(colWidth - 16, 10);
-
-                return `
-                    <rect x="${x}" y="${y}" width="${w}" height="${barHeight}" rx="4" fill="${chartColor}"></rect>
-                    ${showLabels ? `<text class="we-chart-label-text" x="${x + w / 2}" y="${y - 8}" text-anchor="middle">${item.value}</text>` : ""}
-                `;
+                const y = localHeight - padding - barHeight;
+                const w = Math.max(colWidth - 16, 8);
+                running += Math.max(0, item.value);
+                const cumY = localHeight - padding - ((running / cumulative) * innerHeight);
+                const comboY = localHeight - padding - ((Math.abs(item.value) / maxValue) * innerHeight);
+                const extraPoint = (type === "pareto" || type === "combo") ? `<circle cx="${x + w / 2}" cy="${type === "pareto" ? cumY : comboY}" r="${pointSize}" fill="#f8c156"></circle>` : "";
+                return `<rect x="${x}" y="${y}" width="${w}" height="${barHeight}" rx="4" fill="${chartColor}"></rect>${extraPoint}${showLabels ? `<text class="we-chart-label-text" x="${x + w / 2}" y="${y - 8}" text-anchor="middle">${item.value}</text>` : ""}`;
             }).join("");
 
-            const xLabels = series.map((item, index) => {
-                const x = padding + index * colWidth + colWidth / 2;
-                return `<text x="${x}" y="${height - 16}" text-anchor="middle" font-size="11" fill="#c9d6ef">${escapeHtml(item.label)}</text>`;
-            }).join("");
-
-            const yLabels = Array.from({ length: 5 }, (_, i) => {
-                const value = Math.round(maxValue - (maxValue * i / 4));
-                const y = padding + (innerHeight * i / 4) + 4;
-                return `<text x="${padding - 10}" y="${y}" text-anchor="end" font-size="11" fill="#c9d6ef">${value}</text>`;
-            }).join("");
-
-            return `
-                ${titleHtml}
-                <div class="we-chart-svg-wrap">
-                    <svg class="we-line-svg" viewBox="0 0 ${width} ${height}">
-                        ${gridLines}
-                        <line class="we-axis-line" x1="${padding}" y1="${height - padding}" x2="${width - padding}" y2="${height - padding}"></line>
-                        <line class="we-axis-line" x1="${padding}" y1="${padding}" x2="${padding}" y2="${height - padding}"></line>
-                        ${bars}
-                        ${xLabels}
-                        ${yLabels}
-                        ${xTitle ? `<text class="we-chart-axis-title" x="${width / 2}" y="${height - 2}" text-anchor="middle">${escapeHtml(xTitle)}</text>` : ""}
-                        ${yTitle ? `<text class="we-chart-axis-title" transform="translate(16 ${height / 2}) rotate(-90)" text-anchor="middle">${escapeHtml(yTitle)}</text>` : ""}
-                    </svg>
-                </div>
-                ${legendHtml}
-            `;
+            const paretoPath = (type === "pareto" || type === "combo") ? (() => {
+                let run = 0;
+                return series.map((item, index) => {
+                    run += Math.max(0, item.value);
+                    const x = padding + index * colWidth + colWidth / 2;
+                    const y = type === "pareto" ? localHeight - padding - ((run / cumulative) * innerHeight) : localHeight - padding - ((Math.abs(item.value) / maxValue) * innerHeight);
+                    return `${index === 0 ? "M" : "L"} ${x} ${y}`;
+                }).join(" ");
+            })() : "";
+            const xLabels = series.map((item, index) => `<text x="${padding + index * colWidth + colWidth / 2}" y="${localHeight - 16}" text-anchor="middle" font-size="11" fill="#c9d6ef">${escapeHtml(item.label)}</text>`).join("");
+            return `${titleHtml}<div${chartBgStyle} class="we-chart-svg-wrap"><svg class="we-line-svg" viewBox="0 0 ${localWidth} ${localHeight}">${gridLines}<line class="we-axis-line" x1="${padding}" y1="${localHeight - padding}" x2="${localWidth - padding}" y2="${localHeight - padding}"></line><line class="we-axis-line" x1="${padding}" y1="${padding}" x2="${padding}" y2="${localHeight - padding}"></line>${bars}${paretoPath ? `<path d="${paretoPath}" fill="none" stroke="#f8c156" stroke-width="${lineWidth}" stroke-linecap="round" stroke-linejoin="round"></path>` : ""}${xLabels}${axisLabels(maxValue, localHeight, padding)}${xTitle ? `<text class="we-chart-axis-title" x="${localWidth / 2}" y="${localHeight - 2}" text-anchor="middle">${escapeHtml(xTitle)}</text>` : ""}${yTitle ? `<text class="we-chart-axis-title" transform="translate(16 ${localHeight / 2}) rotate(-90)" text-anchor="middle">${escapeHtml(yTitle)}</text>` : ""}</svg></div>${legendHtml}`;
         }
 
-        if (type === "line" || type === "area") {
-            const series = rows.map((row, index) => ({
-                label: String(row[0] ?? labels[index] ?? `P${index + 1}`),
-                value: parseNumber(row[row.length - 1])
+        if (renderType === "line" || renderType === "area") {
+            const series = getSingleSeries();
+            const max = Math.max(...series.map(point => Math.abs(point.value)), 1);
+            const localWidth = width;
+            const localHeight = type === "sparkline" ? 150 : height;
+            const innerW = localWidth - padding * 2;
+            const innerH = localHeight - padding * 2;
+            const gridLines = type === "sparkline" ? "" : buildGridLines(localWidth, localHeight, padding, showGrid);
+            const coords = series.map((point, index) => ({
+                x: padding + (innerW * (series.length === 1 ? 0.5 : index / (series.length - 1))),
+                y: localHeight - padding - (innerH * (point.value / max)),
+                point
             }));
-
-            const max = Math.max(...series.map(point => point.value), 1);
-            const width = 760;
-            const height = 280;
-            const padding = 42;
-
-            const gridLines = buildGridLines(width, height, padding, showGrid);
-
-            const path = series.map((point, index) => {
-                const x = padding + ((width - padding * 2) * (series.length === 1 ? 0.5 : index / (series.length - 1)));
-                const y = height - padding - ((height - padding * 2) * (point.value / max));
-                return `${index === 0 ? "M" : "L"} ${x} ${y}`;
-            }).join(" ");
-
-            const areaPath = `${path} L ${width - padding} ${height - padding} L ${padding} ${height - padding} Z`;
-
-            const circles = series.map((point, index) => {
-                const x = padding + ((width - padding * 2) * (series.length === 1 ? 0.5 : index / (series.length - 1)));
-                const y = height - padding - ((height - padding * 2) * (point.value / max));
-                const labelText = showLabels ? `<text class="we-chart-label-text" x="${x}" y="${y - 10}" text-anchor="middle">${point.value}</text>` : "";
-                return `${labelText}<circle cx="${x}" cy="${y}" r="4.5" fill="${chartColor}"></circle>`;
-            }).join("");
-
-            const ticks = series.map((point, index) => {
-                const x = padding + ((width - padding * 2) * (series.length === 1 ? 0.5 : index / (series.length - 1)));
-                return `<text x="${x}" y="${height - 10}" text-anchor="middle" font-size="11" fill="#c9d6ef">${escapeHtml(point.label)}</text>`;
-            }).join("");
-
-            return `
-                ${titleHtml}
-                <div class="we-chart-svg-wrap">
-                    <svg class="we-line-svg" viewBox="0 0 ${width} ${height}">
-                        ${gridLines}
-                        <line class="we-axis-line" x1="${padding}" y1="${height - padding}" x2="${width - padding}" y2="${height - padding}"></line>
-                        <line class="we-axis-line" x1="${padding}" y1="${padding}" x2="${padding}" y2="${height - padding}"></line>
-                        ${type === "area" ? `<path d="${areaPath}" fill="${chartColor}" opacity="0.18"></path>` : ""}
-                        <path d="${path}" fill="none" stroke="${chartColor}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"></path>
-                        ${circles}
-                        ${ticks}
-                        ${xTitle ? `<text class="we-chart-axis-title" x="${width / 2}" y="${height - 2}" text-anchor="middle">${escapeHtml(xTitle)}</text>` : ""}
-                        ${yTitle ? `<text class="we-chart-axis-title" transform="translate(14 ${height / 2}) rotate(-90)" text-anchor="middle">${escapeHtml(yTitle)}</text>` : ""}
-                    </svg>
-                </div>
-                ${legendHtml}
-            `;
+            const path = coords.map((p, index) => `${index === 0 ? "M" : "L"} ${p.x} ${p.y}`).join(" ");
+            const areaPath = `${path} L ${localWidth - padding} ${localHeight - padding} L ${padding} ${localHeight - padding} Z`;
+            const circles = coords.map(p => `${showLabels ? `<text class="we-chart-label-text" x="${p.x}" y="${p.y - 10}" text-anchor="middle">${p.point.value}</text>` : ""}<circle cx="${p.x}" cy="${p.y}" r="${pointSize}" fill="${chartColor}"></circle>`).join("");
+            const ticks = type === "sparkline" ? "" : coords.map(p => `<text x="${p.x}" y="${localHeight - 10}" text-anchor="middle" font-size="11" fill="#c9d6ef">${escapeHtml(p.point.label)}</text>`).join("");
+            return `${titleHtml}<div${chartBgStyle} class="we-chart-svg-wrap"><svg class="we-line-svg" viewBox="0 0 ${localWidth} ${localHeight}">${gridLines}${type !== "sparkline" ? `<line class="we-axis-line" x1="${padding}" y1="${localHeight - padding}" x2="${localWidth - padding}" y2="${localHeight - padding}"></line><line class="we-axis-line" x1="${padding}" y1="${padding}" x2="${padding}" y2="${localHeight - padding}"></line>` : ""}${renderType === "area" ? `<path d="${areaPath}" fill="${chartColor}" opacity="0.18"></path>` : ""}<path d="${path}" fill="none" stroke="${chartColor}" stroke-width="${lineWidth}" stroke-linecap="round" stroke-linejoin="round"></path>${circles}${ticks}${xTitle && type !== "sparkline" ? `<text class="we-chart-axis-title" x="${localWidth / 2}" y="${localHeight - 2}" text-anchor="middle">${escapeHtml(xTitle)}</text>` : ""}${yTitle && type !== "sparkline" ? `<text class="we-chart-axis-title" transform="translate(14 ${localHeight / 2}) rotate(-90)" text-anchor="middle">${escapeHtml(yTitle)}</text>` : ""}</svg></div>${legendHtml}`;
         }
 
-        if (type === "pie") {
-            const items = rows.map((row, index) => ({
-                label: String(row[0] ?? labels[index] ?? `Element ${index + 1}`),
-                value: Math.max(0, parseNumber(row[row.length - 1]))
-            }));
-
+        if (renderType === "pie" || type === "doughnut") {
+            const items = getSingleSeries().map(item => ({ label: item.label, value: Math.max(0, item.value) }));
             const total = items.reduce((acc, item) => acc + item.value, 0) || 1;
             let startAngle = 0;
-
+            const cx = 160, cy = 150, r = 110;
             const slices = items.map((item, index) => {
                 const angle = (item.value / total) * Math.PI * 2;
                 const endAngle = startAngle + angle;
-
-                const x1 = 120 + 90 * Math.cos(startAngle - Math.PI / 2);
-                const y1 = 120 + 90 * Math.sin(startAngle - Math.PI / 2);
-                const x2 = 120 + 90 * Math.cos(endAngle - Math.PI / 2);
-                const y2 = 120 + 90 * Math.sin(endAngle - Math.PI / 2);
-
+                const x1 = cx + r * Math.cos(startAngle - Math.PI / 2);
+                const y1 = cy + r * Math.sin(startAngle - Math.PI / 2);
+                const x2 = cx + r * Math.cos(endAngle - Math.PI / 2);
+                const y2 = cy + r * Math.sin(endAngle - Math.PI / 2);
                 const largeArc = angle > Math.PI ? 1 : 0;
                 const sliceColor = STATIC_PALETTE[index % STATIC_PALETTE.length];
-
-                const path = `<path d="M120,120 L${x1},${y1} A90,90 0 ${largeArc},1 ${x2},${y2} z" fill="${sliceColor}"></path>`;
+                const path = `<path d="M${cx},${cy} L${x1},${y1} A${r},${r} 0 ${largeArc},1 ${x2},${y2} z" fill="${sliceColor}"></path>`;
                 startAngle = endAngle;
                 return path;
             }).join("");
-
-            const labelsHtml = showLabels
-                ? items.map(item => `
-                    <div class="we-chart-row">
-                        <div class="we-chart-label">${escapeHtml(item.label)}</div>
-                        <div class="we-chart-track">
-                            <div class="we-chart-fill" style="width:${(item.value / total) * 100}%"></div>
-                        </div>
-                        <div class="we-chart-value">${item.value}</div>
-                    </div>
-                `).join("")
-                : "";
-
-            return `
-                ${titleHtml}
-                <div class="we-chart-svg-wrap">
-                    <svg class="we-line-svg" viewBox="0 0 320 260">
-                        ${slices}
-                    </svg>
-                </div>
-                ${labelsHtml}
-                ${showLegend ? `
-                    <div class="we-chart-legend-box">
-                        ${items.map((item, index) => `
-                            <span class="we-chart-legend-item">
-                                <span class="we-chart-legend-swatch" style="background:${STATIC_PALETTE[index % STATIC_PALETTE.length]}"></span>
-                                <span>${escapeHtml(item.label)}</span>
-                            </span>
-                        `).join("")}
-                    </div>
-                ` : ""}
-            `;
+            const hole = type === "doughnut" ? `<circle cx="${cx}" cy="${cy}" r="58" fill="${chart.backgroundColor || "#111827"}"></circle>` : "";
+            const labelsHtml = showLabels ? items.map(item => `<div class="we-chart-row"><div class="we-chart-label">${escapeHtml(item.label)}</div><div class="we-chart-track"><div class="we-chart-fill" style="width:${(item.value / total) * 100}%"></div></div><div class="we-chart-value">${item.value}</div></div>`).join("") : "";
+            return `${titleHtml}<div${chartBgStyle} class="we-chart-svg-wrap"><svg class="we-line-svg" viewBox="0 0 320 300">${slices}${hole}</svg>${labelsHtml}</div>${showLegend ? `<div class="we-chart-legend-box">${items.map((item, index) => `<span class="we-chart-legend-item"><span class="we-chart-legend-swatch" style="background:${STATIC_PALETTE[index % STATIC_PALETTE.length]}"></span><span>${escapeHtml(item.label)}</span></span>`).join("")}</div>` : ""}`;
         }
 
-        if (type === "scatter") {
-            const points = rows.map((row, index) => ({
-                x: parseNumber(row[0]),
-                y: parseNumber(row[1]),
-                label: `P${index + 1}`
-            }));
-
+        if (renderType === "scatter" || type === "bubble") {
+            const points = rows.map((row, index) => ({ x: parseNumber(row[0]), y: parseNumber(row[1]), size: Math.max(3, parseNumber(row[2]) || pointSize), label: String(row[0] ?? `P${index + 1}`) })).filter(p => Number.isFinite(p.x) && Number.isFinite(p.y));
             const maxX = Math.max(...points.map(point => point.x), 1);
             const maxY = Math.max(...points.map(point => point.y), 1);
-            const width = 760;
-            const height = 280;
-            const padding = 42;
-
+            const maxSize = Math.max(...points.map(point => point.size), 1);
             const gridLines = buildGridLines(width, height, padding, showGrid);
-
-            const circles = points.map(point => {
+            const circles = points.map((point, index) => {
                 const x = padding + ((width - padding * 2) * (point.x / maxX));
                 const y = height - padding - ((height - padding * 2) * (point.y / maxY));
-                return `
-                    <circle cx="${x}" cy="${y}" r="5" fill="${chartColor}"></circle>
-                    ${showLabels ? `<text class="we-chart-label-text" x="${x + 8}" y="${y - 8}">${escapeHtml(point.label)}</text>` : ""}
-                `;
+                const r = type === "bubble" ? Math.max(5, (point.size / maxSize) * 24) : pointSize;
+                return `<circle cx="${x}" cy="${y}" r="${r}" fill="${chartColor}" opacity="0.82"></circle>${showLabels ? `<text class="we-chart-label-text" x="${x + r + 4}" y="${y - 8}">${escapeHtml(point.label)}</text>` : ""}`;
             }).join("");
-
-            return `
-                ${titleHtml}
-                <div class="we-chart-svg-wrap">
-                    <svg class="we-line-svg" viewBox="0 0 ${width} ${height}">
-                        ${gridLines}
-                        <line class="we-axis-line" x1="${padding}" y1="${height - padding}" x2="${width - padding}" y2="${height - padding}"></line>
-                        <line class="we-axis-line" x1="${padding}" y1="${padding}" x2="${padding}" y2="${height - padding}"></line>
-                        ${circles}
-                        ${xTitle ? `<text class="we-chart-axis-title" x="${width / 2}" y="${height - 2}" text-anchor="middle">${escapeHtml(xTitle)}</text>` : ""}
-                        ${yTitle ? `<text class="we-chart-axis-title" transform="translate(14 ${height / 2}) rotate(-90)" text-anchor="middle">${escapeHtml(yTitle)}</text>` : ""}
-                    </svg>
-                </div>
-                ${legendHtml}
-            `;
+            return `${titleHtml}<div${chartBgStyle} class="we-chart-svg-wrap"><svg class="we-line-svg" viewBox="0 0 ${width} ${height}">${gridLines}<line class="we-axis-line" x1="${padding}" y1="${height - padding}" x2="${width - padding}" y2="${height - padding}"></line><line class="we-axis-line" x1="${padding}" y1="${padding}" x2="${padding}" y2="${height - padding}"></line>${circles}${xTitle ? `<text class="we-chart-axis-title" x="${width / 2}" y="${height - 2}" text-anchor="middle">${escapeHtml(xTitle)}</text>` : ""}${yTitle ? `<text class="we-chart-axis-title" transform="translate(14 ${height / 2}) rotate(-90)" text-anchor="middle">${escapeHtml(yTitle)}</text>` : ""}</svg></div>${legendHtml}`;
         }
 
-        if (type === "histogram") {
+        if (type === "waterfall") {
+            const series = getSingleSeries();
+            let cumulative = 0;
+            const values = series.map(item => { const start = cumulative; cumulative += item.value; return { ...item, start, end: cumulative }; });
+            const min = Math.min(0, ...values.map(v => v.start), ...values.map(v => v.end));
+            const max = Math.max(1, ...values.map(v => v.start), ...values.map(v => v.end));
+            const scale = (height - padding * 2) / (max - min || 1);
+            const colWidth = (width - padding * 2) / Math.max(values.length, 1);
+            const zeroY = height - padding - ((0 - min) * scale);
+            const bars = values.map((item, index) => {
+                const x = padding + index * colWidth + 10;
+                const y1 = height - padding - ((item.start - min) * scale);
+                const y2 = height - padding - ((item.end - min) * scale);
+                const y = Math.min(y1, y2);
+                const h = Math.max(Math.abs(y2 - y1), 3);
+                const fill = item.value >= 0 ? "#3ccf91" : "#ff8a65";
+                return `<rect x="${x}" y="${y}" width="${Math.max(colWidth - 20, 8)}" height="${h}" rx="4" fill="${fill}"></rect>${showLabels ? `<text class="we-chart-label-text" x="${x + (colWidth - 20) / 2}" y="${y - 8}" text-anchor="middle">${item.value}</text>` : ""}`;
+            }).join("");
+            const xLabels = values.map((item, index) => `<text x="${padding + index * colWidth + colWidth / 2}" y="${height - 16}" text-anchor="middle" font-size="11" fill="#c9d6ef">${escapeHtml(item.label)}</text>`).join("");
+            return `${titleHtml}<div${chartBgStyle} class="we-chart-svg-wrap"><svg class="we-line-svg" viewBox="0 0 ${width} ${height}"><line class="we-axis-line" x1="${padding}" y1="${zeroY}" x2="${width - padding}" y2="${zeroY}"></line>${bars}${xLabels}</svg></div>${legendHtml}`;
+        }
+
+        if (type === "radar") {
+            const series = getSingleSeries();
+            const cx = width / 2, cy = height / 2, r = Math.min(width, height) * 0.34;
+            const max = Math.max(...series.map(p => Math.abs(p.value)), 1);
+            const points = series.map((p, index) => {
+                const angle = (index / series.length) * Math.PI * 2 - Math.PI / 2;
+                const rr = r * (p.value / max);
+                return { x: cx + rr * Math.cos(angle), y: cy + rr * Math.sin(angle), labelX: cx + (r + 24) * Math.cos(angle), labelY: cy + (r + 24) * Math.sin(angle), p };
+            });
+            const polygon = points.map(pt => `${pt.x},${pt.y}`).join(" ");
+            const spokes = points.map(pt => `<line class="we-chart-grid-line" x1="${cx}" y1="${cy}" x2="${pt.labelX}" y2="${pt.labelY}"></line><text x="${pt.labelX}" y="${pt.labelY}" fill="#c9d6ef" font-size="11" text-anchor="middle">${escapeHtml(pt.p.label)}</text>`).join("");
+            return `${titleHtml}<div${chartBgStyle} class="we-chart-svg-wrap"><svg class="we-line-svg" viewBox="0 0 ${width} ${height}">${spokes}<polygon points="${polygon}" fill="${chartColor}" opacity="0.22" stroke="${chartColor}" stroke-width="${lineWidth}"></polygon>${points.map(pt => `<circle cx="${pt.x}" cy="${pt.y}" r="${pointSize}" fill="${chartColor}"></circle>`).join("")}</svg></div>${legendHtml}`;
+        }
+
+        if (renderType === "histogram") {
             const numericValues = rows.flat().map(parseNumber).filter(value => Number.isFinite(value));
-
-            if (!numericValues.length) {
-                return "<div>Brak danych liczbowych do histogramu.</div>";
-            }
-
+            if (!numericValues.length) return "<div>Brak danych liczbowych do histogramu.</div>";
             const min = Math.min(...numericValues);
             const max = Math.max(...numericValues);
-            const bucketCount = Math.min(8, Math.max(4, Math.round(Math.sqrt(numericValues.length))));
+            const bucketCount = Math.min(10, Math.max(4, Math.round(Math.sqrt(numericValues.length))));
             const range = max - min || 1;
             const bucketSize = range / bucketCount;
-
             const counts = Array.from({ length: bucketCount }, () => 0);
             const bucketLabels = [];
-
             for (let i = 0; i < bucketCount; i += 1) {
                 const start = min + i * bucketSize;
                 const end = i === bucketCount - 1 ? max : start + bucketSize;
                 bucketLabels.push(`${start.toFixed(1)}–${end.toFixed(1)}`);
             }
-
             numericValues.forEach(value => {
                 let idx = Math.floor((value - min) / bucketSize);
                 if (!Number.isFinite(idx) || idx < 0) idx = 0;
                 if (idx >= bucketCount) idx = bucketCount - 1;
                 counts[idx] += 1;
             });
-
-            const width = 760;
-            const height = 320;
-            const padding = 48;
             const innerWidth = width - padding * 2;
             const innerHeight = height - padding * 2;
             const maxCount = Math.max(...counts, 1);
             const barWidth = innerWidth / bucketCount;
-
-            const yGrid = buildGridLines(width, height, padding, showGrid);
-
             const bars = counts.map((count, index) => {
                 const barHeight = (count / maxCount) * innerHeight;
                 const x = padding + index * barWidth + 4;
                 const y = height - padding - barHeight;
                 const w = Math.max(barWidth - 8, 6);
-
-                return `
-                    <rect x="${x}" y="${y}" width="${w}" height="${barHeight}" rx="4" fill="${chartColor}"></rect>
-                    ${showLabels ? `<text class="we-chart-label-text" x="${x + w / 2}" y="${y - 8}" text-anchor="middle">${count}</text>` : ""}
-                `;
+                return `<rect x="${x}" y="${y}" width="${w}" height="${barHeight}" rx="4" fill="${chartColor}"></rect>${showLabels ? `<text class="we-chart-label-text" x="${x + w / 2}" y="${y - 8}" text-anchor="middle">${count}</text>` : ""}`;
             }).join("");
-
-            const xLabels = bucketLabels.map((label, index) => {
-                const x = padding + index * barWidth + barWidth / 2;
-                return `<text x="${x}" y="${height - 16}" text-anchor="middle" font-size="10" fill="#c9d6ef">${escapeHtml(label)}</text>`;
-            }).join("");
-
-            const yLabels = Array.from({ length: 5 }, (_, i) => {
-                const value = Math.round(maxCount - (maxCount * i / 4));
-                const y = padding + (innerHeight * i / 4) + 4;
-                return `<text x="${padding - 10}" y="${y}" text-anchor="end" font-size="11" fill="#c9d6ef">${value}</text>`;
-            }).join("");
-
-            return `
-                ${titleHtml}
-                <div class="we-chart-svg-wrap">
-                    <svg class="we-line-svg" viewBox="0 0 ${width} ${height}">
-                        ${yGrid}
-                        <line class="we-axis-line" x1="${padding}" y1="${height - padding}" x2="${width - padding}" y2="${height - padding}"></line>
-                        <line class="we-axis-line" x1="${padding}" y1="${padding}" x2="${padding}" y2="${height - padding}"></line>
-                        ${bars}
-                        ${xLabels}
-                        ${yLabels}
-                        ${xTitle ? `<text class="we-chart-axis-title" x="${width / 2}" y="${height - 2}" text-anchor="middle">${escapeHtml(xTitle || "Przedziały")}</text>` : ""}
-                        ${yTitle ? `<text class="we-chart-axis-title" transform="translate(16 ${height / 2}) rotate(-90)" text-anchor="middle">${escapeHtml(yTitle || "Liczność")}</text>` : ""}
-                    </svg>
-                </div>
-                ${legendHtml}
-            `;
+            const xLabels = bucketLabels.map((label, index) => `<text x="${padding + index * barWidth + barWidth / 2}" y="${height - 16}" text-anchor="middle" font-size="10" fill="#c9d6ef">${escapeHtml(label)}</text>`).join("");
+            return `${titleHtml}<div${chartBgStyle} class="we-chart-svg-wrap"><svg class="we-line-svg" viewBox="0 0 ${width} ${height}">${buildGridLines(width, height, padding, showGrid)}<line class="we-axis-line" x1="${padding}" y1="${height - padding}" x2="${width - padding}" y2="${height - padding}"></line><line class="we-axis-line" x1="${padding}" y1="${padding}" x2="${padding}" y2="${height - padding}"></line>${bars}${xLabels}${axisLabels(maxCount, height, padding)}</svg></div>${legendHtml}`;
         }
 
         return "<div>Nieobsługiwany typ wykresu.</div>";
     }
 
+    function getCurrentSelectionRangeText() {
+        const bounds = getSelectionBounds();
+        if (!bounds) return `${colToLabel(activeCell.col)}${activeCell.row + 1}`;
+        return `${colToLabel(bounds.colStart)}${bounds.rowStart + 1}:${colToLabel(bounds.colEnd)}${bounds.rowEnd + 1}`;
+    }
+
+    function getPivotFields() {
+        const rangeText = pivotRangeInput?.value?.trim() || getCurrentSelectionRangeText();
+        const matrix = getRangeMatrix(rangeText, true);
+        if (!matrix.length || !matrix[0]?.length) return [];
+        const headers = matrix[0].map((value, index) => String(value || colToLabel(index)).trim() || colToLabel(index));
+        return headers.map((name, index) => ({ name, index }));
+    }
+
+    function renderPivotEditor() {
+        const fields = getPivotFields();
+        const query = String(pivotSearchInput?.value || "").toLowerCase();
+        document.querySelectorAll("[data-zone-select]").forEach(select => {
+            const current = select.value;
+            select.innerHTML = fields.map(f => `<option value="${f.index}">${escapeHtml(f.name)}</option>`).join("");
+            if ([...select.options].some(option => option.value === current)) select.value = current;
+        });
+        if (pivotFieldsList) {
+            pivotFieldsList.innerHTML = fields
+                .filter(f => f.name.toLowerCase().includes(query))
+                .map(f => `
+                    <div class="we-pivot-field-item">
+                        <div class="we-pivot-field-name" title="${escapeHtml(f.name)}">${escapeHtml(f.name)}</div>
+                        <div class="we-pivot-field-adds">
+                            <button type="button" data-pivot-quick="rows" data-field-index="${f.index}">Wiersze</button>
+                            <button type="button" data-pivot-quick="columns" data-field-index="${f.index}">Kolumny</button>
+                            <button type="button" data-pivot-quick="values" data-field-index="${f.index}">Wartości</button>
+                        </div>
+                    </div>
+                `).join("") || `<div class="we-pivot-field-item">Brak pól dla wybranego zakresu.</div>`;
+        }
+        ["rows", "columns", "values", "filters"].forEach(zone => {
+            const list = document.getElementById(`pivot-zone-${zone}`);
+            if (!list) return;
+            list.innerHTML = (pivotConfig[zone] || []).map((item, idx) => `
+                <div class="we-pivot-pill">
+                    <span>${escapeHtml(item.name)} ${zone === "values" ? `<small>${escapeHtml(item.agg || "sum")}</small>` : ""}</span>
+                    <button type="button" data-pivot-remove="${zone}" data-pivot-remove-index="${idx}">×</button>
+                </div>
+            `).join("");
+        });
+    }
+
+    function addPivotField(zone, indexValue = null) {
+        const fields = getPivotFields();
+        const select = document.querySelector(`[data-zone-select="${zone}"]`);
+        const index = indexValue !== null ? parseInt(indexValue, 10) : parseInt(select?.value || "0", 10);
+        const field = fields.find(f => f.index === index) || fields[0];
+        if (!field) return;
+        const item = { name: field.name, index: field.index };
+        if (zone === "values") item.agg = pivotAggSelect?.value || "sum";
+        pivotConfig[zone].push(item);
+        renderPivotEditor();
+    }
+
+    function removePivotField(zone, index) {
+        pivotConfig[zone].splice(index, 1);
+        renderPivotEditor();
+    }
+
+    function calculateAgg(values, agg) {
+        const nums = values.map(parseNumber).filter(Number.isFinite);
+        if (agg === "count") return values.length;
+        if (!nums.length) return 0;
+        if (agg === "sum") return nums.reduce((a, b) => a + b, 0);
+        if (agg === "avg") return nums.reduce((a, b) => a + b, 0) / nums.length;
+        if (agg === "min") return Math.min(...nums);
+        if (agg === "max") return Math.max(...nums);
+        if (agg === "median") {
+            const sorted = [...nums].sort((a, b) => a - b);
+            const mid = Math.floor(sorted.length / 2);
+            return sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
+        }
+        return nums.reduce((a, b) => a + b, 0);
+    }
+
     function buildPivotHtml(config) {
         const matrix = getRangeMatrix(config.rangeText, true);
-        if (matrix.length < 1 || matrix[0].length < 2) {
+        if (matrix.length < 2 || matrix[0].length < 1) {
             return "<div>Za mało danych do tabeli przestawnej.</div>";
         }
 
-        const rowField = config.rowField ?? 0;
-        const valueField = config.valueField ?? 1;
-        const agg = config.agg || "sum";
+        const headers = matrix[0].map((value, index) => String(value || colToLabel(index)).trim() || colToLabel(index));
+        const rows = matrix.slice(1);
+        const rowFields = config.rows?.length ? config.rows : [{ index: config.rowField ?? 0, name: headers[config.rowField ?? 0] || "Wiersze" }];
+        const columnFields = config.columns || [];
+        const valueFields = config.values?.length ? config.values : [{ index: config.valueField ?? 1, name: headers[config.valueField ?? 1] || "Wartości", agg: config.agg || "sum" }];
 
-        const grouped = new Map();
+        function keyFor(dataRow, fields, fallback = "Razem") {
+            if (!fields.length) return fallback;
+            return fields.map(field => String(dataRow[field.index] ?? "")).join(" / ") || "(puste)";
+        }
 
-        matrix.forEach(row => {
-            const key = String(row[rowField] ?? "");
-            const value = parseNumber(row[valueField]);
+        const rowKeys = [...new Set(rows.map(row => keyFor(row, rowFields, "Wiersze")))];
+        const colKeys = columnFields.length ? [...new Set(rows.map(row => keyFor(row, columnFields, "Kolumny")))] : ["Wartości"];
 
-            if (!grouped.has(key)) grouped.set(key, []);
-            grouped.get(key).push(value);
-        });
+        const header = `
+            <tr>
+                <th>${escapeHtml(rowFields.map(f => f.name).join(" / ") || "Wiersze")}</th>
+                ${colKeys.map(key => `<th class="we-pivot-col-header">${escapeHtml(key)}</th>`).join("")}
+                <th class="we-pivot-total">Razem</th>
+            </tr>`;
 
-        const renderedRows = Array.from(grouped.entries()).map(([key, values]) => {
-            let result = 0;
+        const renderedRows = rowKeys.map(rowKey => {
+            let rowTotal = 0;
+            const cells = colKeys.map(colKey => {
+                const matching = rows.filter(row => keyFor(row, rowFields, "Wiersze") === rowKey && (!columnFields.length || keyFor(row, columnFields, "Kolumny") === colKey));
+                const values = matching.map(row => row[valueFields[0].index]);
+                const result = calculateAgg(values, valueFields[0].agg || config.agg || "sum");
+                rowTotal += parseNumber(result);
+                return `<td>${escapeHtml(Number.isFinite(result) ? Number(result.toFixed(4)).toString() : result)}</td>`;
+            }).join("");
+            return `<tr><th>${escapeHtml(rowKey)}</th>${cells}<td class="we-pivot-total">${escapeHtml(Number(rowTotal.toFixed(4)).toString())}</td></tr>`;
+        }).join("");
 
-            if (agg === "sum") result = values.reduce((a, b) => a + b, 0);
-            if (agg === "count") result = values.length;
-            if (agg === "avg") result = values.length ? values.reduce((a, b) => a + b, 0) / values.length : 0;
-            if (agg === "min") result = values.length ? Math.min(...values) : 0;
-            if (agg === "max") result = values.length ? Math.max(...values) : 0;
-            if (agg === "median") {
-                const sorted = [...values].sort((a, b) => a - b);
-                const mid = Math.floor(sorted.length / 2);
-                result = sorted.length
-                    ? (sorted.length % 2 === 0 ? (sorted[mid - 1] + sorted[mid]) / 2 : sorted[mid])
-                    : 0;
-            }
-
-            return `<tr><td>${escapeHtml(key)}</td><td>${Number(result.toFixed(4))}</td></tr>`;
+        const grandCells = colKeys.map(colKey => {
+            const matching = rows.filter(row => !columnFields.length || keyFor(row, columnFields, "Kolumny") === colKey);
+            const values = matching.map(row => row[valueFields[0].index]);
+            const result = calculateAgg(values, valueFields[0].agg || config.agg || "sum");
+            return `<td class="we-pivot-total">${escapeHtml(Number.isFinite(result) ? Number(result.toFixed(4)).toString() : result)}</td>`;
         }).join("");
 
         return `
             <table class="we-pivot-table">
-                <thead>
-                    <tr><th>Klucz</th><th>Wartość</th></tr>
-                </thead>
-                <tbody>${renderedRows}</tbody>
+                <thead>${header}</thead>
+                <tbody>${renderedRows}<tr><th class="we-pivot-total">Razem końcowy</th>${grandCells}<td class="we-pivot-total"></td></tr></tbody>
             </table>
         `;
     }
@@ -1454,7 +2109,7 @@ document.addEventListener("DOMContentLoaded", function () {
             await postJson(`/ares/api/sheets/${sheetId}/save/`, {
                 name: currentSheet.name,
                 category: currentSheet.category || "Bez kategorii",
-                grid: currentSheet.grid,
+                grid: workbookPayloadForSave(),
                 styles: currentSheet.styles || {},
                 action: "Zapisano arkusz"
             });
@@ -1479,9 +2134,11 @@ document.addEventListener("DOMContentLoaded", function () {
             });
 
             historyStack = [];
+            redoStack = [];
 
             if (sheetNameEl) sheetNameEl.textContent = currentSheet.name || "Arkusz";
-            if (sheetMetaEl) sheetMetaEl.textContent = `Wiersze: ${currentRows} • Kolumny: ${currentCols}`;
+            if (sheetMetaEl) sheetMetaEl.textContent = `Zakładka: ${currentSheet.activeTabName || "Arkusz1"} • Wiersze: ${currentRows} • Kolumny: ${currentCols}`;
+            renderWorkbookTabs();
 
             initializeFormulaBrowser();
             renderGrid();
@@ -1511,6 +2168,7 @@ document.addEventListener("DOMContentLoaded", function () {
         link.download = `${currentSheet.name || "arkusz"}.csv`;
         link.click();
         URL.revokeObjectURL(url);
+        logUserAction("Eksport CSV", { type: "csv_export", rows: currentSheet.grid.length, cols: currentSheet.grid[0]?.length || 0 });
     }
 
     function importCsv(file) {
@@ -1533,6 +2191,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
             renderGrid();
             markDirty();
+            logUserAction("Import CSV w edytorze", { type: "csv_import", fileName: file.name, rows: rows.length, cols: Math.max(...rows.map(row => row.length), 0) });
         };
         reader.readAsText(file, "utf-8");
     }
@@ -1546,6 +2205,7 @@ document.addEventListener("DOMContentLoaded", function () {
         currentSheet.name = nextName.trim();
         if (sheetNameEl) sheetNameEl.textContent = currentSheet.name;
         markDirty();
+        logUserAction("Zmieniono nazwę arkusza", { type: "sheet_rename", newName: currentSheet.name });
     }
 
     function sortActiveColumn(direction = "asc") {
@@ -1655,89 +2315,316 @@ document.addEventListener("DOMContentLoaded", function () {
         if (action === "pivot") return openModal(pivotModal);
         if (action === "solver") return openModal(solverModal);
 
-        if (action === "function-helper") {
-            formulaInput?.focus();
-            return;
-        }
-
-        if (action === "link") {
-            const text = prompt("Tekst linku:", "Otwórz");
-            const url = prompt("Adres URL:", "https://");
-            if (url) {
-                pushHistorySnapshot();
-                currentSheet.grid[activeCell.row][activeCell.col] = `=LINK(${text || url}|${url})`;
-                renderGrid();
-                markDirty();
-            }
-            return;
-        }
-
-        if (action === "checkbox") {
-            pushHistorySnapshot();
-            currentSheet.grid[activeCell.row][activeCell.col] = "=CHECKBOX(false)";
-            renderGrid();
-            return markDirty();
-        }
-
-        if (action === "dropdown") {
-            const options = prompt("Opcje rozdziel pionową kreską |", "Nowe|W toku|Gotowe");
-            if (options) {
-                pushHistorySnapshot();
-                currentSheet.grid[activeCell.row][activeCell.col] = `=DROPDOWN(${options})`;
-                renderGrid();
-                markDirty();
-            }
-            return;
-        }
+        if (action === "function-helper") return openSmartInsert("function");
+        if (action === "link") return openSmartInsert("link");
+        if (action === "checkbox") return openSmartInsert("checkbox");
+        if (action === "dropdown") return openSmartInsert("dropdown");
 
         if (action === "emoji") {
-            const emoji = prompt("Podaj emoji:", "📌");
-            if (emoji !== null) {
-                pushHistorySnapshot();
-                currentSheet.grid[activeCell.row][activeCell.col] = emoji;
-                renderGrid();
-                markDirty();
-            }
+            openEmojiPicker();
             return;
         }
 
-        if (action === "comment") {
-            const comment = prompt("Treść komentarza:");
-            if (comment !== null) {
-                pushHistorySnapshot();
-                currentSheet.grid[activeCell.row][activeCell.col] = `=COMMENT(${comment})`;
-                renderGrid();
-                markDirty();
-            }
-            return;
-        }
+        if (action === "comment") return openCommentEditor("comment");
+        if (action === "note") return openCommentEditor("note");
+    }
 
-        if (action === "note") {
-            const note = prompt("Treść notatki:");
-            if (note !== null) {
-                pushHistorySnapshot();
-                currentSheet.grid[activeCell.row][activeCell.col] = `=NOTE(${note})`;
-                renderGrid();
-                markDirty();
+
+    const TABLE_TEMPLATES = [
+        { id:"loan", title:"Rata kredytu", tag:"finanse", desc:"PMT: kwota, oprocentowanie, liczba rat i rata miesięczna.", rows:[["Parametr","Wartość","Opis"],["Kwota kredytu",250000,"kapitał początkowy"],["Oprocentowanie roczne",0.075,"7,5%"],["Liczba rat",240,"miesięcy"],["Rata miesięczna","=PMT(B3/12;B4;-B2)","wynik"]] },
+        { id:"npv", title:"NPV projektu", tag:"finanse", desc:"Stopa dyskontowa, nakład początkowy i przepływy.", rows:[["Rok","Przepływ"],[0,-10000],[1,3000],[2,3500],[3,4200],[4,4500],["Stopa",0.1],["NPV","=NPV(B7;B3:B6)+B2"]] },
+        { id:"irr", title:"IRR inwestycji", tag:"finanse", desc:"Wewnętrzna stopa zwrotu z serii przepływów.", rows:[["Okres","Cash flow"],[0,-15000],[1,2500],[2,4000],[3,6000],[4,7000],["IRR","=IRR(B2:B6)"]] },
+        { id:"budget", title:"Budżet miesięczny", tag:"finanse", desc:"Przychody, koszty, saldo i udział kosztów.", rows:[["Pozycja","Typ","Kwota"],["Pensja","Przychód",7000],["Premia","Przychód",800],["Czynsz","Koszt",1800],["Jedzenie","Koszt",1500],["Transport","Koszt",450],["Suma przychodów","","=SUMA(C2:C3)"],["Suma kosztów","","=SUMA(C4:C6)"],["Saldo","","=C7-C8"],["Koszty % przychodów","","=C8/C7"]] },
+        { id:"solver_mix", title:"Solver: produkcja", tag:"solver", desc:"Maksymalizacja zysku przy ograniczeniach zasobów.", rows:[["","Produkt A","Produkt B"],["Ilość",5,7],["Zysk jednostkowy",530,624],["Zysk razem","=SUMA.ILOCZYNÓW(B2:C2;B3:C3)"],["Zasób","Zużycie A","Zużycie B","Limit","Zużycie"],["bagażowy",1,1,12,"=SUMA.ILOCZYNÓW(B2:C2;B6:C6)"],["pocztowy",1,0,8,"=SUMA.ILOCZYNÓW(B2:C2;B7:C7)"],["2 klasa",5,8,81,"=SUMA.ILOCZYNÓW(B2:C2;B8:C8)"],["1 klasa",6,4,70,"=SUMA.ILOCZYNÓW(B2:C2;B9:C9)"]] },
+        { id:"linear", title:"Układ równań", tag:"matematyka", desc:"Dane do testowania równań i Solver.", rows:[["x",2],["y",3],["Równanie","Wynik"],["2x+3y","=2*B1+3*B2"],["4x-y","=4*B1-B2"],["Suma wyników","=SUMA(B4:B5)"]] },
+        { id:"statistics", title:"Statystyka opisowa", tag:"statystyka", desc:"Suma, średnia, min, max, mediana, odchylenie.", rows:[["Wartość"],[12],[15],[11],[19],[21],["Suma","=SUMA(A2:A6)"],["Średnia","=ŚREDNIA(A2:A6)"],["Min","=MIN(A2:A6)"],["Max","=MAX(A2:A6)"],["Mediana","=MEDIANA(A2:A6)"],["Odchylenie std.","=ODCH.STANDARDOWE(A2:A6)"]] },
+        { id:"percent", title:"Procenty i marża", tag:"matematyka", desc:"Cena netto, VAT, marża i cena końcowa.", rows:[["Parametr","Wartość"],["Cena netto",120],["VAT",0.23],["Marża",0.35],["Cena z VAT","=B2*(1+B3)"],["Cena sprzedaży","=B5*(1+B4)"],["Zysk","=B6-B2"]] },
+        { id:"weather", title:"Analiza pogody", tag:"dane", desc:"Średnia temperatura, suma deszczu, maksimum zachmurzenia.", rows:[["Godzina","Temperatura","Deszcz","Zachmurzenie"],["08:00",12,0,100],["10:00",14,0.2,80],["12:00",16,0,60],["14:00",15,0.1,70],["Śr. temp.","=ŚREDNIA(B2:B5)"],["Suma deszczu","=SUMA(C2:C5)"],["Max chmur","=MAX(D2:D5)"]] },
+        { id:"scores", title:"Oceny / punkty", tag:"statystyka", desc:"Suma punktów, procent i status zaliczenia.", rows:[["Zadanie","Punkty","Max"],["A",8,10],["B",13,15],["C",18,20],["Razem","=SUMA(B2:B4)","=SUMA(C2:C4)"],["Wynik %","=B5/C5",""]] }
+    ];
+
+    TABLE_TEMPLATES.push(
+        { id:"univ_integral", title:"Całkowanie numeryczne", tag:"analiza", desc:"Całka oznaczona metodą trapezów dla funkcji f(x).", rows:[["Zadanie","Wartość","Opis"],["Funkcja","x^2+3*x+2","użyj x jako zmiennej"],["Dolna granica",0,"a"],["Górna granica",5,"b"],["Podziały",500,"im więcej, tym dokładniej"],["Całka","=CAŁKA(B2;B3;B4;B5)","wynik numeryczny"],["Pochodna w x=2","=POCHODNA(B2;2)","różnica centralna"]] },
+        { id:"univ_derivative", title:"Pochodne i styczna", tag:"analiza", desc:"Pochodna w punkcie i wartość funkcji.", rows:[["Parametr","Wartość"],["f(x)","SIN(x)+x^2"],["punkt a",1],["f(a)","=WARTOŚĆ.FUNKCJI(B2;B3)"],["f'(a)","=POCHODNA(B2;B3)"],["styczna dla x",1.5],["y stycznej","=B4+B5*(B6-B3)"]] },
+        { id:"univ_ode_euler", title:"Równanie różniczkowe — Euler", tag:"różniczki", desc:"Przybliżenie y' = f(x,y), y(x0)=y0.", rows:[["Parametr","Wartość","Opis"],["f(x,y)","x+y","prawa strona równania"],["x0",0,"start"],["y0",1,"warunek początkowy"],["krok h",0.1,"krok"],["liczba kroków",20,"n"],["y końcowe","=EULER(B2;B3;B4;B5;B6)","przybliżenie"]] },
+        { id:"univ_root", title:"Miejsce zerowe funkcji", tag:"analiza", desc:"Bisekcja i Newton do szukania pierwiastków równań.", rows:[["Parametr","Wartość"],["f(x)","x^3-x-2"],["a",1],["b",2],["start Newtona",1.5],["Bisekcja","=BISEKCJA(B2;B3;B4;0.000001;100)"],["Newton","=NEWTON(B2;B5;0.000001;50)"]] },
+        { id:"univ_combinatorics", title:"Kombinatoryka", tag:"kombinatoryka", desc:"Permutacje, wariacje i kombinacje.", rows:[["Parametr","Wartość"],["n",10],["k",3],["n!","=SILNIA(B2)"],["Permutacje P(n)","=PERMUTACJE(B2)"],["Wariacje V(n,k)","=WARIACJE(B2;B3)"],["Kombinacje C(n,k)","=KOMBINACJE(B2;B3)"]] },
+        { id:"univ_distribution", title:"Statystyka — rozkłady", tag:"statystyka", desc:"Normalny, dwumianowy i Poisson.", rows:[["Parametr","Wartość"],["x",1.96],["średnia",0],["sigma",1],["CDF normalny","=NORM.DIST(B2;B3;B4;TRUE)"],["PDF normalny","=NORM.DIST(B2;B3;B4;FALSE)"],["n",10],["k",3],["p",0.4],["P(X=k) dwumianowy","=DWUMIAN(B8;B7;B9)"],["lambda",2.5],["P(X=k) Poisson","=POISSON(B8;B11)"]] },
+        { id:"univ_regression", title:"Ekonometria — regresja liniowa", tag:"ekonometria", desc:"Nachylenie, wyraz wolny, R² i prognoza.", rows:[["x","y"],[1,2.2],[2,2.9],[3,3.7],[4,4.1],[5,5.2],["Nachylenie","=NACHYLENIE(A2:A6;B2:B6)"],["Wyraz wolny","=WYRAZ.WOLNY(A2:A6;B2:B6)"],["R^2","=R2(A2:A6;B2:B6)"],["Prognoza x",6],["Prognoza y","=PROGNOZA(B10;A2:A6;B2:B6)"]] },
+        { id:"univ_lp", title:"Badania operacyjne — LP", tag:"optymalizacja", desc:"Tabela pod Solver: funkcja celu, zmienne i ograniczenia.", rows:[["","x1","x2","x3",""],["Zmienne",10,5,0,""],["Zysk",7,5,4,"=SUMA.ILOCZYNÓW(B2:D2;B3:D3)"],["Ograniczenie","x1","x2","x3","Zużycie","Limit"],["Zasób A",2,1,1,"=SUMA.ILOCZYNÓW($B$2:$D$2;B5:D5)",40],["Zasób B",1,3,2,"=SUMA.ILOCZYNÓW($B$2:$D$2;B6:D6)",45],["Zasób C",0,2,3,"=SUMA.ILOCZYNÓW($B$2:$D$2;B7:D7)",36]] },
+        { id:"univ_markov", title:"Proces Markowa", tag:"badania operacyjne", desc:"Mnożenie macierzy stanu przez macierz przejścia.", rows:[["Stan","A","B","C"],["p0",0.2,0.5,0.3],["","A","B","C"],["A",0.7,0.2,0.1],["B",0.1,0.8,0.1],["C",0.2,0.3,0.5],["p1 A","=SUMA.ILOCZYNÓW(B2:D2;B4:B6)"],["p1 B","=SUMA.ILOCZYNÓW(B2:D2;C4:C6)"],["p1 C","=SUMA.ILOCZYNÓW(B2:D2;D4:D6)"]] },
+        { id:"univ_queue", title:"Teoria kolejek M/M/1", tag:"badania operacyjne", desc:"Wskaźniki kolejki dla lambda i mi.", rows:[["Parametr","Wartość"],["lambda",4],["mi",6],["rho","=B2/B3"],["L","=B2/(B3-B2)"],["Lq","=MOC(B2;2)/(B3*(B3-B2))"],["W","=1/(B3-B2)"],["Wq","=B2/(B3*(B3-B2))"]] }
+    );
+
+    function shiftFormulaReferences(formula, rowOffset, colOffset) {
+        if (typeof formula !== "string" || !formula.trim().startsWith("=")) return formula;
+        return formula.replace(/(\$?)([A-Z]{1,3})(\$?)(\d+)/g, (match, colLock, colLabel, rowLock, rowText, index, full) => {
+            const before = full[index - 1] || "";
+            const after = full[index + match.length] || "";
+            if (/[A-Z0-9_]/i.test(before) || /[A-Z0-9_]/i.test(after)) return match;
+            let colIndex = labelToCol(colLabel);
+            let rowIndex = Number(rowText) - 1;
+            if (!colLock) colIndex += colOffset;
+            if (!rowLock) rowIndex += rowOffset;
+            if (colIndex < 0 || rowIndex < 0) return match;
+            return `${colLock}${colToLabel(colIndex)}${rowLock}${rowIndex + 1}`;
+        });
+    }
+
+    function renderUniversityTemplates() {
+        if (!universityTemplateGrid) return;
+        const items = TABLE_TEMPLATES.filter(t => String(t.id || "").startsWith("univ_"));
+        universityTemplateGrid.innerHTML = items.map(t =>             `<button type="button" class="we-university-card" data-template-id="${t.id}"><span>${escapeHtml(t.tag)}</span><strong>${escapeHtml(t.title)}</strong><small>${escapeHtml(t.desc)}</small></button>`
+        ).join("");
+    }
+
+    function renderTableTemplates() {
+        if (!tableTemplateGrid) return;
+        tableTemplateGrid.innerHTML = TABLE_TEMPLATES.filter(t => !String(t.id || "").startsWith("univ_")).map(t => `
+            <button type="button" class="we-template-card" data-template-id="${t.id}">
+                <span class="we-template-tag">${escapeHtml(t.tag)}</span>
+                <strong>${escapeHtml(t.title)}</strong>
+                <small>${escapeHtml(t.desc)}</small>
+                <em>Wstawia od aktywnej komórki, a formuły przesuwają się automatycznie.</em>
+            </button>
+        `).join("");
+    }
+
+    function applyTableTemplate(id) {
+        const template = TABLE_TEMPLATES.find(t => t.id === id);
+        if (!template || !currentSheet) return;
+        pushHistorySnapshot();
+        const clear = clearBeforeTemplateBtn?.classList.contains("active") || clearBeforeUniversityTemplateBtn?.classList.contains("active");
+        if (clear) currentSheet.grid = emptyGrid();
+        ensureDimensions(Math.max(currentRows, template.rows.length + activeCell.row + 2), Math.max(currentCols, Math.max(...template.rows.map(r => r.length)) + activeCell.col + 2));
+        template.rows.forEach((row, r) => row.forEach((value, c) => {
+            let nextValue = String(value ?? "");
+            if (nextValue.startsWith("=")) {
+                nextValue = shiftFormulaReferences(nextValue, activeCell.row, activeCell.col);
             }
+            currentSheet.grid[activeCell.row + r][activeCell.col + c] = nextValue;
+        }));
+        renderGrid();
+        markDirty();
+        logUserAction("Wstawiono szablon tabeli", { type: "table_template", template: template.title || template.id, startCell: cellAddress(activeCell.row, activeCell.col) });
+    }
+
+    const MENU_DEFS = {
+        file: [{label:"Zapisz", action:"save"},{label:"Import CSV", action:"import"},{label:"Eksport CSV", action:"export"}],
+        edit: [{label:"Cofnij", action:"undo"},{label:"Wyczyść komórkę", action:"clear-cell"},{label:"Wyczyść wiersz", action:"clear-row"}],
+        view: [{label:"Tryb pełnej szerokości", action:"full-width"},{label:"Pokaż / ukryj siatkę", action:"grid"},{label:"Wyrównaj do tekstu", action:"autofit"}],
+        insert: [{label:"Funkcja", action:"function-helper"},{label:"Link", action:"link"},{label:"Pole wyboru", action:"checkbox"},{label:"Menu rozwijane", action:"dropdown"},{label:"Tabela przestawna", action:"pivot"},{label:"Solver", action:"solver"},{label:"Emotikony", action:"emoji"}],
+        format: [{label:"Pogrubienie", action:"bold"},{label:"Kursywa", action:"italic"},{label:"Podkreślenie", action:"underline"}],
+        data: [{label:"Sortuj A-Z", action:"sort-asc"},{label:"Sortuj Z-A", action:"sort-desc"}],
+        tools: [{label:"Solver", action:"solver"},{label:"Walidacja formuły", action:"function-helper"}],
+        extensions: [{label:"Brak rozszerzeń", action:"noop", disabled:true}],
+        help: [{label:"Podpowiedzi formuł", action:"function-helper"},{label:"Skróty: F4 blokuje adresy", action:"noop", disabled:true}]
+    };
+
+    function showMenuPopover(menuName, anchor) {
+        if (!menuPopover) return;
+        const items = MENU_DEFS[menuName] || [];
+        menuPopover.innerHTML = items.map(item => `<button type="button" data-menu-action="${item.action}" ${item.disabled ? "disabled" : ""}>${escapeHtml(item.label)}</button>`).join("");
+        const rect = anchor.getBoundingClientRect();
+        menuPopover.style.left = `${rect.left}px`;
+        menuPopover.style.top = `${rect.bottom + 4}px`;
+        menuPopover.hidden = false;
+    }
+
+    function handleMenuAction(action) {
+        if (action === "save") return saveSheet();
+        if (action === "export") return exportBtn?.click();
+        if (action === "import") return importInput?.click();
+        if (action === "undo") return undoBtn?.click();
+        if (action === "full-width") return toggleFullWidthBtn?.click();
+        if (action === "grid") return toggleGridBtn?.click();
+        if (action === "autofit") return autofitBtn?.click();
+        if (action === "bold") return boldBtn?.click();
+        if (action === "italic") return italicBtn?.click();
+        if (action === "underline") return underlineBtn?.click();
+        if (action === "sort-asc") return sortAscBtn?.click();
+        if (action === "sort-desc") return sortDescBtn?.click();
+        if (action && action !== "noop") return applyInsertAction(action);
+    }
+
+    function openSmartInsert(mode) {
+        smartInsertMode = mode;
+        if (!smartInsertModal || !smartInsertBody) return;
+        const configs = {
+            function: { title:"Wstaw funkcję", subtitle:"Wybierz funkcję z katalogu albo zacznij pisać w pasku formuły. Podpowiedzi pokażą wymagane argumenty.", body:`<div class="we-smart-grid"><label>Funkcja<select id="smart-function-select"></select></label><label>Zakres / argumenty<input id="smart-function-args" placeholder="np. A1:A10"></label><p class="we-smart-help">Przykład: SUMA z argumentem A1:A10 utworzy =SUMA(A1:A10). F4 w pasku formuły przełącza blokady $.</p></div>` },
+            link: { title:"Wstaw link", subtitle:"Podaj tekst i adres. Link będzie klikalny w komórce.", body:`<div class="we-smart-grid"><label>Tekst wyświetlany<input id="smart-link-text" value="Otwórz"></label><label>Adres URL<input id="smart-link-url" value="https://"></label></div>` },
+            checkbox: { title:"Wstaw pole wyboru", subtitle:"Ustaw początkowy stan pola wyboru i opcjonalny opis.", body:`<div class="we-smart-grid"><label class="we-smart-check"><input id="smart-checkbox-checked" type="checkbox"> Zaznaczone na start</label><label>Opis obok pola<input id="smart-checkbox-label" placeholder="opcjonalnie"></label></div>` },
+            dropdown: { title:"Reguła sprawdzania poprawności danych", subtitle:"Utwórz menu rozwijane podobne do Arkuszy Google. Każda linia to jedna opcja.", body:`<div class="we-smart-grid"><label>Zastosuj do komórki<input value="${cellAddress(activeCell.row, activeCell.col)}" readonly></label><label>Kryteria<select><option>Menu</option><option>Menu z zakresu</option></select></label><label class="we-grid-span-2">Opcje<textarea id="smart-dropdown-options" rows="5">Opcja 1\nOpcja 2\nGotowe</textarea></label><label class="we-smart-check"><input id="smart-dropdown-multi" type="checkbox"> Zezwalaj na wybieranie wielu opcji</label></div>` }
+        };
+        const cfg = configs[mode] || configs.function;
+        smartInsertTitle.textContent = cfg.title;
+        smartInsertSubtitle.textContent = cfg.subtitle;
+        smartInsertBody.innerHTML = cfg.body;
+        if (mode === "function") {
+            const select = document.getElementById("smart-function-select");
+            const rawCatalog = window.FORMULA_CATALOG || {};
+            const catalog = Array.isArray(rawCatalog) ? rawCatalog : Object.values(rawCatalog).flat();
+            select.innerHTML = catalog.map(fn => `<option value="${fn.name}">${fn.name} — ${escapeHtml(fn.description || "")}</option>`).join("");
         }
+        smartInsertBody.querySelectorAll("input,textarea,select").forEach(el => {
+            el.addEventListener("input", updateSmartPreview);
+            el.addEventListener("change", updateSmartPreview);
+        });
+        updateSmartPreview();
+        openModal(smartInsertModal);
+    }
+
+    function updateSmartPreview() {
+        if (!smartInsertPreview) return;
+        smartInsertPreview.innerHTML = escapeHtml(buildSmartInsertFormula() || "—");
+    }
+
+    function buildSmartInsertFormula() {
+        if (smartInsertMode === "function") {
+            const name = document.getElementById("smart-function-select")?.value || "SUMA";
+            const args = document.getElementById("smart-function-args")?.value?.trim() || "A1:A10";
+            return `=${name}(${args})`;
+        }
+        if (smartInsertMode === "link") {
+            const text = document.getElementById("smart-link-text")?.value?.trim() || "Link";
+            const url = document.getElementById("smart-link-url")?.value?.trim() || "https://";
+            return `=LINK(${text}|${url})`;
+        }
+        if (smartInsertMode === "checkbox") {
+            const checked = document.getElementById("smart-checkbox-checked")?.checked ? "true" : "false";
+            const label = document.getElementById("smart-checkbox-label")?.value?.trim();
+            return label ? `=CHECKBOX(${checked}) ${label}` : `=CHECKBOX(${checked})`;
+        }
+        if (smartInsertMode === "dropdown") {
+            const options = (document.getElementById("smart-dropdown-options")?.value || "Opcja 1\nOpcja 2").split(/\n+/).map(x => x.trim()).filter(Boolean);
+            return `=DROPDOWN(${options.join("|")})`;
+        }
+        return "";
+    }
+
+    function applySmartInsert() {
+        const formula = buildSmartInsertFormula();
+        if (!formula || !currentSheet) return;
+        if (smartInsertMode === "link" && !/^=LINK\(.+\|https?:\/\//i.test(formula)) return alert("Podaj poprawny adres URL zaczynający się od http:// albo https://.");
+        if (smartInsertMode === "dropdown" && !formula.includes("|")) return alert("Dodaj co najmniej dwie opcje menu.");
+        pushHistorySnapshot();
+        currentSheet.grid[activeCell.row][activeCell.col] = formula;
+        closeModal(smartInsertModal);
+        renderGrid();
+        markDirty();
+        logUserAction("Wstawiono element", { type: `smart_insert_${smartInsertMode || "unknown"}`, value: formula, cell: cellAddress(activeCell.row, activeCell.col) });
     }
 
     function buildPivotFromModal() {
         const rangeText = pivotRangeInput?.value?.trim();
-        const agg = pivotAggSelect?.value || "sum";
-
         if (!rangeText) {
             alert("Podaj zakres danych.");
             return;
         }
-
-        const rowField = parseInt(prompt("Numer kolumny dla klucza (od 1):", "1") || "1", 10) - 1;
-        const valueField = parseInt(prompt("Numer kolumny dla wartości (od 1):", "2") || "2", 10) - 1;
-
-        pivotObjects.push({ rangeText, agg, rowField, valueField });
+        if (!pivotConfig.rows.length && !pivotConfig.values.length) {
+            const fields = getPivotFields();
+            if (fields.length) {
+                pivotConfig.rows = [fields[0]];
+                pivotConfig.values = [fields[1] ? { ...fields[1], agg: pivotAggSelect?.value || "sum" } : { ...fields[0], agg: "count" }];
+            }
+        }
+        pivotObjects.push({
+            rangeText,
+            rows: JSON.parse(JSON.stringify(pivotConfig.rows)),
+            columns: JSON.parse(JSON.stringify(pivotConfig.columns)),
+            values: JSON.parse(JSON.stringify(pivotConfig.values)),
+            filters: JSON.parse(JSON.stringify(pivotConfig.filters)),
+            agg: pivotAggSelect?.value || "sum"
+        });
         rerenderGeneratedObjects();
         closeModal(pivotModal);
+        logUserAction("Utworzono tabelę przestawną", { type: "pivot_create", range: rangeText, rows: pivotConfig.rows.map(x => x.name || x), values: pivotConfig.values.map(x => x.name || x) });
+    }
+
+    function expandCellRefs(text) {
+        const refs = [];
+        String(text || "")
+            .split(/[\n,;]/)
+            .map(part => part.trim())
+            .filter(Boolean)
+            .forEach(part => {
+                const rangeParts = part.split(":").map(normalizeCellRefText);
+                if (rangeParts.length === 2) {
+                    const start = cellRefToIndex(rangeParts[0]);
+                    const end = cellRefToIndex(rangeParts[1]);
+                    if (!start || !end) return;
+
+                    const rowStart = Math.min(start.row, end.row);
+                    const rowEnd = Math.max(start.row, end.row);
+                    const colStart = Math.min(start.col, end.col);
+                    const colEnd = Math.max(start.col, end.col);
+
+                    for (let row = rowStart; row <= rowEnd; row += 1) {
+                        for (let col = colStart; col <= colEnd; col += 1) {
+                            refs.push({ row, col });
+                        }
+                    }
+                    return;
+                }
+
+                const ref = cellRefToIndex(rangeParts[0]);
+                if (ref) refs.push(ref);
+            });
+
+        return refs;
+    }
+
+    function getSolverMode() {
+        return document.querySelector('input[name="solver-objective-sense"]:checked')?.value || "max";
+    }
+
+    function parseConstraintSides(leftRaw, rightRaw) {
+        const leftRefs = expandCellRefs(leftRaw);
+        const rightRefs = expandCellRefs(rightRaw);
+        const count = Math.max(leftRefs.length, rightRefs.length);
+
+        if (count > 0 && (leftRefs.length || rightRefs.length)) {
+            return Array.from({ length: count }, (_, idx) => ({
+                left: leftRefs[idx] || leftRefs[0] || leftRaw.trim(),
+                right: rightRefs[idx] || rightRefs[0] || rightRaw.trim()
+            }));
+        }
+
+        return [{ left: leftRaw.trim(), right: rightRaw.trim() }];
+    }
+
+    function getConstraintValue(side) {
+        if (side && typeof side === "object" && Number.isInteger(side.row) && Number.isInteger(side.col)) {
+            return parseNumber(getCellComputedValue(side.row, side.col));
+        }
+        return parseNumber(normalizeScalarToken(side));
+    }
+
+    function parseSolverConstraints() {
+        const raw = solverConstraintsInput?.value || "";
+        const constraints = [];
+        raw.split(/\n/).map(line => line.trim()).filter(Boolean).forEach(line => {
+            const match = line.match(/^(.*?)(<=|>=|=|==)(.*)$/);
+            if (!match) return;
+
+            const [, leftRaw, op, rightRaw] = match;
+            parseConstraintSides(leftRaw, rightRaw).forEach(pair => {
+                constraints.push({ ...pair, op: op === "==" ? "=" : op });
+            });
+        });
+        return constraints;
+    }
+
+    function constraintsSatisfied(constraints) {
+        return constraints.every(constraint => {
+            const left = getConstraintValue(constraint.left);
+            const right = getConstraintValue(constraint.right);
+            if (!Number.isFinite(left) || !Number.isFinite(right)) return false;
+
+            if (constraint.op === "<=") return left <= right + 1e-9;
+            if (constraint.op === ">=") return left + 1e-9 >= right;
+            return Math.abs(left - right) <= 1e-9;
+        });
     }
 
     function runSolverFromModal() {
@@ -1745,35 +2632,41 @@ document.addEventListener("DOMContentLoaded", function () {
 
         const targetRef = solverTargetInput?.value?.trim().toUpperCase();
         const variablesRaw = solverVariableInput?.value?.trim().toUpperCase();
-        const mode = solverModeSelect?.value || "max";
-        const step = parseNumber(solverStepInput?.value ?? 1);
+        const mode = getSolverMode();
+        const step = Math.abs(parseNumber(solverStepInput?.value ?? 1)) || 1;
         const min = parseNumber(solverMinInput?.value ?? 0);
         const max = parseNumber(solverMaxInput?.value ?? 100);
+        const targetValue = parseNumber(solverTargetValueInput?.value ?? 0);
+        const forceNonnegative = solverNonnegativeInput?.checked ?? true;
 
         const target = cellRefToIndex(targetRef);
         if (!target || !variablesRaw) {
-            alert("Podaj poprawną komórkę celu i co najmniej jedną komórkę zmiennej.");
+            alert("Podaj poprawną komórkę celu i co najmniej jedną komórkę zmienną.");
             return;
         }
 
-        const variableRefs = variablesRaw
-            .split(",")
-            .map(v => v.trim())
-            .filter(Boolean)
-            .map(cellRefToIndex)
-            .filter(Boolean);
+        let variableRefs = expandCellRefs(variablesRaw);
+        const seen = new Set();
+        variableRefs = variableRefs.filter(ref => {
+            const key = `${ref.row}:${ref.col}`;
+            if (seen.has(key)) return false;
+            seen.add(key);
+            return true;
+        });
 
         if (!variableRefs.length) {
             alert("Nie znaleziono poprawnych komórek zmiennych.");
             return;
         }
 
+        const constraints = parseSolverConstraints();
         pushHistorySnapshot();
 
         const originalValues = variableRefs.map(v => currentSheet.grid[v.row][v.col]);
-
-        let bestValue = mode === "max" ? -Infinity : Infinity;
-        let bestCombination = variableRefs.map(() => min);
+        const searchMin = forceNonnegative ? Math.max(0, min) : min;
+        let bestScore = Infinity;
+        let bestValue = null;
+        let bestCombination = variableRefs.map(() => searchMin);
 
         function setVariables(values) {
             variableRefs.forEach((ref, idx) => {
@@ -1781,50 +2674,68 @@ document.addEventListener("DOMContentLoaded", function () {
             });
         }
 
+        function scoreObjective(result) {
+            if (mode === "target") return Math.abs(result - targetValue);
+            if (mode === "max") return -result;
+            return result;
+        }
+
         function search(index, currentCombination) {
             if (index === variableRefs.length) {
                 setVariables(currentCombination);
-                const result = parseNumber(getCellComputedValue(target.row, target.col));
+                if (constraints.length && !constraintsSatisfied(constraints)) return;
 
-                if ((mode === "max" && result > bestValue) || (mode === "min" && result < bestValue)) {
+                const result = parseNumber(getCellComputedValue(target.row, target.col));
+                if (!Number.isFinite(result)) return;
+
+                const score = scoreObjective(result);
+                if (score < bestScore) {
+                    bestScore = score;
                     bestValue = result;
                     bestCombination = [...currentCombination];
                 }
                 return;
             }
 
-            for (let test = min; test <= max; test += (step || 1)) {
-                currentCombination[index] = test;
+            for (let test = searchMin; test <= max + 1e-9; test += step) {
+                currentCombination[index] = Number(test.toFixed(10));
                 search(index + 1, currentCombination);
             }
         }
 
-        search(0, Array.from({ length: variableRefs.length }, () => min));
-        setVariables(bestCombination);
+        search(0, Array.from({ length: variableRefs.length }, () => searchMin));
 
+        if (bestValue === null) {
+            originalValues.forEach((value, idx) => {
+                const ref = variableRefs[idx];
+                currentSheet.grid[ref.row][ref.col] = value;
+            });
+            alert("Solver nie znalazł rozwiązania spełniającego ograniczenia.");
+            return;
+        }
+
+        setVariables(bestCombination);
         renderGrid();
         markDirty();
 
         const card = document.createElement("div");
         card.className = "we-object-card";
         card.innerHTML = `
-            <div class="we-chart-object-title">Solver</div>
+            <div class="we-chart-object-title">OpenSolver</div>
             <div class="we-object-body">
-                <div><strong>Komórka celu:</strong> ${escapeHtml(targetRef)}</div>
-                <div><strong>Komórki zmienne:</strong> ${escapeHtml(variablesRaw)}</div>
-                <div><strong>Tryb:</strong> ${mode === "max" ? "maksymalizacja" : "minimalizacja"}</div>
-                <div><strong>Najlepsze wartości:</strong> ${escapeHtml(bestCombination.join(", "))}</div>
-                <div><strong>Wynik funkcji celu:</strong> ${bestValue}</div>
+                <div><strong>Objective Cell:</strong> ${escapeHtml(targetRef)}</div>
+                <div><strong>Variable Cells:</strong> ${escapeHtml(variablesRaw)}</div>
+                <div><strong>Objective Sense:</strong> ${mode === "max" ? "maximise" : mode === "min" ? "minimise" : `target value ${targetValue}`}</div>
+                <div><strong>Best values:</strong> ${escapeHtml(bestCombination.join(", "))}</div>
+                <div><strong>Objective value:</strong> ${bestValue}</div>
+                <div><strong>Constraints:</strong> ${constraints.length ? escapeHtml(solverConstraintsInput.value.replace(/\n/g, " | ")) : "brak"}</div>
             </div>
         `;
         generatedObjectsCard.hidden = false;
         generatedObjectsArea.prepend(card);
 
+        logUserAction("Uruchomiono solver", { type: "solver_run", target: targetRef, variables: variablesRaw, mode, objectiveValue: bestValue });
         closeModal(solverModal);
-
-        variableRefs.forEach((ref, idx) => {
-            currentSheet.grid[ref.row][ref.col] = bestCombination[idx] ?? originalValues[idx];
-        });
     }
 
     function initializeMenus() {
@@ -1875,11 +2786,551 @@ document.addEventListener("DOMContentLoaded", function () {
             });
         });
 
-        [chartModal, pivotModal, solverModal].forEach(modal => {
+        [chartModal, pivotModal, solverModal, commentModal, emojiModal, smartInsertModal].forEach(modal => {
             modal?.addEventListener("click", event => {
                 if (event.target === modal) closeModal(modal);
             });
         });
+    }
+
+    function getAllFormulaItems() {
+        if (!window.FORMULA_CATALOG) return [];
+        return Object.values(window.FORMULA_CATALOG).flat();
+    }
+
+
+    function getFormulaNameFromText(value) {
+        const match = String(value || "").trim().match(/^=\s*([A-ZĄĆĘŁŃÓŚŹŻ.\-]+)/i);
+        return match ? match[1].toUpperCase() : "";
+    }
+    function getFormulaArgsText(value) {
+        const text = String(value || "").trim();
+        const openIndex = text.indexOf("(");
+        if (openIndex < 0 || !text.endsWith(")")) return null;
+        return text.slice(openIndex + 1, -1);
+    }
+    function splitFormulaArgs(argsText) {
+        if (argsText === null) return [];
+        const args = [];
+        let current = "";
+        let depth = 0;
+        let quote = null;
+        for (let i = 0; i < argsText.length; i += 1) {
+            const ch = argsText[i];
+            if (quote) {
+                current += ch;
+                if (ch === quote) quote = null;
+                continue;
+            }
+            if (ch === '"' || ch === "'") { quote = ch; current += ch; continue; }
+            if (ch === "(") depth += 1;
+            if (ch === ")") depth = Math.max(0, depth - 1);
+            if ((ch === ";" || ch === ",") && depth === 0) { args.push(current.trim()); current = ""; }
+            else current += ch;
+        }
+        if (current.trim() || argsText.trim()) args.push(current.trim());
+        return args;
+    }
+    function findFormulaDefinition(name) {
+        return getAllFormulaItems().find(fn => fn.name.toUpperCase() === String(name || "").toUpperCase()) || null;
+    }
+    function rangeToCells(rangeText) {
+        const text = String(rangeText || "").trim().replace(/\$/g, "");
+        const parts = text.split(":");
+        if (parts.length === 1) { const one = cellRefToIndex(parts[0]); return one ? [one] : []; }
+        const start = cellRefToIndex(parts[0]); const end = cellRefToIndex(parts[1]);
+        if (!start || !end) return [];
+        const cells = [];
+        for (let row = Math.min(start.row, end.row); row <= Math.max(start.row, end.row); row += 1) {
+            for (let col = Math.min(start.col, end.col); col <= Math.max(start.col, end.col); col += 1) cells.push({ row, col });
+        }
+        return cells;
+    }
+    function isRangeArg(arg) { return /^\$?[A-Z]+\$?\d+(?::\$?[A-Z]+\$?\d+)?$/i.test(String(arg || "").trim()); }
+    function argHasBlankCells(arg) {
+        return rangeToCells(arg).some(({ row, col }) => {
+            const value = currentSheet?.grid?.[row]?.[col];
+            return value === undefined || value === null || String(value).trim() === "";
+        });
+    }
+    function argIsNumericOrCell(arg) {
+        const raw = String(arg || "").trim();
+        if (!raw) return false;
+        if (isRangeArg(raw)) {
+            const cells = rangeToCells(raw);
+            if (!cells.length) return false;
+            return cells.every(({ row, col }) => isNumericValue(getCellComputedValue(row, col)));
+        }
+        const cell = cellRefToIndex(raw);
+        if (cell) return isNumericValue(getCellComputedValue(cell.row, cell.col));
+        return Number.isFinite(Number(raw.replace(",", "."))) || /^[-+]?\d+(?:[,.]\d+)?(?:\s*[+\-*/]\s*\d+(?:[,.]\d+)?)*$/.test(raw);
+    }
+    function validateFormulaBeforeApply(value) {
+        const text = String(value || "").trim();
+        if (!text.startsWith("=")) return { ok: true };
+        const name = getFormulaNameFromText(text);
+        if (!name) return { ok: false, message: "Formuła musi zaczynać się od nazwy funkcji, np. =SUMA(A1:A10)." };
+        const def = findFormulaDefinition(name);
+        if (!def) return { ok: false, message: "Nie znam funkcji " + name + ". Wybierz ją z listy podpowiedzi albo sprawdź pisownię." };
+        const argsText = getFormulaArgsText(text);
+        if (argsText === null) return { ok: false, message: "Funkcja " + name + " wymaga nawiasów. Przykład: " + (def.example || def.syntax) + "." };
+        const args = splitFormulaArgs(argsText);
+        const minArgs = Number.isFinite(def.minArgs) ? def.minArgs : 0;
+        const maxArgs = Number.isFinite(def.maxArgs) ? def.maxArgs : Infinity;
+        if (args.length < minArgs) return { ok: false, message: name + ": za mało argumentów. Wymagane: " + minArgs + ". Składnia: " + def.syntax + "." };
+        if (args.length > maxArgs) return { ok: false, message: name + ": za dużo argumentów. Maksymalnie: " + maxArgs + ". Składnia: " + def.syntax + "." };
+        if (def.requiresBackend || ["IMPORTRANGE", "IMPORTHTML", "IMPORTDATA", "IMPORTFEED", "IMPORTXML", "GOOGLEFINANCE"].includes(name)) {
+            return { ok: false, message: name + " wymaga podłączenia zewnętrznego źródła/backendu. W tej wersji zapis jest blokowany, żeby nie tworzyć błędnego wyniku." };
+        }
+        const finance = ["PMT", "PV", "FV", "NPV", "XNPV", "IRR", "XIRR", "NPER", "RATE", "IPMT", "PPMT", "RRI", "MIRR", "FVSCHEDULE", "PI", "TP"];
+        if (finance.includes(name)) {
+            if (args.some(arg => !arg.trim())) return { ok: false, message: name + ": wszystkie wymagane pola muszą być uzupełnione." };
+            if (["NPV", "XNPV", "IRR", "XIRR", "MIRR", "FVSCHEDULE", "PI"].includes(name)) {
+                const idx = name === "FVSCHEDULE" ? 1 : (name === "NPV" || name === "XNPV") ? 1 : 0;
+                if (!isRangeArg(args[idx])) return { ok: false, message: name + ": argument „" + (def.params?.[idx]?.label || "zakres") + "” musi być zakresem komórek, np. A1:A5." };
+                if (argHasBlankCells(args[idx])) return { ok: false, message: name + ": najpierw uzupełnij wszystkie komórki w zakresie " + args[idx] + "." };
+            }
+            for (let idx = 0; idx < args.length; idx += 1) {
+                if ((name === "XNPV" && idx === 2) || (["IRR", "XIRR"].includes(name) && idx === 0)) continue;
+                if (!argIsNumericOrCell(args[idx])) return { ok: false, message: name + ": argument „" + (def.params?.[idx]?.label || ("argument " + (idx + 1))) + "” musi być liczbą albo zakresem liczbowym." };
+            }
+        }
+        if (def.numericArgs && def.numericArgs.length) {
+            for (const idx of def.numericArgs) {
+                if (args[idx] !== undefined && !argIsNumericOrCell(args[idx])) return { ok: false, message: name + ": argument „" + (def.params?.[idx]?.label || ("argument " + (idx + 1))) + "” musi być liczbą lub komórką z liczbą." };
+            }
+        }
+        return { ok: true };
+    }
+    function formatFormulaSignature(fn) {
+        if (Array.isArray(fn.params) && fn.params.length) {
+            return fn.name + "(" + fn.params.map((param, idx) => '<span class="' + (idx === 0 ? 'we-formula-helper-current' : '') + '">' + escapeHtml(param.label) + '</span>').join("; ") + ")";
+        }
+        return escapeHtml(fn.syntax || fn.name);
+    }
+    function formatFormulaParamList(fn) {
+        if (!Array.isArray(fn.params) || !fn.params.length) return "";
+        return '<div class="we-formula-helper-params">' + fn.params.map(param => '<div><strong>' + escapeHtml(param.label) + '</strong> — ' + escapeHtml(param.description || 'uzupełnij zgodnie ze składnią funkcji') + '</div>').join('') + '</div>';
+    }
+
+    function renderFormulaHelper() {
+        if (!formulaHelperPopover || !formulaInput) return;
+        const value = formulaInput.value || "";
+        if (!value.startsWith("=")) {
+            formulaHelperPopover.hidden = true;
+            return;
+        }
+        const fnMatch = value.match(/^=([A-ZĄĆĘŁŃÓŚŹŻ.\-]*)/i);
+        const token = (fnMatch?.[1] || "").toUpperCase();
+        const all = getAllFormulaItems();
+        const exact = all.find(fn => fn.name.toUpperCase() === token);
+        const matches = all.filter(fn => fn.name.toUpperCase().includes(token)).slice(0, 8);
+        const shown = exact || matches[0];
+        if (!shown) {
+            formulaHelperPopover.hidden = true;
+            return;
+        }
+        formulaHelperPopover.innerHTML = `
+            <div class="we-formula-helper-head">${formatFormulaSignature(shown)}</div>
+            <div class="we-formula-helper-body">
+                <div>${escapeHtml(shown.description || "Podpowiedź do funkcji.")}</div>
+                ${formatFormulaParamList(shown)}
+                <div class="we-formula-helper-example">Przykład: ${escapeHtml(shown.example || shown.syntax || "")}</div>
+                <small>Enter zapisuje formułę, F4 przełącza blokadę odwołań: A1 → $A$1 → A$1 → $A1.</small>
+            </div>
+            <div class="we-formula-helper-list">
+                ${matches.map(fn => `<div class="we-formula-helper-item" data-formula-syntax="${escapeHtml(fn.syntax)}"><div class="we-formula-helper-name">${escapeHtml(fn.name)}</div><div class="we-formula-helper-syntax">${escapeHtml(fn.syntax)}</div></div>`).join("")}
+            </div>`;
+        formulaHelperPopover.hidden = false;
+    }
+
+
+    function getEmojiItems() {
+        const search = String(emojiSearchInput?.value || "").trim().toLowerCase();
+        const base = search ? [...new Set(Object.values(EMOJI_CATEGORIES).flat())] : (EMOJI_CATEGORIES[activeEmojiCategory] || EMOJI_CATEGORIES.popularne);
+        if (!search) return base;
+        const words = {"✅":"ok tak gotowe zatwierdzone wykonane","❌":"nie błąd usuń odrzucone","⚠️":"uwaga ostrzeżenie ryzyko","📌":"pinezka ważne przypięte","📊":"wykres tabela dane analiza","📈":"wzrost trend wynik","📉":"spadek trend wynik","🧮":"kalkulator obliczenia suma","💡":"pomysł idea wskazówka","🔥":"ważne pilne ogień","🔒":"blokada zamknięte zabezpieczenie","🔓":"odblokowane otwarte","📁":"folder plik katalog","📝":"notatka komentarz tekst"};
+        return base.filter(item => (words[item] || "").includes(search) || item.includes(search));
+    }
+    function renderEmojiPicker() {
+        if (!emojiCategoryButtons || !emojiGrid || !emojiPreview) return;
+        emojiCategoryButtons.innerHTML = Object.keys(EMOJI_CATEGORIES).map(category => '<button type="button" class="we-emoji-category ' + (category === activeEmojiCategory ? 'active' : '') + '" data-emoji-category="' + category + '">' + category + '</button>').join('');
+        emojiGrid.innerHTML = getEmojiItems().map(emoji => '<button type="button" class="we-emoji-item ' + (emoji === selectedEmoji ? 'active' : '') + '" data-emoji="' + emoji + '" title="' + emoji + '">' + emoji + '</button>').join('');
+        emojiPreview.textContent = selectedEmoji;
+    }
+    function openEmojiPicker() { selectedEmoji = selectedEmoji || "📌"; renderEmojiPicker(); openModal(emojiModal); emojiSearchInput?.focus(); }
+    function insertSelectedEmoji() {
+        if (!currentSheet || !selectedEmoji) return;
+        pushHistorySnapshot();
+        const existing = currentSheet.grid[activeCell.row][activeCell.col] || "";
+        currentSheet.grid[activeCell.row][activeCell.col] = String(existing || "") + selectedEmoji;
+        renderGrid(); markDirty(); closeModal(emojiModal);
+    }
+
+    function openCommentEditor(mode) {
+        commentEditMode = mode;
+        const raw = currentSheet.grid[activeCell.row][activeCell.col] || "";
+        const prefix = mode === "note" ? "=NOTE(" : "=COMMENT(";
+        const existing = typeof raw === "string" && raw.startsWith(prefix) && raw.endsWith(")") ? raw.slice(prefix.length, -1) : "";
+        if (commentModalTitle) commentModalTitle.textContent = mode === "note" ? "Notatka" : "Komentarz";
+        if (commentTextarea) commentTextarea.value = existing;
+        updateCommentPreview();
+        openModal(commentModal);
+        commentTextarea?.focus();
+    }
+
+    function updateCommentPreview() {
+        if (!commentPreview) return;
+        const value = commentTextarea?.value || "";
+        commentPreview.textContent = value || "Brak treści.";
+    }
+
+    function saveCommentFromModal() {
+        if (!currentSheet) return;
+        const value = commentTextarea?.value || "";
+        pushHistorySnapshot();
+        currentSheet.grid[activeCell.row][activeCell.col] = value ? (commentEditMode === "note" ? `=NOTE(${value})` : `=COMMENT(${value})`) : "";
+        renderGrid();
+        markDirty();
+        closeModal(commentModal);
+    }
+
+    function deleteCommentFromModal() {
+        if (!currentSheet) return;
+        pushHistorySnapshot();
+        currentSheet.grid[activeCell.row][activeCell.col] = "";
+        renderGrid();
+        markDirty();
+        closeModal(commentModal);
+    }
+
+    function showCellTooltip(text, x, y) {
+        hideCellTooltip();
+        activeTooltip = document.createElement("div");
+        activeTooltip.className = "we-cell-tooltip";
+        activeTooltip.textContent = text;
+        document.body.appendChild(activeTooltip);
+        activeTooltip.style.left = `${Math.min(x + 12, window.innerWidth - 340)}px`;
+        activeTooltip.style.top = `${Math.min(y + 12, window.innerHeight - 120)}px`;
+    }
+
+    function hideCellTooltip() {
+        activeTooltip?.remove();
+        activeTooltip = null;
+    }
+
+    function normalizeHeaderName(value, fallbackIndex) {
+        const raw = String(value ?? "").trim();
+        return raw || `Kolumna ${fallbackIndex + 1}`;
+    }
+
+    function findTableHeaderRow(grid) {
+        if (!Array.isArray(grid)) return -1;
+        for (let row = 0; row < grid.length; row += 1) {
+            const nonEmpty = (grid[row] || []).filter(cell => String(cell ?? "").trim() !== "");
+            if (nonEmpty.length >= 2) return row;
+        }
+        return -1;
+    }
+
+    function isRowEffectivelyEmpty(row) {
+        return !row || row.every(cell => String(cell ?? "").trim() === "");
+    }
+
+    function mergeWorkbookSheetsIntoOneTable() {
+        if (!workbook || !Array.isArray(workbook.sheets) || workbook.sheets.length < 2) {
+            alert("Do scalania potrzebne są co najmniej dwa arkusze w jednym pliku.");
+            return;
+        }
+
+        commitActiveSheetToWorkbook();
+
+        const includeSource = confirm("Dodać kolumnę z nazwą arkusza źródłowego?\n\nOK = tak, Anuluj = nie.");
+        const allHeaders = includeSource ? ["Źródło arkusza"] : [];
+        const headerSet = new Set(allHeaders.map(h => h.toLowerCase()));
+        const mergedRecords = [];
+        const skippedSheets = [];
+
+        workbook.sheets.forEach((sheet, sheetIndex) => {
+            const grid = Array.isArray(sheet.grid) ? sheet.grid : [];
+            const headerRowIndex = findTableHeaderRow(grid);
+            if (headerRowIndex < 0) {
+                skippedSheets.push(sheet.name || `Arkusz ${sheetIndex + 1}`);
+                return;
+            }
+
+            const rawHeaders = grid[headerRowIndex] || [];
+            const localHeaders = rawHeaders.map((cell, idx) => normalizeHeaderName(cell, idx));
+            const localUniqueHeaders = [];
+            const localCounts = new Map();
+
+            localHeaders.forEach(header => {
+                const base = header;
+                const key = base.toLowerCase();
+                const count = localCounts.get(key) || 0;
+                localCounts.set(key, count + 1);
+                localUniqueHeaders.push(count ? `${base} (${count + 1})` : base);
+            });
+
+            localUniqueHeaders.forEach(header => {
+                const key = header.toLowerCase();
+                if (!headerSet.has(key)) {
+                    headerSet.add(key);
+                    allHeaders.push(header);
+                }
+            });
+
+            for (let rowIndex = headerRowIndex + 1; rowIndex < grid.length; rowIndex += 1) {
+                const row = grid[rowIndex] || [];
+                if (isRowEffectivelyEmpty(row)) continue;
+
+                const record = {};
+                if (includeSource) record["Źródło arkusza"] = sheet.name || `Arkusz ${sheetIndex + 1}`;
+                localUniqueHeaders.forEach((header, colIndex) => {
+                    record[header] = row[colIndex] ?? "";
+                });
+                mergedRecords.push(record);
+            }
+        });
+
+        if (!mergedRecords.length) {
+            alert("Nie znaleziono danych do scalenia. Każdy scalany arkusz powinien mieć wiersz nagłówków i co najmniej jeden wiersz danych.");
+            return;
+        }
+
+        const mergedGrid = [
+            allHeaders,
+            ...mergedRecords.map(record => allHeaders.map(header => record[header] ?? ""))
+        ];
+
+        const minRows = Math.max(20, mergedGrid.length + 2);
+        const minCols = Math.max(10, allHeaders.length + 1);
+        while (mergedGrid.length < minRows) mergedGrid.push(Array.from({ length: allHeaders.length }, () => ""));
+        mergedGrid.forEach(row => { while (row.length < minCols) row.push(""); });
+
+        let baseName = "Scalone arkusze";
+        let name = baseName;
+        let suffix = 2;
+        const existingNames = new Set(workbook.sheets.map(sheet => String(sheet.name || "").toLowerCase()));
+        while (existingNames.has(name.toLowerCase())) {
+            name = `${baseName} ${suffix}`;
+            suffix += 1;
+        }
+
+        workbook.sheets.push({
+            name,
+            grid: mergedGrid,
+            styles: {}
+        });
+        activateWorkbookSheet(workbook.sheets.length - 1);
+        markDirty();
+
+        const skippedText = skippedSheets.length ? `\n\nPominięto bez rozpoznanej tabeli: ${skippedSheets.join(", ")}.` : "";
+        alert(`Utworzono arkusz „${name}”.\nScalono ${mergedRecords.length} wierszy danych i ${allHeaders.length} kolumn.${skippedText}`);
+    }
+
+
+
+    function rememberRecentColor(color) {
+        if (!color) return;
+        recentColors = [color, ...recentColors.filter(c => c !== color)].slice(0, 12);
+        localStorage.setItem("ares_recent_colors", JSON.stringify(recentColors));
+    }
+
+    function showColorPopover(input, kind) {
+        document.querySelectorAll(".we-color-popover").forEach(el => el.remove());
+        const pop = document.createElement("div");
+        pop.className = "we-color-popover";
+        const isText = kind === "textColor";
+        const defaultColor = isText ? "#eef3ff" : "#0f1728";
+        const title = isText ? "Kolor tekstu" : "Kolor tła";
+        const presets = ["#000000","#434343","#666666","#999999","#cccccc","#ffffff","#ff0000","#ff9900","#ffff00","#00ff00","#00ffff","#0000ff","#9900ff","#ff00ff","#4f8cff","#3ccf91","#f8c156","#ff8a65"];
+        const recent = recentColors.length ? recentColors : presets.slice(0, 8);
+        pop.innerHTML = `
+            <div class="we-color-popover-title">${title}</div>
+            <div class="we-color-actions">
+                <button type="button" data-color-reset="1">Kolor domyślny</button>
+                <button type="button" data-color-original="1">Oryginalny</button>
+            </div>
+            <div class="we-color-popover-title">Ostatnie wybory</div>
+            <div class="we-color-recent-grid">${recent.map(c => `<button type="button" class="we-color-recent-swatch" data-color="${c}" style="background:${c}" title="${c}"></button>`).join("")}</div>
+            <div class="we-color-popover-title" style="margin-top:10px">Paleta</div>
+            <div class="we-color-recent-grid">${presets.map(c => `<button type="button" class="we-color-recent-swatch" data-color="${c}" style="background:${c}" title="${c}"></button>`).join("")}</div>`;
+        document.body.appendChild(pop);
+        const rect = input.getBoundingClientRect();
+        pop.style.left = `${Math.min(rect.left, window.innerWidth - 290)}px`;
+        pop.style.top = `${rect.bottom + 8}px`;
+        pop.addEventListener("click", event => {
+            const colorBtn = event.target.closest("[data-color]");
+            if (colorBtn) {
+                const color = colorBtn.dataset.color;
+                input.value = color;
+                rememberRecentColor(color);
+                applyStyleToSelectionOrActive({ [kind]: color });
+                pop.remove();
+                return;
+            }
+            if (event.target.closest("[data-color-reset]")) {
+                input.value = defaultColor;
+                applyStyleToSelectionOrActive({ [kind]: defaultColor });
+                pop.remove();
+                return;
+            }
+            if (event.target.closest("[data-color-original]")) {
+                input.value = defaultColor;
+                applyStyleToSelectionOrActive({ [kind]: "" });
+                pop.remove();
+            }
+        });
+        setTimeout(() => {
+            document.addEventListener("click", function close(ev) {
+                if (!pop.contains(ev.target) && ev.target !== input) {
+                    pop.remove();
+                    document.removeEventListener("click", close);
+                }
+            });
+        }, 0);
+    }
+
+    function getSelectedBoundsOrActive() {
+        return getSelectionBounds() || { rowStart: activeCell.row, rowEnd: activeCell.row, colStart: activeCell.col, colEnd: activeCell.col };
+    }
+
+    function applyBorderPreset(preset, color = "#5b8def", lineStyle = "solid") {
+        if (!currentSheet) return;
+        pushHistorySnapshot();
+        const b = getSelectedBoundsOrActive();
+        for (let row = b.rowStart; row <= b.rowEnd; row += 1) {
+            for (let col = b.colStart; col <= b.colEnd; col += 1) {
+                const patch = { border: false, borderColor: color, borderLineStyle: lineStyle, borderWidth: "2px" };
+                if (preset === "clear") {
+                    Object.assign(patch, { borderTop: false, borderRight: false, borderBottom: false, borderLeft: false });
+                } else if (preset === "all") {
+                    Object.assign(patch, { borderTop: true, borderRight: true, borderBottom: true, borderLeft: true });
+                } else if (preset === "outer") {
+                    Object.assign(patch, {
+                        borderTop: row === b.rowStart,
+                        borderRight: col === b.colEnd,
+                        borderBottom: row === b.rowEnd,
+                        borderLeft: col === b.colStart
+                    });
+                } else if (preset === "inner") {
+                    Object.assign(patch, {
+                        borderTop: row > b.rowStart,
+                        borderRight: col < b.colEnd,
+                        borderBottom: row < b.rowEnd,
+                        borderLeft: col > b.colStart
+                    });
+                } else if (preset === "top") patch.borderTop = true;
+                else if (preset === "right") patch.borderRight = true;
+                else if (preset === "bottom") patch.borderBottom = true;
+                else if (preset === "left") patch.borderLeft = true;
+                else if (preset === "vertical") Object.assign(patch, { borderLeft: true, borderRight: true });
+                else if (preset === "horizontal") Object.assign(patch, { borderTop: true, borderBottom: true });
+                setCellStyle(row, col, patch);
+            }
+        }
+        renderGrid();
+        markDirty();
+    }
+
+    function showBorderPopover() {
+        document.querySelectorAll(".we-border-popover").forEach(el => el.remove());
+        const anchor = document.querySelector('[data-ribbon-action="borders"]');
+        const pop = document.createElement("div");
+        pop.className = "we-border-popover";
+        pop.innerHTML = `
+            <div class="we-color-popover-title">Obramowania</div>
+            <div class="we-border-grid">
+                <button class="we-border-option" data-border-preset="all" title="Wszystkie">▦</button>
+                <button class="we-border-option" data-border-preset="outer" title="Zewnętrzne">□</button>
+                <button class="we-border-option" data-border-preset="inner" title="Wewnętrzne">╬</button>
+                <button class="we-border-option" data-border-preset="top" title="Górne">▔</button>
+                <button class="we-border-option" data-border-preset="bottom" title="Dolne">▁</button>
+                <button class="we-border-option" data-border-preset="left" title="Lewe">▏</button>
+                <button class="we-border-option" data-border-preset="right" title="Prawe">▕</button>
+                <button class="we-border-option" data-border-preset="horizontal" title="Poziome">═</button>
+                <button class="we-border-option" data-border-preset="vertical" title="Pionowe">║</button>
+                <button class="we-border-option" data-border-preset="clear" title="Wyczyść">×</button>
+            </div>
+            <div class="we-border-controls">
+                <label>Kolor <input id="border-popover-color" type="color" value="#5b8def"></label>
+                <label>Styl <select id="border-popover-style"><option value="solid">ciągła</option><option value="dashed">przerywana</option><option value="dotted">kropkowana</option><option value="double">podwójna</option></select></label>
+            </div>
+            <button class="we-border-apply" data-border-preset="all">Zastosuj wszystkie krawędzie</button>`;
+        document.body.appendChild(pop);
+        const rect = anchor?.getBoundingClientRect() || { left: 40, bottom: 120 };
+        pop.style.left = `${Math.min(rect.left, window.innerWidth - 370)}px`;
+        pop.style.top = `${rect.bottom + 8}px`;
+        pop.addEventListener("click", event => {
+            const btn = event.target.closest("[data-border-preset]");
+            if (!btn) return;
+            const color = pop.querySelector("#border-popover-color")?.value || "#5b8def";
+            const style = pop.querySelector("#border-popover-style")?.value || "solid";
+            applyBorderPreset(btn.dataset.borderPreset, color, style);
+            pop.remove();
+        });
+        setTimeout(() => {
+            document.addEventListener("click", function close(ev) {
+                if (!pop.contains(ev.target) && !ev.target.closest('[data-ribbon-action="borders"]')) {
+                    pop.remove();
+                    document.removeEventListener("click", close);
+                }
+            });
+        }, 0);
+    }
+
+    function applyRibbonAction(action) {
+        if (!action) return;
+        if (action === "merge-sheets") return mergeWorkbookSheetsIntoOneTable();
+        if (["chart", "pivot", "solver", "dropdown", "checkbox", "function-helper", "link", "comment", "note", "emoji"].includes(action)) {
+            return applyInsertAction(action);
+        }
+        if (action === "filter") return alert("Filtr: zaznacz zakres z nagłówkami, a potem możesz sortować go przyciskami A-Z / Z-A. Pełne filtrowanie wartości jest przygotowane jako kolejne rozszerzenie.");
+        if (action === "comments") return openCommentEditor("comment");
+        if (action === "freeze-first-row") {
+            sheetGridTable?.classList.toggle("freeze-first-row");
+            return;
+        }
+        if (action === "freeze-first-col") {
+            sheetGridTable?.classList.toggle("freeze-first-col");
+            return;
+        }
+        if (action === "zoom-100") {
+            const zoom = document.getElementById("zoom-select");
+            if (zoom) zoom.value = "100%";
+            sheetGridTable.style.transform = "scale(1)";
+            sheetGridTable.style.transformOrigin = "top left";
+            return;
+        }
+        if (action === "compact-view") {
+            sheetEditorCard?.classList.toggle("compact-view");
+            return;
+        }
+        if (action === "currency") return applyFormatToSelectionOrActive("currency");
+        if (action === "percent") return applyFormatToSelectionOrActive("percent");
+        if (action === "decimal-up") return applyFormatToSelectionOrActive("decimal-up");
+        if (action === "decimal-down") return applyFormatToSelectionOrActive("decimal-down");
+        if (action === "borders") return showBorderPopover();
+        if (action === "merge") return alert("Scalanie komórek: funkcja wizualna jest w pasku, pełna obsługa scalonych zakresów wymaga osobnego modelu zakresów.");
+        if (action === "wrap") return applyStyleToSelectionOrActive({ wrap: true });
+        if (action === "text-rotation") return applyStyleToSelectionOrActive({ rotate: true });
+        if (action === "more-tools") return alert("Najważniejsze narzędzia są dostępne w zakładkach Start, Wstaw, Formuły, Tabele, Dane i Widok.");
+    }
+
+    function applyFormatToSelectionOrActive(kind) {
+        if (!currentSheet) return;
+        pushHistorySnapshot();
+        forEachSelectedCell((row, col) => {
+            const value = currentSheet.grid[row]?.[col];
+            const num = parseNumber(value);
+            if (kind === "currency") currentSheet.grid[row][col] = Number.isFinite(num) ? `${num.toFixed(2)} zł` : value;
+            if (kind === "percent") currentSheet.grid[row][col] = Number.isFinite(num) ? `${(num * 100).toFixed(2)}%` : value;
+            if (kind === "decimal-up") currentSheet.grid[row][col] = Number.isFinite(num) ? num.toFixed(2) : value;
+            if (kind === "decimal-down") currentSheet.grid[row][col] = Number.isFinite(num) ? num.toFixed(0) : value;
+        });
+        renderGrid();
+        markDirty();
     }
 
     function initializeEvents() {
@@ -1887,6 +3338,7 @@ document.addEventListener("DOMContentLoaded", function () {
         exportBtn?.addEventListener("click", downloadCsv);
         renameBtn?.addEventListener("click", renameSheet);
         undoBtn?.addEventListener("click", undoLastChange);
+        redoBtn?.addEventListener("click", redoLastChange);
 
         importInput?.addEventListener("change", event => {
             const file = event.target.files?.[0];
@@ -1898,8 +3350,49 @@ document.addEventListener("DOMContentLoaded", function () {
             if (event.key === "Enter") {
                 event.preventDefault();
                 applyFormulaToActiveCell();
+                formulaHelperPopover && (formulaHelperPopover.hidden = true);
+            }
+            if (event.key === "F4") {
+                event.preventDefault();
+                toggleReferenceLockInFormulaInput();
+                renderFormulaHelper();
             }
         });
+        formulaInput?.addEventListener("input", renderFormulaHelper);
+        formulaInput?.addEventListener("focus", renderFormulaHelper);
+        document.addEventListener("click", event => {
+            if (!formulaHelperPopover || formulaHelperPopover.hidden) return;
+            if (event.target === formulaInput || formulaHelperPopover.contains(event.target)) return;
+            formulaHelperPopover.hidden = true;
+        });
+        formulaHelperPopover?.addEventListener("click", event => {
+            const item = event.target.closest("[data-formula-syntax]");
+            if (!item || !formulaInput) return;
+            formulaInput.value = item.dataset.formulaSyntax || "";
+            formulaInput.focus();
+            renderFormulaHelper();
+        });
+        emojiSearchInput?.addEventListener("input", renderEmojiPicker);
+        emojiCategoryButtons?.addEventListener("click", event => {
+            const btn = event.target.closest("[data-emoji-category]");
+            if (!btn) return;
+            activeEmojiCategory = btn.dataset.emojiCategory;
+            if (emojiSearchInput) emojiSearchInput.value = "";
+            renderEmojiPicker();
+        });
+        emojiGrid?.addEventListener("click", event => {
+            const btn = event.target.closest("[data-emoji]");
+            if (!btn) return;
+            selectedEmoji = btn.dataset.emoji;
+            renderEmojiPicker();
+        });
+        emojiGrid?.addEventListener("dblclick", event => {
+            const btn = event.target.closest("[data-emoji]");
+            if (!btn) return;
+            selectedEmoji = btn.dataset.emoji;
+            insertSelectedEmoji();
+        });
+        emojiInsertBtn?.addEventListener("click", insertSelectedEmoji);
 
         sortAscBtn?.addEventListener("click", () => sortActiveColumn("asc"));
         sortDescBtn?.addEventListener("click", () => sortActiveColumn("desc"));
@@ -1928,11 +3421,15 @@ document.addEventListener("DOMContentLoaded", function () {
             toggleStyleFlag("underline");
         });
 
+        textColorInput?.addEventListener("click", () => showColorPopover(textColorInput, "textColor"));
         textColorInput?.addEventListener("input", () => {
+            rememberRecentColor(textColorInput.value);
             applyStyleToSelectionOrActive({ textColor: textColorInput.value });
         });
 
+        fillColorInput?.addEventListener("click", () => showColorPopover(fillColorInput, "fillColor"));
         fillColorInput?.addEventListener("input", () => {
+            rememberRecentColor(fillColorInput.value);
             applyStyleToSelectionOrActive({ fillColor: fillColorInput.value });
         });
 
@@ -1946,6 +3443,14 @@ document.addEventListener("DOMContentLoaded", function () {
 
         alignRightBtn?.addEventListener("click", () => {
             applyStyleToSelectionOrActive({ align: "right" });
+        });
+
+        chartTypeCards?.addEventListener("click", (event) => {
+            const card = event.target.closest("[data-chart-type]");
+            if (!card) return;
+            chartTypeCards.querySelectorAll(".we-chart-type-card").forEach(btn => btn.classList.remove("active"));
+            card.classList.add("active");
+            if (chartTypeSelect) chartTypeSelect.value = card.dataset.chartType || "line";
         });
 
         buildChartBtn?.addEventListener("click", () => {
@@ -1965,7 +3470,14 @@ document.addEventListener("DOMContentLoaded", function () {
                 showLegend: chartShowLegendInput?.checked ?? true,
                 showGrid: chartShowGridInput?.checked ?? true,
                 showLabels: chartShowLabelsInput?.checked ?? false,
-                color: chartSeriesColorInput?.value || DEFAULT_CHART_COLOR
+                color: chartSeriesColorInput?.value || DEFAULT_CHART_COLOR,
+                backgroundColor: chartBgColorInput?.value || "#111827",
+                width: parseInt(chartWidthInput?.value || "900", 10),
+                height: parseInt(chartHeightInput?.value || "360", 10),
+                lineWidth: parseInt(chartLineWidthInput?.value || "3", 10),
+                pointSize: parseInt(chartPointSizeInput?.value || "5", 10),
+                sortOrder: chartSortSelect?.value || "none",
+                legendPosition: chartLegendPositionSelect?.value || "bottom"
             });
 
             rerenderGeneratedObjects();
@@ -1973,9 +3485,88 @@ document.addEventListener("DOMContentLoaded", function () {
         });
 
         buildPivotBtn?.addEventListener("click", buildPivotFromModal);
+        pivotUseSelectionBtn?.addEventListener("click", () => { if (pivotRangeInput) pivotRangeInput.value = getCurrentSelectionRangeText(); renderPivotEditor(); });
+        pivotSearchInput?.addEventListener("input", renderPivotEditor);
+        pivotRangeInput?.addEventListener("input", renderPivotEditor);
+        pivotClearBtn?.addEventListener("click", () => { pivotConfig = { rows: [], columns: [], values: [], filters: [] }; renderPivotEditor(); });
+        document.querySelectorAll("[data-pivot-add]").forEach(btn => btn.addEventListener("click", () => addPivotField(btn.dataset.pivotAdd)));
+        pivotModal?.addEventListener("click", event => {
+            const quick = event.target.closest("[data-pivot-quick]");
+            if (quick) addPivotField(quick.dataset.pivotQuick, quick.dataset.fieldIndex);
+            const remove = event.target.closest("[data-pivot-remove]");
+            if (remove) removePivotField(remove.dataset.pivotRemove, parseInt(remove.dataset.pivotRemoveIndex || "0", 10));
+        });
+        commentTextarea?.addEventListener("input", updateCommentPreview);
+        commentSaveBtn?.addEventListener("click", saveCommentFromModal);
+        commentDeleteBtn?.addEventListener("click", deleteCommentFromModal);
         runSolverBtn?.addEventListener("click", runSolverFromModal);
+        smartInsertApplyBtn?.addEventListener("click", applySmartInsert);
+        tableTemplateGrid?.addEventListener("click", event => {
+            const card = event.target.closest("[data-template-id]");
+            if (card) applyTableTemplate(card.dataset.templateId);
+        });
+        universityTemplateGrid?.addEventListener("click", event => {
+            const card = event.target.closest("[data-template-id]");
+            if (card) applyTableTemplate(card.dataset.templateId);
+        });
+        clearBeforeTemplateBtn?.addEventListener("click", () => clearBeforeTemplateBtn.classList.toggle("active"));
+        clearBeforeUniversityTemplateBtn?.addEventListener("click", () => clearBeforeUniversityTemplateBtn.classList.toggle("active"));
+        document.querySelectorAll("[data-ribbon-action]").forEach(button => {
+            button.addEventListener("click", () => applyRibbonAction(button.dataset.ribbonAction));
+        });
+        document.getElementById("zoom-select")?.addEventListener("change", event => {
+            const raw = String(event.target.value || "100%").replace("%", "");
+            const scale = Math.max(0.5, Math.min(2, Number(raw) / 100 || 1));
+            sheetGridTable.style.transform = `scale(${scale})`;
+            sheetGridTable.style.transformOrigin = "top left";
+        });
+        menuBar?.addEventListener("click", event => {
+            const btn = event.target.closest("[data-menu]");
+            if (btn) showMenuPopover(btn.dataset.menu, btn);
+        });
+        menuPopover?.addEventListener("click", event => {
+            const btn = event.target.closest("[data-menu-action]");
+            if (!btn || btn.disabled) return;
+            menuPopover.hidden = true;
+            handleMenuAction(btn.dataset.menuAction);
+        });
+        sheetContextMenu?.addEventListener("click", event => {
+            const cellBtn = event.target.closest("[data-cell-action]");
+            if (cellBtn && !cellBtn.disabled) {
+                sheetContextMenu.hidden = true;
+                handleCellContextAction(cellBtn.dataset.cellAction);
+                return;
+            }
+            const btn = event.target.closest("[data-sheet-action]");
+            if (!btn || btn.disabled) return;
+            sheetContextMenu.hidden = true;
+            handleSheetContextAction(btn.dataset.sheetAction);
+        });
+        document.addEventListener("click", event => {
+            if (menuPopover && !event.target.closest(".we-menu-bar") && !event.target.closest("#we-menu-popover")) menuPopover.hidden = true;
+            if (sheetContextMenu && !event.target.closest(".we-workbook-tab") && !event.target.closest("#sheet-context-menu")) sheetContextMenu.hidden = true;
+        });
+
+        solverTargetUpdateBtn?.addEventListener("click", () => {
+            if (solverTargetInput) solverTargetInput.value = `${colToLabel(activeCell.col)}${activeCell.row + 1}`;
+        });
+        solverTargetClearBtn?.addEventListener("click", () => {
+            if (solverTargetInput) solverTargetInput.value = "";
+        });
+        solverVariableAddBtn?.addEventListener("click", () => {
+            if (!solverVariableInput) return;
+            const ref = `${colToLabel(activeCell.col)}${activeCell.row + 1}`;
+            solverVariableInput.value = solverVariableInput.value.trim()
+                ? `${solverVariableInput.value.trim()},${ref}`
+                : ref;
+        });
+        solverVariableDeleteBtn?.addEventListener("click", () => {
+            if (solverVariableInput) solverVariableInput.value = "";
+        });
     }
 
+    renderTableTemplates();
+    renderUniversityTemplates();
     initializeTabs();
     initializeMenus();
     initializeModals();

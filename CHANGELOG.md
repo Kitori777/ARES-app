@@ -1,6 +1,122 @@
 # Changelog
 
-# Changelog
+## [v0.3.0] - 2026-04-26
+
+### Dodano
+- Rozbudowany panel główny aplikacji ARES.
+- Profil użytkownika dostępny z górnego paska aplikacji.
+- Możliwość ustawiania własnej nazwy wyświetlanej użytkownika.
+- Możliwość ustawiania awatara użytkownika.
+- Kreator awatara:
+  - wybór kolorystyki awatara,
+  - wybór kształtu awatara,
+  - szybkie symbole awatara,
+  - możliwość wgrania własnego obrazka profilowego.
+- System motywów kolorystycznych aplikacji.
+- Dziesięć wariantów kolorystyki interfejsu.
+- Zapisywanie ustawień wyglądu użytkownika w `localStorage`.
+- Rozszerzone menu profilu użytkownika.
+- Konfigurowalny pasek szybkiego dostępu.
+- Dolny dock z najważniejszymi skrótami aplikacji.
+- Możliwość wyboru ulubionych arkuszy.
+- Sortowanie arkuszy tak, aby ulubione arkusze były wyświetlane wyżej.
+- Podsumowanie liczby arkuszy oraz liczby ulubionych arkuszy.
+- Rozbudowaną historię zmian obejmującą akcje użytkownika w arkuszach.
+- Filtrowanie historii zmian po arkuszu, typie akcji i zakresie czasu.
+- Rozszerzone raporty użytkownika i aktywności.
+- Wykresy aktywności w raportach:
+  - aktywność z ostatnich 7 dni,
+  - aktywność tygodniowa z ostatnich 30 dni,
+  - najczęstsze typy działań.
+- Wykresy aktywności w historii zmian.
+- Obsługę menu kontekstowego po kliknięciu prawym przyciskiem myszy na komórkę.
+- Przykładowe opcje menu kontekstowego komórki:
+  - wytnij,
+  - kopiuj,
+  - wklej,
+  - wklej specjalnie,
+  - wstaw wiersz powyżej,
+  - wstaw kolumnę po lewej,
+  - usuń wiersz,
+  - usuń kolumnę,
+  - usuń komórki,
+  - utwórz wykres,
+  - wstaw link,
+  - komentarz,
+  - wstaw notatkę,
+  - solver.
+- Podstawową obsługę akcji z menu kontekstowego:
+  - kopiowanie,
+  - wycinanie,
+  - wklejanie,
+  - czyszczenie komórki,
+  - usuwanie wiersza,
+  - usuwanie kolumny,
+  - otwieranie wykresu,
+  - otwieranie komentarza,
+  - otwieranie notatki,
+  - otwieranie solvera.
+- Czytelniejszy panel solvera.
+- Podsumowanie ustawień solvera:
+  - aktywny arkusz,
+  - komórka celu,
+  - tryb optymalizacji,
+  - liczba komórek zmiennych.
+- Obsługę wariantów solvera:
+  - minimalizacja,
+  - maksymalizacja,
+  - wartość docelowa.
+- Przyciski pomocnicze solvera:
+  - bieżący arkusz,
+  - pobierz z aktywnej komórki,
+  - zakres zaznaczenia,
+  - wyczyść.
+- Lepszą integrację kolorystyki z modułami:
+  - panel główny,
+  - arkusze,
+  - edytor arkusza,
+  - import danych,
+  - historia zmian,
+  - raporty,
+  - profil użytkownika,
+  - dolny pasek szybkiego dostępu.
+- Ujednolicone kolory kart, paneli, boxów statystyk, tabel i formularzy.
+
+### Zmieniono
+- Przebudowano wygląd panelu głównego na bardziej aplikacyjny i czytelny.
+- Poprawiono wygląd listy arkuszy.
+- Poprawiono kontrast tekstu i widoczność elementów w jasnych oraz ciemnych motywach.
+- Poprawiono działanie bocznego paska nawigacji.
+- Poprawiono wygląd i zachowanie list rozwijanych w historii zmian.
+- Poprawiono wygląd formularzy w modułach importu, raportów i historii.
+- Poprawiono spójność kolorystyczną pomiędzy modułami.
+- Rozbudowano raporty tak, aby uwzględniały więcej działań użytkownika.
+- Rozbudowano historię tak, aby lepiej opisywała pracę w arkuszach.
+- Uspójniono styl przycisków, kart, pól formularzy i paneli.
+- Poprawiono czytelność solvera przy zmianie wariantu optymalizacji.
+
+### Naprawiono
+- Naprawiono problem z niespójną kolorystyką po zmianie motywu.
+- Naprawiono miejsca, w których jasny motyw mieszał się z ciemnymi elementami arkusza.
+- Naprawiono nieczytelne pola wyboru w historii zmian.
+- Naprawiono problem z brakiem widocznych kolorów w kreatorze awatara.
+- Naprawiono zachowanie menu zakładek arkuszy.
+- Poprawiono widoczność elementów w dolnym pasku szybkiego dostępu.
+- Poprawiono działanie zwijania bocznego panelu.
+- Poprawiono układ edytora, aby lepiej dopasowywał się do szerokości ekranu.
+
+### Techniczne
+- Dodano nowe skrypty JavaScript obsługujące:
+  - profil użytkownika,
+  - motywy,
+  - skróty,
+  - ulubione arkusze,
+  - menu kontekstowe komórek,
+  - wykresy aktywności,
+  - rozszerzony solver.
+- Rozszerzono style CSS dla modułów aplikacji.
+- Ujednolicono obsługę wyglądu przez zmienne motywów.
+- Dodano lekkie wykresy SVG bez konieczności używania dodatkowych bibliotek.
 
 ## [v0.2.0] - 2026-04-15
 

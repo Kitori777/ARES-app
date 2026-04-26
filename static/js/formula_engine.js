@@ -23,6 +23,18 @@
         "VLOOKUP": "WYSZUKAJ",
         "SUMA.JEŻELI": "SUMIF",
         "SUMA-JEŻELI": "SUMIF",
+        "CALKA": "CAŁKA",
+        "INTEGRAL": "CAŁKA",
+        "DERIVATIVE": "POCHODNA",
+        "WARTOSC.FUNKCJI": "WARTOŚĆ.FUNKCJI",
+        "KOMBINACJE": "KOMBINACJE",
+        "COMBIN": "KOMBINACJE",
+        "PERMUTACJE": "PERMUTACJE",
+        "PERMUT": "WARIACJE",
+        "SLOPE": "NACHYLENIE",
+        "INTERCEPT": "WYRAZ.WOLNY",
+        "RSQ": "R2",
+        "FORECAST": "PROGNOZA",
     };
 
     function resolveName(name) {
@@ -232,6 +244,42 @@
     }
     function cTanh(a) { return cDiv(cSinh(a), cCosh(a)); }
     function cInv(a) { return cDiv({ re: 1, im: 0 }, a); }
+
+
+    function evalMathExpression(expr, vars = {}) {
+        let text = String(expr || "").replace(/,/g, ".").trim();
+        text = text.replace(/\bPI\b/gi, "Math.PI").replace(/\bE\b/g, "Math.E");
+        text = text.replace(/\bSIN\(/gi, "Math.sin(").replace(/\bCOS\(/gi, "Math.cos(").replace(/\bTAN\(/gi, "Math.tan(");
+        text = text.replace(/\bASIN\(/gi, "Math.asin(").replace(/\bACOS\(/gi, "Math.acos(").replace(/\bATAN\(/gi, "Math.atan(");
+        text = text.replace(/\bLN\(/gi, "Math.log(").replace(/\bLOG\(/gi, "Math.log10(").replace(/\bEXP\(/gi, "Math.exp(");
+        text = text.replace(/\bSQRT\(/gi, "Math.sqrt(").replace(/\bABS\(/gi, "Math.abs(").replace(/\bMOC\(/gi, "Math.pow(");
+        text = text.replace(/\^/g, "**");
+        if (/[^0-9A-Za-z_+\-*/().,\s<>=!&|%*]/.test(text)) return NaN;
+        const names = Object.keys(vars);
+        const values = names.map(k => Number(vars[k]));
+        try { return Function(...names, "\"use strict\"; return (" + text + ");")(...values); } catch { return NaN; }
+    }
+
+    function normalCdf(z) {
+        return 0.5 * (1 + erf(z / Math.SQRT2));
+    }
+
+    function linearStats(x, y) {
+        if (!x.length || x.length !== y.length) return null;
+        const n = x.length;
+        const mx = x.reduce((a,b)=>a+b,0)/n;
+        const my = y.reduce((a,b)=>a+b,0)/n;
+        const sxx = x.reduce((a,v)=>a+(v-mx)**2,0);
+        const sxy = x.reduce((a,v,i)=>a+(v-mx)*(y[i]-my),0);
+        if (sxx === 0) return null;
+        const slope = sxy/sxx;
+        const intercept = my - slope*mx;
+        const ssTot = y.reduce((a,v)=>a+(v-my)**2,0);
+        const ssRes = y.reduce((a,v,i)=>a+(v-(slope*x[i]+intercept))**2,0);
+        const r2 = ssTot === 0 ? 1 : 1 - ssRes/ssTot;
+        return { slope, intercept, r2 };
+    }
+
     function npv(rate, values) {
 
     return values.reduce((acc, v, i) => acc + (v / Math.pow(1 + rate, i + 1)), 0);
@@ -251,6 +299,17 @@
         if (!fnMatch) {
             const ref = ctx.cellRefToIndex(body);
             if (ref) return ctx.getCellComputedValue(ref.row, ref.col, visited);
+            const arithmetic = body.replace(/\$?[A-Z]+\$?\d+/gi, token => {
+                const clean = token.replace(/\$/g, "");
+                const cell = ctx.cellRefToIndex(clean);
+                if (!cell) return token;
+                const value = ctx.getCellComputedValue(cell.row, cell.col, visited);
+                return ctx.isNumericValue(value) ? String(ctx.parseNumber(value)) : "0";
+            });
+            if (/^[0-9+\-*/().,\s%^A-Za-z_]+$/.test(arithmetic)) {
+                const value = evalMathExpression(arithmetic, { x: 0, y: 0 });
+                if (Number.isFinite(value)) return value;
+            }
             return body;
         }
 
@@ -258,9 +317,9 @@
         const args = splitArgs(fnMatch[2]);
 
         try {
-            if (fn === "SUMA") return args.flatMap(a => /^[A-Z]+\d+:[A-Z]+\d+$/i.test(a) ? rangeValues(a, ctx, visited) : [normalizeScalar(a, ctx, visited)]).reduce((s, v) => s + ctx.parseNumber(v), 0);
+            if (fn === "SUMA") return args.flatMap(a => /^\$?[A-Z]+\$?\d+:\$?[A-Z]+\$?\d+$/i.test(a) ? rangeValues(a, ctx, visited) : [normalizeScalar(a, ctx, visited)]).reduce((s, v) => s + ctx.parseNumber(v), 0);
             if (fn === "ŚREDNIA") {
-                const vals = args.flatMap(a => /^[A-Z]+\d+:[A-Z]+\d+$/i.test(a) ? rangeValues(a, ctx, visited) : [normalizeScalar(a, ctx, visited)]).map(ctx.parseNumber);
+                const vals = args.flatMap(a => /^\$?[A-Z]+\$?\d+:\$?[A-Z]+\$?\d+$/i.test(a) ? rangeValues(a, ctx, visited) : [normalizeScalar(a, ctx, visited)]).map(ctx.parseNumber);
                 return vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : 0;
             }
             if (fn === "MEDIANA") {
@@ -309,7 +368,7 @@
             if (fn === "COS") return Math.cos(ctx.parseNumber(normalizeScalar(args[0], ctx, visited)));
             if (fn === "TAN") return Math.tan(ctx.parseNumber(normalizeScalar(args[0], ctx, visited)));
             if (fn === "MOD") return ctx.parseNumber(normalizeScalar(args[0], ctx, visited)) % ctx.parseNumber(normalizeScalar(args[1], ctx, visited));
-            if (fn === "ILOCZYN") return args.flatMap(a => /^[A-Z]+\d+:[A-Z]+\d+$/i.test(a) ? rangeValues(a, ctx, visited) : [normalizeScalar(a, ctx, visited)]).reduce((p, v) => p * ctx.parseNumber(v), 1);
+            if (fn === "ILOCZYN") return args.flatMap(a => /^\$?[A-Z]+\$?\d+:\$?[A-Z]+\$?\d+$/i.test(a) ? rangeValues(a, ctx, visited) : [normalizeScalar(a, ctx, visited)]).reduce((p, v) => p * ctx.parseNumber(v), 1);
             if (fn === "INT") return Math.floor(ctx.parseNumber(normalizeScalar(args[0], ctx, visited)));
             if (fn === "TRUNC") {
                 const val = ctx.parseNumber(normalizeScalar(args[0], ctx, visited));
@@ -474,7 +533,7 @@
 
             if (fn === "PI") {
                 const rate = ctx.parseNumber(normalizeScalar(args[0], ctx, visited));
-                const inflows = /^[A-Z]+\d+:[A-Z]+\d+$/i.test(args[1])
+                const inflows = /^\$?[A-Z]+\$?\d+:\$?[A-Z]+\$?\d+$/i.test(args[1])
                     ? rangeValues(args[1], ctx, visited).map(ctx.parseNumber)
                     : args.slice(1, -1).map(a => ctx.parseNumber(normalizeScalar(a, ctx, visited)));
                 const investment = ctx.parseNumber(normalizeScalar(args[args.length - 1], ctx, visited));
@@ -511,7 +570,7 @@
             if (fn === "SPLIT") return String(normalizeScalar(args[0], ctx, visited)).split(String(normalizeScalar(args[1], ctx, visited))).map(v => [v]);
             if (fn === "JOIN") {
                 const delimiter = String(normalizeScalar(args[0], ctx, visited));
-                const vals = /^[A-Z]+\d+:[A-Z]+\d+$/i.test(args[1]) ? rangeValues(args[1], ctx, visited) : args.slice(1).map(a => normalizeScalar(a, ctx, visited));
+                const vals = /^\$?[A-Z]+\$?\d+:\$?[A-Z]+\$?\d+$/i.test(args[1]) ? rangeValues(args[1], ctx, visited) : args.slice(1).map(a => normalizeScalar(a, ctx, visited));
                 return vals.join(delimiter);
             }
             if (fn === "SUBSTITUTE") {
@@ -632,7 +691,7 @@
             }
             if (fn === "NPV") {
                 const rate = ctx.parseNumber(normalizeScalar(args[0], ctx, visited));
-                const vals = args.slice(1).flatMap(a => /^[A-Z]+\d+:[A-Z]+\d+$/i.test(a) ? rangeValues(a, ctx, visited) : [normalizeScalar(a, ctx, visited)]).map(ctx.parseNumber);
+                const vals = args.slice(1).flatMap(a => /^\$?[A-Z]+\$?\d+:\$?[A-Z]+\$?\d+$/i.test(a) ? rangeValues(a, ctx, visited) : [normalizeScalar(a, ctx, visited)]).map(ctx.parseNumber);
                 return vals.reduce((acc, v, i) => acc + (v / Math.pow(1 + rate, i + 1)), 0);
             }
             if (fn === "XNPV") return evaluate(`=NPV(${args[0]};${args[1]})`, ctx, visited);
@@ -721,8 +780,8 @@
                 return a.map(row => b[0].map((_, c) => row.reduce((sum, v, r) => sum + v * b[r][c], 0)));
             }
             if (fn === "ARRAYFORMULA") {
-                if (args.length === 1 && /^[A-Z]+\d+:[A-Z]+\d+$/i.test(args[0])) return rangeMatrix(args[0], ctx, visited);
-                if (args.length === 2 && /^[A-Z]+\d+:[A-Z]+\d+$/i.test(args[0]) && /^[A-Z]+\d+:[A-Z]+\d+$/i.test(args[1])) {
+                if (args.length === 1 && /^\$?[A-Z]+\$?\d+:\$?[A-Z]+\$?\d+$/i.test(args[0])) return rangeMatrix(args[0], ctx, visited);
+                if (args.length === 2 && /^\$?[A-Z]+\$?\d+:\$?[A-Z]+\$?\d+$/i.test(args[0]) && /^\$?[A-Z]+\$?\d+:\$?[A-Z]+\$?\d+$/i.test(args[1])) {
                     const a = rangeValues(args[0], ctx, visited).map(ctx.parseNumber);
                     const b = rangeValues(args[1], ctx, visited).map(ctx.parseNumber);
                     return a.map((v, i) => [v * (b[i] ?? 0)]);
@@ -814,6 +873,117 @@
                     result.push(row);
                 }
                 return result;
+            }
+
+
+
+            if (fn === "WARTOŚĆ.FUNKCJI") {
+                const expr = normalizeScalar(args[0], ctx, visited);
+                const x = ctx.parseNumber(normalizeScalar(args[1], ctx, visited));
+                return evalMathExpression(expr, { x, y: 0 });
+            }
+            if (fn === "POCHODNA") {
+                const expr = normalizeScalar(args[0], ctx, visited);
+                const x = ctx.parseNumber(normalizeScalar(args[1], ctx, visited));
+                const h = ctx.parseNumber(normalizeScalar(args[2], ctx, visited) || 0.00001);
+                return (evalMathExpression(expr, { x: x + h, y: 0 }) - evalMathExpression(expr, { x: x - h, y: 0 })) / (2 * h);
+            }
+            if (fn === "CAŁKA") {
+                const expr = normalizeScalar(args[0], ctx, visited);
+                const a = ctx.parseNumber(normalizeScalar(args[1], ctx, visited));
+                const b = ctx.parseNumber(normalizeScalar(args[2], ctx, visited));
+                const n = Math.max(1, Math.floor(ctx.parseNumber(normalizeScalar(args[3], ctx, visited) || 1000)));
+                const h = (b - a) / n;
+                let sum = 0.5 * (evalMathExpression(expr, { x: a, y: 0 }) + evalMathExpression(expr, { x: b, y: 0 }));
+                for (let i = 1; i < n; i += 1) sum += evalMathExpression(expr, { x: a + i * h, y: 0 });
+                return sum * h;
+            }
+            if (fn === "EULER") {
+                const expr = normalizeScalar(args[0], ctx, visited);
+                let x = ctx.parseNumber(normalizeScalar(args[1], ctx, visited));
+                let y = ctx.parseNumber(normalizeScalar(args[2], ctx, visited));
+                const h = ctx.parseNumber(normalizeScalar(args[3], ctx, visited));
+                const n = Math.max(0, Math.floor(ctx.parseNumber(normalizeScalar(args[4], ctx, visited))));
+                for (let i = 0; i < n; i += 1) { y += h * evalMathExpression(expr, { x, y }); x += h; }
+                return y;
+            }
+            if (fn === "BISEKCJA") {
+                const expr = normalizeScalar(args[0], ctx, visited);
+                let a = ctx.parseNumber(normalizeScalar(args[1], ctx, visited));
+                let b = ctx.parseNumber(normalizeScalar(args[2], ctx, visited));
+                const eps = ctx.parseNumber(normalizeScalar(args[3], ctx, visited) || 0.000001);
+                const maxIter = Math.floor(ctx.parseNumber(normalizeScalar(args[4], ctx, visited) || 100));
+                let fa = evalMathExpression(expr, { x: a, y: 0 });
+                let fb = evalMathExpression(expr, { x: b, y: 0 });
+                if (fa * fb > 0) return "#BRAK ZMIANY ZNAKU";
+                let m = a;
+                for (let i = 0; i < maxIter; i += 1) {
+                    m = (a + b) / 2;
+                    const fm = evalMathExpression(expr, { x: m, y: 0 });
+                    if (Math.abs(fm) < eps || Math.abs(b - a) < eps) break;
+                    if (fa * fm <= 0) { b = m; fb = fm; } else { a = m; fa = fm; }
+                }
+                return m;
+            }
+            if (fn === "NEWTON") {
+                const expr = normalizeScalar(args[0], ctx, visited);
+                let x = ctx.parseNumber(normalizeScalar(args[1], ctx, visited));
+                const eps = ctx.parseNumber(normalizeScalar(args[2], ctx, visited) || 0.000001);
+                const maxIter = Math.floor(ctx.parseNumber(normalizeScalar(args[3], ctx, visited) || 50));
+                for (let i = 0; i < maxIter; i += 1) {
+                    const fx = evalMathExpression(expr, { x, y: 0 });
+                    const dfx = (evalMathExpression(expr, { x: x + eps, y: 0 }) - evalMathExpression(expr, { x: x - eps, y: 0 })) / (2 * eps);
+                    if (!Number.isFinite(dfx) || Math.abs(dfx) < 1e-12) return "#POCHODNA=0";
+                    const next = x - fx / dfx;
+                    if (Math.abs(next - x) < eps) { x = next; break; }
+                    x = next;
+                }
+                return x;
+            }
+            if (fn === "KOMBINACJE") {
+                const n = Math.floor(ctx.parseNumber(normalizeScalar(args[0], ctx, visited)));
+                const k = Math.floor(ctx.parseNumber(normalizeScalar(args[1], ctx, visited)));
+                if (k < 0 || n < 0 || k > n) return 0;
+                return factorial(n) / (factorial(k) * factorial(n-k));
+            }
+            if (fn === "PERMUTACJE") return factorial(ctx.parseNumber(normalizeScalar(args[0], ctx, visited)));
+            if (fn === "WARIACJE") {
+                const n = Math.floor(ctx.parseNumber(normalizeScalar(args[0], ctx, visited)));
+                const k = Math.floor(ctx.parseNumber(normalizeScalar(args[1], ctx, visited)));
+                if (k < 0 || n < 0 || k > n) return 0;
+                return factorial(n) / factorial(n-k);
+            }
+            if (fn === "NORM.DIST") {
+                const x = ctx.parseNumber(normalizeScalar(args[0], ctx, visited));
+                const mean = ctx.parseNumber(normalizeScalar(args[1], ctx, visited));
+                const sd = ctx.parseNumber(normalizeScalar(args[2], ctx, visited));
+                const cumulative = String(normalizeScalar(args[3], ctx, visited)).toUpperCase() !== "FALSE";
+                const z = (x - mean) / sd;
+                return cumulative ? normalCdf(z) : Math.exp(-0.5*z*z)/(sd*Math.sqrt(2*Math.PI));
+            }
+            if (fn === "DWUMIAN") {
+                const k = Math.floor(ctx.parseNumber(normalizeScalar(args[0], ctx, visited)));
+                const n = Math.floor(ctx.parseNumber(normalizeScalar(args[1], ctx, visited)));
+                const p = ctx.parseNumber(normalizeScalar(args[2], ctx, visited));
+                return (factorial(n)/(factorial(k)*factorial(n-k))) * Math.pow(p,k) * Math.pow(1-p,n-k);
+            }
+            if (fn === "POISSON") {
+                const k = Math.floor(ctx.parseNumber(normalizeScalar(args[0], ctx, visited)));
+                const lambda = ctx.parseNumber(normalizeScalar(args[1], ctx, visited));
+                return Math.exp(-lambda) * Math.pow(lambda, k) / factorial(k);
+            }
+            if (fn === "NACHYLENIE" || fn === "WYRAZ.WOLNY" || fn === "R2" || fn === "PROGNOZA") {
+                let xRange = fn === "PROGNOZA" ? args[1] : args[0];
+                let yRange = fn === "PROGNOZA" ? args[2] : args[1];
+                const xVals = rangeValues(xRange, ctx, visited).map(ctx.parseNumber);
+                const yVals = rangeValues(yRange, ctx, visited).map(ctx.parseNumber);
+                const st = linearStats(xVals, yVals);
+                if (!st) return "#BŁĄD";
+                if (fn === "NACHYLENIE") return st.slope;
+                if (fn === "WYRAZ.WOLNY") return st.intercept;
+                if (fn === "R2") return st.r2;
+                const x0 = ctx.parseNumber(normalizeScalar(args[0], ctx, visited));
+                return st.slope * x0 + st.intercept;
             }
 
             if (fn === "IMPORTRANGE" || fn === "IMPORTHTML" || fn === "IMPORTDATA" || fn === "IMPORTFEED" || fn === "IMPORTXML" || fn === "GOOGLEFINANCE") {
