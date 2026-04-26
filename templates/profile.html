@@ -1,0 +1,437 @@
+{% extends 'base.html' %}
+
+{% block title %}ARES | Profil użytkownika{% endblock %}
+{% block topbar_title %}Profil użytkownika{% endblock %}
+
+{% block content %}
+<section class="profile-page">
+    <div class="profile-hero-card">
+        <div class="profile-hero-main">
+            <span class="hero-badge">USTAWIENIA KONTA</span>
+            <h1>Profil użytkownika</h1>
+            <p>
+                Dostosuj wygląd ARES do własnej pracy: wybierz motyw, ustaw awatar,
+                skróty i preferencje interfejsu. Zmiany zapisują się lokalnie i są
+                stosowane od razu w całym systemie.
+            </p>
+            <div class="hero-note-grid">
+                <div class="hero-note-tile"><strong>10 motywów</strong><small>jasne, ciemne i kontrastowe warianty</small></div>
+                <div class="hero-note-tile"><strong>Skróty</strong><small>własny zestaw szybkich akcji</small></div>
+                <div class="hero-note-tile"><strong>Profil</strong><small>awatar, nazwa i podgląd konta</small></div>
+            </div>
+        </div>
+        <aside class="profile-preview-card">
+            <div class="profile-preview-avatar" id="profile-preview-avatar">S</div>
+            <div class="profile-preview-meta">
+                <strong id="profile-preview-name">{{ request.user.username }}</strong>
+                <span>Aktywny profil roboczy</span>
+            </div>
+            <div class="profile-preview-tags">
+                <span id="profile-preview-theme">Midnight Blue</span>
+                <span id="profile-preview-shortcuts">6 skrótów</span>
+            </div>
+        </aside>
+    </div>
+
+    <div class="profile-tabs-nav">
+        <a href="#profile" class="profile-tab-link active">Profil</a>
+        <a href="#appearance" class="profile-tab-link">Wygląd</a>
+        <a href="#shortcuts" class="profile-tab-link">Skróty</a>
+        <a href="#preferences" class="profile-tab-link">Preferencje</a>
+    </div>
+
+    <section class="profile-section" id="profile">
+        <div class="profile-section-head">
+            <span class="section-kicker">Profil</span>
+            <h2>Dane i awatar</h2>
+        </div>
+        <div class="profile-two-col">
+            <div class="settings-card">
+                <label class="field-label">Wyświetlana nazwa</label>
+                <input id="profile-display-name" class="settings-input" type="text" value="{{ request.user.username }}" placeholder="Twoja nazwa robocza">
+
+                <label class="field-label">Litera / symbol awatara</label>
+                <input id="profile-avatar-text" class="settings-input" type="text" maxlength="2" value="{{ request.user.username|slice:':1'|upper }}" placeholder="np. S">
+
+                <label class="field-label">Opcjonalny adres obrazka</label>
+                <input id="profile-avatar-image" class="settings-input" type="text" placeholder="https://.../avatar.png">
+
+                <label class="field-label">Lub wgraj własne profilowe</label>
+                <input id="profile-avatar-upload" class="settings-input settings-file" type="file" accept="image/*">
+
+                <div class="avatar-builder-panel">
+                    <div>
+                        <div class="field-label top-gap">Kolorystyka awatara</div>
+                        <div class="field-subtext">Kolor jest zapisywany na stałe i będzie widoczny w całym systemie.</div>
+                        <div class="avatar-style-grid avatar-style-grid-large" id="avatar-style-grid">
+                            <button type="button" class="avatar-style-option" title="Royal Blue" style="background:linear-gradient(135deg, #6ea8ff, #3d62ff)" data-style="linear-gradient(135deg, #6ea8ff, #3d62ff)"></button>
+                            <button type="button" class="avatar-style-option" title="Mint Green" style="background:linear-gradient(135deg, #5de0a4, #1d9a6c)" data-style="linear-gradient(135deg, #5de0a4, #1d9a6c)"></button>
+                            <button type="button" class="avatar-style-option" title="Amber" style="background:linear-gradient(135deg, #f8b36d, #ee6b2f)" data-style="linear-gradient(135deg, #f8b36d, #ee6b2f)"></button>
+                            <button type="button" class="avatar-style-option" title="Violet" style="background:linear-gradient(135deg, #e98cff, #8f5cff)" data-style="linear-gradient(135deg, #e98cff, #8f5cff)"></button>
+                            <button type="button" class="avatar-style-option" title="Sky" style="background:linear-gradient(135deg, #82d8ff, #2c9fe8)" data-style="linear-gradient(135deg, #82d8ff, #2c9fe8)"></button>
+                            <button type="button" class="avatar-style-option" title="Rose" style="background:linear-gradient(135deg, #f87f9b, #de4b70)" data-style="linear-gradient(135deg, #f87f9b, #de4b70)"></button>
+                            <button type="button" class="avatar-style-option" title="Slate" style="background:linear-gradient(135deg, #7b8aa6, #37445a)" data-style="linear-gradient(135deg, #7b8aa6, #37445a)"></button>
+                            <button type="button" class="avatar-style-option" title="Ocean" style="background:linear-gradient(135deg, #44d1ff, #1260d6)" data-style="linear-gradient(135deg, #44d1ff, #1260d6)"></button>
+                            <button type="button" class="avatar-style-option" title="Ruby" style="background:linear-gradient(135deg, #ff8a8a, #cc2f5f)" data-style="linear-gradient(135deg, #ff8a8a, #cc2f5f)"></button>
+                            <button type="button" class="avatar-style-option" title="Gold" style="background:linear-gradient(135deg, #f6d365, #d18800)" data-style="linear-gradient(135deg, #f6d365, #d18800)"></button>
+                            <button type="button" class="avatar-style-option" title="Lavender" style="background:linear-gradient(135deg, #c7b8ff, #6d5bff)" data-style="linear-gradient(135deg, #c7b8ff, #6d5bff)"></button>
+                            <button type="button" class="avatar-style-option" title="Forest" style="background:linear-gradient(135deg, #8be28f, #216d3c)" data-style="linear-gradient(135deg, #8be28f, #216d3c)"></button>
+                        </div>
+                    </div>
+
+                    <div>
+                        <div class="field-label top-gap">Kształt awatara</div>
+                        <div class="avatar-shape-grid" id="avatar-shape-grid">
+                            <button type="button" class="avatar-shape-option" data-shape="rounded">Zaokrąglony</button>
+                            <button type="button" class="avatar-shape-option" data-shape="circle">Koło</button>
+                            <button type="button" class="avatar-shape-option" data-shape="square">Kwadrat</button>
+                            <button type="button" class="avatar-shape-option" data-shape="soft">Soft</button>
+                        </div>
+                    </div>
+
+                    <div>
+                        <div class="field-label top-gap">Szybkie symbole</div>
+                        <div class="field-subtext">Kliknij symbol, aby automatycznie wstawić go do awatara.</div>
+                        <div class="avatar-symbol-grid">
+                            <button type="button" class="avatar-symbol-option" data-symbol="★">★</button>
+                            <button type="button" class="avatar-symbol-option" data-symbol="⚡">⚡</button>
+                            <button type="button" class="avatar-symbol-option" data-symbol="✓">✓</button>
+                            <button type="button" class="avatar-symbol-option" data-symbol="Σ">Σ</button>
+                            <button type="button" class="avatar-symbol-option" data-symbol="π">π</button>
+                            <button type="button" class="avatar-symbol-option" data-symbol="∞">∞</button>
+                            <button type="button" class="avatar-symbol-option" data-symbol="✦">✦</button>
+                            <button type="button" class="avatar-symbol-option" data-symbol="✚">✚</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="settings-actions">
+                    <button class="btn btn-primary" id="save-profile-btn" type="button">Zapisz profil</button>
+                    <button class="btn btn-secondary" id="clear-avatar-image-btn" type="button">Usuń obrazek</button>
+                </div>
+            </div>
+            <div class="settings-card profile-live-card">
+                <span class="section-kicker">Podgląd</span>
+                <div class="profile-live-avatar" id="profile-live-avatar">S</div>
+                <h3 id="profile-live-name">{{ request.user.username }}</h3>
+                <p>Tak będzie wyglądał Twój profil w górnym pasku i w ustawieniach konta.</p>
+            </div>
+        </div>
+    </section>
+
+    <section class="profile-section" id="appearance">
+        <div class="profile-section-head">
+            <span class="section-kicker">Wygląd</span>
+            <h2>Motywy kolorystyczne</h2>
+        </div>
+        <div class="theme-grid" id="theme-grid">
+            <button type="button" class="theme-card" data-theme="midnight-blue" data-theme-label="Midnight Blue">
+                <span class="theme-title">Midnight Blue</span>
+                <span class="theme-swatches"><i style="background:#0b1220"></i><i style="background:#1b2740"></i><i style="background:#4f8cff"></i></span>
+            </button>
+            <button type="button" class="theme-card" data-theme="arctic-light" data-theme-label="Arctic Light">
+                <span class="theme-title">Arctic Light</span>
+                <span class="theme-swatches"><i style="background:#f7f9fc"></i><i style="background:#e8eef8"></i><i style="background:#4f7bff"></i></span>
+            </button>
+            <button type="button" class="theme-card" data-theme="emerald-night" data-theme-label="Emerald Night">
+                <span class="theme-title">Emerald Night</span>
+                <span class="theme-swatches"><i style="background:#071814"></i><i style="background:#0f2a22"></i><i style="background:#29c98f"></i></span>
+            </button>
+            <button type="button" class="theme-card" data-theme="graphite" data-theme-label="Graphite Pro">
+                <span class="theme-title">Graphite Pro</span>
+                <span class="theme-swatches"><i style="background:#14161b"></i><i style="background:#22262e"></i><i style="background:#8aa1ff"></i></span>
+            </button>
+            <button type="button" class="theme-card" data-theme="violet-glow" data-theme-label="Violet Glow">
+                <span class="theme-title">Violet Glow</span>
+                <span class="theme-swatches"><i style="background:#151022"></i><i style="background:#2a1f42"></i><i style="background:#a67cff"></i></span>
+            </button>
+            <button type="button" class="theme-card" data-theme="sand-light" data-theme-label="Sand Light">
+                <span class="theme-title">Sand Light</span>
+                <span class="theme-swatches"><i style="background:#faf6ef"></i><i style="background:#efe5d1"></i><i style="background:#bb7d2d"></i></span>
+            </button>
+            <button type="button" class="theme-card" data-theme="rose-dusk" data-theme-label="Rose Dusk">
+                <span class="theme-title">Rose Dusk</span>
+                <span class="theme-swatches"><i style="background:#23151b"></i><i style="background:#402430"></i><i style="background:#ff7ba7"></i></span>
+            </button>
+            <button type="button" class="theme-card" data-theme="ocean-cyan" data-theme-label="Ocean Cyan">
+                <span class="theme-title">Ocean Cyan</span>
+                <span class="theme-swatches"><i style="background:#07161d"></i><i style="background:#103040"></i><i style="background:#38c9f2"></i></span>
+            </button>
+            <button type="button" class="theme-card" data-theme="solar-contrast" data-theme-label="Solar Contrast">
+                <span class="theme-title">Solar Contrast</span>
+                <span class="theme-swatches"><i style="background:#1d1604"></i><i style="background:#443203"></i><i style="background:#ffce3d"></i></span>
+            </button>
+            <button type="button" class="theme-card" data-theme="clean-slate" data-theme-label="Clean Slate">
+                <span class="theme-title">Clean Slate</span>
+                <span class="theme-swatches"><i style="background:#f2f5f9"></i><i style="background:#dde4ee"></i><i style="background:#2f5d98"></i></span>
+            </button>
+        </div>
+    </section>
+
+    <section class="profile-section" id="shortcuts">
+        <div class="profile-section-head">
+            <span class="section-kicker">Skróty</span>
+            <h2>Twój pasek szybkich akcji</h2>
+        </div>
+        <div class="shortcut-grid" id="shortcut-grid">
+            <label class="shortcut-card"><input type="checkbox" data-shortcut="worksheets" checked><strong>Arkusze</strong><small>Szybkie przejście do zakładek i edytora</small></label>
+            <label class="shortcut-card"><input type="checkbox" data-shortcut="import" checked><strong>Import danych</strong><small>CSV, XLSX i czyszczenie zakresów</small></label>
+            <label class="shortcut-card"><input type="checkbox" data-shortcut="reports" checked><strong>Raporty</strong><small>Podgląd gotowych zestawień</small></label>
+            <label class="shortcut-card"><input type="checkbox" data-shortcut="history" checked><strong>Historia zmian</strong><small>Śledzenie zapisów i operacji</small></label>
+            <label class="shortcut-card"><input type="checkbox" data-shortcut="charts" checked><strong>Wykresy</strong><small>Typy, serie i ustawienia wizualne</small></label>
+            <label class="shortcut-card"><input type="checkbox" data-shortcut="solver" checked><strong>Solver</strong><small>Optymalizacja i ograniczenia</small></label>
+            <label class="shortcut-card"><input type="checkbox" data-shortcut="math" checked><strong>Matematyka akademicka</strong><small>Całki, pochodne, statystyka i BO</small></label>
+            <label class="shortcut-card"><input type="checkbox" data-shortcut="merge" checked><strong>Scalanie arkuszy</strong><small>Łączenie tabel po nagłówkach</small></label>
+        </div>
+        <div class="settings-actions">
+            <button class="btn btn-primary" id="save-shortcuts-btn" type="button">Zapisz skróty</button>
+        </div>
+    </section>
+
+    <section class="profile-section" id="preferences">
+        <div class="profile-section-head">
+            <span class="section-kicker">Preferencje</span>
+            <h2>Wyświetlanie i zachowanie systemu</h2>
+        </div>
+        <div class="preferences-grid">
+            <label class="toggle-card"><input type="checkbox" id="pref-show-clock" checked><strong>Pokazuj zegar w prawym panelu</strong><small>Widoczny na górnym pasku obok profilu.</small></label>
+            <label class="toggle-card"><input type="checkbox" id="pref-compact-sidebar"><strong>Kompaktowy panel boczny</strong><small>Mniejsza szerokość lewego menu po załadowaniu.</small></label>
+            <label class="toggle-card"><input type="checkbox" id="pref-confirm-actions" checked><strong>Wymagaj potwierdzeń dla ważnych akcji</strong><small>Do wykorzystania przy usuwaniu i nadpisywaniu danych.</small></label>
+            <label class="toggle-card"><input type="checkbox" id="pref-show-tips" checked><strong>Pokazuj komunikaty i podpowiedzi</strong><small>Drobne wskazówki w pulpicie i modułach.</small></label>
+            <label class="toggle-card"><input type="checkbox" id="pref-show-quick-dock" checked><strong>Pokazuj dolny pasek szybkiego dostępu</strong><small>Mały pasek z najważniejszymi przejściami na dole ekranu.</small></label>
+        </div>
+        <div class="settings-actions dual">
+            <button class="btn btn-primary" id="save-preferences-btn" type="button">Zapisz preferencje</button>
+            <button class="btn btn-secondary" id="reset-profile-btn" type="button">Przywróć ustawienia domyślne</button>
+        </div>
+    </section>
+</section>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    (function () {
+        const themeKey = 'ares_theme';
+        const profileKey = 'ares_profile_settings';
+        const shortcutsKey = 'ares_shortcuts';
+        const prefKey = 'ares_preferences';
+        const defaultName = '{{ request.user.username|escapejs }}';
+        const defaultProfile = {
+            displayName: defaultName,
+            avatarText: (defaultName || 'A').charAt(0).toUpperCase(),
+            avatarStyle: 'linear-gradient(135deg, #6ea8ff, #3d62ff)',
+            avatarImage: '',
+            avatarShape: 'rounded'
+        };
+        const defaultShortcuts = {
+            worksheets: true,
+            import: true,
+            reports: true,
+            history: true,
+            charts: true,
+            solver: true,
+            math: true,
+            merge: true,
+        };
+        const defaultPrefs = {
+            showClock: true,
+            compactSidebar: false,
+            confirmActions: true,
+            showTips: true,
+            showQuickDock: true,
+        };
+
+        function loadJSON(key, fallback) {
+            try { return { ...fallback, ...(JSON.parse(localStorage.getItem(key)) || {}) }; }
+            catch (e) { return { ...fallback }; }
+        }
+        function saveJSON(key, data) { localStorage.setItem(key, JSON.stringify(data)); }
+
+        const profile = loadJSON(profileKey, defaultProfile);
+        const shortcuts = loadJSON(shortcutsKey, defaultShortcuts);
+        const prefs = loadJSON(prefKey, defaultPrefs);
+        let currentTheme = localStorage.getItem(themeKey) || 'midnight-blue';
+        let currentThemeLabel = document.querySelector('.theme-card[data-theme="' + currentTheme + '"]')?.dataset.themeLabel || 'Midnight Blue';
+
+        const displayNameInput = document.getElementById('profile-display-name');
+        const avatarTextInput = document.getElementById('profile-avatar-text');
+        const avatarImageInput = document.getElementById('profile-avatar-image');
+        const avatarUploadInput = document.getElementById('profile-avatar-upload');
+        const previewName = document.getElementById('profile-preview-name');
+        const liveName = document.getElementById('profile-live-name');
+        const previewTheme = document.getElementById('profile-preview-theme');
+        const previewShortcuts = document.getElementById('profile-preview-shortcuts');
+        const previewAvatar = document.getElementById('profile-preview-avatar');
+        const liveAvatar = document.getElementById('profile-live-avatar');
+
+        displayNameInput.value = profile.displayName || defaultName;
+        avatarTextInput.value = profile.avatarText || defaultProfile.avatarText;
+        avatarImageInput.value = profile.avatarImage || '';
+        document.getElementById('pref-show-clock').checked = !!prefs.showClock;
+        document.getElementById('pref-compact-sidebar').checked = !!prefs.compactSidebar;
+        document.getElementById('pref-confirm-actions').checked = !!prefs.confirmActions;
+        document.getElementById('pref-show-tips').checked = !!prefs.showTips;
+        document.getElementById('pref-show-quick-dock').checked = prefs.showQuickDock !== false;
+
+        document.querySelectorAll('#shortcut-grid input[type="checkbox"]').forEach(el => {
+            el.checked = !!shortcuts[el.dataset.shortcut];
+        });
+
+        function getAvatarRadius(shape) {
+            const map = {
+                rounded: '24px',
+                circle: '999px',
+                square: '12px',
+                soft: '32%'
+            };
+            return map[shape] || map.rounded;
+        }
+
+        function applyAvatar(node, state) {
+            if (!node) return;
+            node.style.background = state.avatarStyle || defaultProfile.avatarStyle;
+            node.style.borderRadius = getAvatarRadius(state.avatarShape || defaultProfile.avatarShape);
+            if (state.avatarImage) {
+                node.innerHTML = '<img src="' + state.avatarImage + '" alt="Avatar">';
+            } else {
+                node.textContent = state.avatarText || 'A';
+            }
+        }
+
+        function renderProfilePreview() {
+            const state = {
+                displayName: (displayNameInput.value || defaultName).trim(),
+                avatarText: (avatarTextInput.value || defaultProfile.avatarText).trim().slice(0, 2),
+                avatarStyle: document.querySelector('.avatar-style-option.active')?.dataset.style || profile.avatarStyle || defaultProfile.avatarStyle,
+                avatarImage: (avatarImageInput.value || '').trim(),
+                avatarShape: document.querySelector('.avatar-shape-option.active')?.dataset.shape || profile.avatarShape || defaultProfile.avatarShape,
+            };
+            previewName.textContent = state.displayName;
+            liveName.textContent = state.displayName;
+            previewTheme.textContent = currentThemeLabel;
+            const enabledShortcuts = document.querySelectorAll('#shortcut-grid input[type="checkbox"]:checked').length;
+            previewShortcuts.textContent = enabledShortcuts + ' skrótów';
+            applyAvatar(previewAvatar, state);
+            applyAvatar(liveAvatar, state);
+            return state;
+        }
+
+        document.querySelectorAll('.avatar-style-option').forEach(btn => {
+            if (btn.dataset.style === profile.avatarStyle) btn.classList.add('active');
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.avatar-style-option').forEach(x => x.classList.remove('active'));
+                btn.classList.add('active');
+                renderProfilePreview();
+            });
+        });
+        if (!document.querySelector('.avatar-style-option.active')) {
+            document.querySelector('.avatar-style-option')?.classList.add('active');
+        }
+
+        document.querySelectorAll('.avatar-shape-option').forEach(btn => {
+            if (btn.dataset.shape === (profile.avatarShape || defaultProfile.avatarShape)) btn.classList.add('active');
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.avatar-shape-option').forEach(x => x.classList.remove('active'));
+                btn.classList.add('active');
+                renderProfilePreview();
+            });
+        });
+        if (!document.querySelector('.avatar-shape-option.active')) {
+            document.querySelector('.avatar-shape-option')?.classList.add('active');
+        }
+
+        document.querySelectorAll('.avatar-symbol-option').forEach(btn => {
+            btn.addEventListener('click', () => {
+                avatarTextInput.value = btn.dataset.symbol || 'A';
+                avatarImageInput.value = '';
+                if (avatarUploadInput) avatarUploadInput.value = '';
+                renderProfilePreview();
+            });
+        });
+
+        [displayNameInput, avatarTextInput, avatarImageInput].forEach(input => {
+            input.addEventListener('input', renderProfilePreview);
+        });
+
+        avatarUploadInput?.addEventListener('change', () => {
+            const file = avatarUploadInput.files && avatarUploadInput.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = () => {
+                avatarImageInput.value = String(reader.result || '');
+                renderProfilePreview();
+            };
+            reader.readAsDataURL(file);
+        });
+        document.querySelectorAll('#shortcut-grid input[type="checkbox"]').forEach(input => {
+            input.addEventListener('change', renderProfilePreview);
+        });
+
+        document.querySelectorAll('.theme-card').forEach(card => {
+            if (card.dataset.theme === currentTheme) card.classList.add('active');
+            card.addEventListener('click', () => {
+                document.querySelectorAll('.theme-card').forEach(c => c.classList.remove('active'));
+                card.classList.add('active');
+                currentTheme = card.dataset.theme;
+                currentThemeLabel = card.dataset.themeLabel;
+                localStorage.setItem(themeKey, currentTheme);
+                document.body.setAttribute('data-theme', currentTheme);
+                renderProfilePreview();
+            });
+        });
+
+        document.getElementById('save-profile-btn').addEventListener('click', () => {
+            const state = renderProfilePreview();
+            saveJSON(profileKey, state);
+            window.location.reload();
+        });
+
+        document.getElementById('clear-avatar-image-btn').addEventListener('click', () => {
+            avatarImageInput.value = '';
+            if (avatarUploadInput) avatarUploadInput.value = '';
+            renderProfilePreview();
+        });
+
+        document.getElementById('save-shortcuts-btn').addEventListener('click', () => {
+            const data = {};
+            document.querySelectorAll('#shortcut-grid input[type="checkbox"]').forEach(el => {
+                data[el.dataset.shortcut] = el.checked;
+            });
+            saveJSON(shortcutsKey, data);
+            renderProfilePreview();
+            alert('Skróty zostały zapisane.');
+        });
+
+        document.getElementById('save-preferences-btn').addEventListener('click', () => {
+            const data = {
+                showClock: document.getElementById('pref-show-clock').checked,
+                compactSidebar: document.getElementById('pref-compact-sidebar').checked,
+                confirmActions: document.getElementById('pref-confirm-actions').checked,
+                showTips: document.getElementById('pref-show-tips').checked,
+                showQuickDock: document.getElementById('pref-show-quick-dock').checked,
+            };
+            saveJSON(prefKey, data);
+            alert('Preferencje zostały zapisane.');
+            window.location.reload();
+        });
+
+        document.getElementById('reset-profile-btn').addEventListener('click', () => {
+            localStorage.removeItem(profileKey);
+            localStorage.removeItem(shortcutsKey);
+            localStorage.removeItem(prefKey);
+            localStorage.removeItem(themeKey);
+            window.location.reload();
+        });
+
+        // hash tabs state
+        const tabLinks = document.querySelectorAll('.profile-tab-link');
+        function setActiveTab() {
+            const hash = window.location.hash || '#profile';
+            tabLinks.forEach(link => link.classList.toggle('active', link.getAttribute('href') === hash));
+        }
+        window.addEventListener('hashchange', setActiveTab);
+        setActiveTab();
+        renderProfilePreview();
+    })();
+</script>
+{% endblock %}

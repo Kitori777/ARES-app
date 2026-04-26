@@ -212,3 +212,67 @@ window.FORMULA_CATALOG = {
         { name: "OCT2HEX", syntax: '=OCT2HEX("12")', description: "Ósemkowy na szesnastkowy.", example: '=OCT2HEX("17")' }
     ]
 };
+
+(function enrichFormulaCatalog() {
+    const PARAMS = {
+        SUMA: { minArgs: 1, params: [{ label: "liczba lub zakres", description: "Komórka, zakres albo liczba do zsumowania." }] },
+        "SUMA.ILOCZYNÓW": { minArgs: 2, params: [{ label: "zakres 1", description: "Pierwszy zakres liczb." }, { label: "zakres 2", description: "Drugi zakres liczb o takim samym rozmiarze." }] },
+        ŚREDNIA: { minArgs: 1, params: [{ label: "zakres liczb", description: "Zakres, z którego ma być obliczona średnia." }] },
+        MINIMUM: { minArgs: 1, params: [{ label: "zakres liczb", description: "Zakres, w którym szukamy najmniejszej wartości." }] },
+        MAXIMUM: { minArgs: 1, params: [{ label: "zakres liczb", description: "Zakres, w którym szukamy największej wartości." }] },
+        ZLICZ: { minArgs: 1, params: [{ label: "zakres", description: "Zakres, w którym liczone są wartości liczbowe." }] },
+        PMT: { minArgs: 3, maxArgs: 3, numericArgs: [0, 1, 2], params: [{ label: "stopa", description: "Stopa procentowa dla jednego okresu, np. 0,05/12." }, { label: "liczba okresów", description: "Liczba rat lub okresów." }, { label: "wartość obecna", description: "Kwota kredytu/inwestycji." }] },
+        PV: { minArgs: 3, maxArgs: 3, numericArgs: [0, 1, 2], params: [{ label: "stopa", description: "Stopa procentowa dla okresu." }, { label: "liczba okresów", description: "Ile okresów obejmuje przepływ." }, { label: "płatność", description: "Stała płatność w każdym okresie." }] },
+        FV: { minArgs: 3, maxArgs: 3, numericArgs: [0, 1, 2], params: [{ label: "stopa", description: "Stopa procentowa dla okresu." }, { label: "liczba okresów", description: "Ile okresów ma być naliczone." }, { label: "płatność", description: "Stała wpłata lub wypłata." }] },
+        NPV: { minArgs: 2, params: [{ label: "stopa dyskontowa", description: "Stopa dyskontowa jako liczba, np. 0,1 dla 10%." }, { label: "przepływy pieniężne", description: "Zakres komórek z kolejnymi przepływami, np. A1:A5." }] },
+        XNPV: { minArgs: 3, maxArgs: 3, params: [{ label: "stopa dyskontowa", description: "Stopa dyskontowa jako liczba, np. 0,1." }, { label: "przepływy pieniężne", description: "Zakres wartości przepływów pieniężnych." }, { label: "daty", description: "Zakres dat odpowiadających przepływom." }] },
+        IRR: { minArgs: 1, maxArgs: 1, params: [{ label: "przepływy pieniężne", description: "Zakres przepływów, zwykle z wartością początkową ujemną." }] },
+        XIRR: { minArgs: 2, maxArgs: 2, params: [{ label: "przepływy pieniężne", description: "Zakres przepływów pieniężnych." }, { label: "daty", description: "Zakres dat odpowiadających przepływom." }] },
+        NPER: { minArgs: 3, maxArgs: 3, numericArgs: [0, 1, 2], params: [{ label: "stopa", description: "Stopa procentowa dla okresu." }, { label: "płatność", description: "Kwota płatności w okresie." }, { label: "wartość obecna", description: "Wartość początkowa." }] },
+        RATE: { minArgs: 3, maxArgs: 3, numericArgs: [0, 1, 2], params: [{ label: "liczba okresów", description: "Liczba okresów." }, { label: "płatność", description: "Kwota płatności." }, { label: "wartość obecna", description: "Wartość początkowa." }] },
+        MIRR: { minArgs: 3, maxArgs: 3, params: [{ label: "przepływy pieniężne", description: "Zakres przepływów." }, { label: "stopa finansowania", description: "Koszt finansowania." }, { label: "stopa reinwestycji", description: "Stopa reinwestowania dodatnich przepływów." }] },
+        FVSCHEDULE: { minArgs: 2, maxArgs: 2, params: [{ label: "kapitał", description: "Kwota początkowa." }, { label: "harmonogram stóp", description: "Zakres komórek ze stopami procentowymi." }] },
+        PI: { minArgs: 3, maxArgs: 3, params: [{ label: "stopa dyskontowa", description: "Stopa dyskontowa." }, { label: "przepływy pieniężne", description: "Zakres przepływów pieniężnych." }, { label: "inwestycja początkowa", description: "Nakład początkowy." }] },
+        TP: { minArgs: 3, maxArgs: 3, numericArgs: [0, 1, 2], params: [{ label: "stopa", description: "Stopa procentowa dla okresu." }, { label: "liczba okresów", description: "Liczba okresów." }, { label: "wartość obecna", description: "Wartość początkowa." }] },
+        IMPORTRANGE: { minArgs: 2, maxArgs: 2, requiresBackend: true, params: [{ label: "URL arkusza", description: "Adres zewnętrznego arkusza." }, { label: "zakres", description: "Zakres w zewnętrznym arkuszu, np. Dane!A1:C10." }] },
+        IMPORTHTML: { minArgs: 3, maxArgs: 3, requiresBackend: true, params: [{ label: "URL", description: "Adres strony." }, { label: "typ", description: "table albo list." }, { label: "indeks", description: "Numer tabeli/listy na stronie." }] },
+        IMPORTDATA: { minArgs: 1, maxArgs: 1, requiresBackend: true, params: [{ label: "URL CSV/TSV", description: "Adres pliku CSV lub TSV." }] },
+        IMPORTFEED: { minArgs: 1, maxArgs: 1, requiresBackend: true, params: [{ label: "URL RSS", description: "Adres kanału RSS/Atom." }] },
+        IMPORTXML: { minArgs: 2, maxArgs: 2, requiresBackend: true, params: [{ label: "URL", description: "Adres strony XML/HTML." }, { label: "XPath", description: "Ścieżka XPath do pobrania danych." }] },
+        GOOGLEFINANCE: { minArgs: 1, maxArgs: 2, requiresBackend: true, params: [{ label: "ticker", description: "Symbol instrumentu, np. NASDAQ:GOOG." }, { label: "atrybut", description: "Dane do pobrania, np. price." }] }
+    };
+    function splitArgsFromSyntax(syntax) {
+        const inside = String(syntax || "").replace(/^=[^(]+\(/, "").replace(/\)$/, "");
+        if (!inside || inside === String(syntax || "")) return [];
+        return inside.split(";").map((part, idx) => ({ label: part.trim() || `argument ${idx + 1}`, description: "Argument zgodny ze składnią funkcji." }));
+    }
+    Object.values(window.FORMULA_CATALOG || {}).flat().forEach(fn => {
+        const meta = PARAMS[fn.name];
+        if (meta) Object.assign(fn, meta);
+        if (!fn.params) fn.params = splitArgsFromSyntax(fn.syntax);
+        if (fn.minArgs === undefined) fn.minArgs = fn.params.length ? Math.min(fn.params.length, 1) : 0;
+        if (fn.maxArgs === undefined && fn.params.length && !/\.\.\./.test(fn.syntax)) fn.maxArgs = fn.params.length;
+    });
+})();
+
+
+Object.assign(window.FORMULA_CATALOG, {
+  akademickie: [
+    { name:"WARTOŚĆ.FUNKCJI", syntax:"=WARTOŚĆ.FUNKCJI(funkcja; x)", description:"Oblicza wartość funkcji zapisanej tekstem, np. x^2+3*x.", example:"=WARTOŚĆ.FUNKCJI(A1;2)", minArgs:2, maxArgs:2, params:[{label:"funkcja",description:"Tekst funkcji z x, np. SIN(x)+x^2."},{label:"x",description:"Punkt obliczenia."}] },
+    { name:"POCHODNA", syntax:"=POCHODNA(funkcja; x; [krok])", description:"Pochodna numeryczna metodą różnicy centralnej.", example:"=POCHODNA(\"x^2\";3)", minArgs:2, maxArgs:3, params:[{label:"funkcja",description:"Tekst funkcji z x."},{label:"x",description:"Punkt."},{label:"krok",description:"Opcjonalny krok numeryczny."}] },
+    { name:"CAŁKA", syntax:"=CAŁKA(funkcja; a; b; [podziały])", description:"Całka oznaczona metodą trapezów.", example:"=CAŁKA(\"x^2\";0;1;1000)", minArgs:3, maxArgs:4, params:[{label:"funkcja",description:"Tekst funkcji z x."},{label:"a",description:"Dolna granica."},{label:"b",description:"Górna granica."},{label:"podziały",description:"Liczba podziałów."}] },
+    { name:"EULER", syntax:"=EULER(funkcja; x0; y0; h; n)", description:"Przybliża równanie y'=f(x,y) metodą Eulera.", example:"=EULER(\"x+y\";0;1;0,1;20)", minArgs:5, maxArgs:5, params:[{label:"funkcja",description:"Prawa strona f(x,y)."},{label:"x0",description:"Punkt startowy x."},{label:"y0",description:"Warunek początkowy."},{label:"h",description:"Krok."},{label:"n",description:"Liczba kroków."}] },
+    { name:"BISEKCJA", syntax:"=BISEKCJA(funkcja; a; b; eps; iteracje)", description:"Szuka miejsca zerowego, gdy funkcja zmienia znak na [a,b].", example:"=BISEKCJA(\"x^3-x-2\";1;2;0,000001;100)", minArgs:3, maxArgs:5 },
+    { name:"NEWTON", syntax:"=NEWTON(funkcja; start; eps; iteracje)", description:"Szuka miejsca zerowego metodą Newtona.", example:"=NEWTON(\"x^3-x-2\";1,5;0,000001;50)", minArgs:2, maxArgs:4 },
+    { name:"KOMBINACJE", syntax:"=KOMBINACJE(n; k)", description:"Liczba kombinacji C(n,k).", example:"=KOMBINACJE(10;3)", minArgs:2, maxArgs:2 },
+    { name:"WARIACJE", syntax:"=WARIACJE(n; k)", description:"Liczba wariacji bez powtórzeń V(n,k).", example:"=WARIACJE(10;3)", minArgs:2, maxArgs:2 },
+    { name:"PERMUTACJE", syntax:"=PERMUTACJE(n)", description:"Liczba permutacji n!.", example:"=PERMUTACJE(5)", minArgs:1, maxArgs:1 },
+    { name:"NORM.DIST", syntax:"=NORM.DIST(x; średnia; sigma; TRUE/FALSE)", description:"Dystrybuanta albo gęstość rozkładu normalnego.", example:"=NORM.DIST(1,96;0;1;TRUE)", minArgs:4, maxArgs:4 },
+    { name:"DWUMIAN", syntax:"=DWUMIAN(k; n; p)", description:"Prawdopodobieństwo P(X=k) w rozkładzie dwumianowym.", example:"=DWUMIAN(3;10;0,4)", minArgs:3, maxArgs:3 },
+    { name:"POISSON", syntax:"=POISSON(k; lambda)", description:"Prawdopodobieństwo P(X=k) w rozkładzie Poissona.", example:"=POISSON(3;2,5)", minArgs:2, maxArgs:2 },
+    { name:"NACHYLENIE", syntax:"=NACHYLENIE(x_zakres; y_zakres)", description:"Współczynnik kierunkowy regresji liniowej.", example:"=NACHYLENIE(A2:A10;B2:B10)", minArgs:2, maxArgs:2 },
+    { name:"WYRAZ.WOLNY", syntax:"=WYRAZ.WOLNY(x_zakres; y_zakres)", description:"Wyraz wolny regresji liniowej.", example:"=WYRAZ.WOLNY(A2:A10;B2:B10)", minArgs:2, maxArgs:2 },
+    { name:"R2", syntax:"=R2(x_zakres; y_zakres)", description:"Współczynnik determinacji regresji liniowej.", example:"=R2(A2:A10;B2:B10)", minArgs:2, maxArgs:2 },
+    { name:"PROGNOZA", syntax:"=PROGNOZA(x; x_zakres; y_zakres)", description:"Prognoza y dla x z regresji liniowej.", example:"=PROGNOZA(6;A2:A10;B2:B10)", minArgs:3, maxArgs:3 }
+  ]
+});

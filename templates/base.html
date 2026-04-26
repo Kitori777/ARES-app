@@ -8,7 +8,7 @@
     <link rel="stylesheet" href="{% static 'css/style.css' %}">
     {% block extra_head %}{% endblock %}
 </head>
-<body class="ares-body">
+<body class="ares-body" data-theme="midnight-blue">
 
 {% if request.user.is_authenticated %}
 <div class="app-shell" id="app-shell">
@@ -30,6 +30,7 @@
             <a href="{% url 'import_data' %}" class="app-menu-link">Import CSV/XLSX</a>
             <a href="{% url 'history' %}" class="app-menu-link">Historia zmian</a>
             <a href="{% url 'reports' %}" class="app-menu-link">Raporty</a>
+            <a href="{% url 'profile' %}" class="app-menu-link">Profil użytkownika</a>
         </nav>
     </aside>
 
@@ -46,8 +47,32 @@
             </div>
 
             <div class="topbar-actions">
-                <span class="topbar-user">{{ request.user.username }}</span>
-                <a href="{% url 'logout' %}" class="btn btn-ghost">Wyloguj</a>
+                <div class="topbar-clock" id="topbar-clock" hidden>00:00</div>
+                <div class="profile-menu" id="profile-menu">
+                    <button class="profile-trigger" id="profile-trigger" type="button" aria-haspopup="true" aria-expanded="false">
+                        <span class="profile-trigger-avatar" id="profile-trigger-avatar">S</span>
+                        <span class="profile-trigger-name" id="profile-trigger-name">{{ request.user.username }}</span>
+                        <span class="profile-trigger-arrow">▾</span>
+                    </button>
+                    <div class="profile-dropdown" id="profile-dropdown" hidden>
+                        <div class="profile-dropdown-head">
+                            <div class="profile-dropdown-avatar" id="profile-dropdown-avatar">S</div>
+                            <div>
+                                <strong id="profile-dropdown-display">{{ request.user.username }}</strong>
+                                <small>Ustawienia użytkownika i wyglądu</small>
+                            </div>
+                        </div>
+                        <div class="profile-dropdown-links">
+                            <a href="{% url 'profile' %}">Profil użytkownika</a>
+                            <a href="{% url 'profile' %}#appearance">Wygląd i motywy</a>
+                            <a href="{% url 'profile' %}#shortcuts">Skróty</a>
+                            <a href="{% url 'profile' %}#preferences">Preferencje</a>
+                        </div>
+                        <div class="profile-dropdown-footer">
+                            <a href="{% url 'logout' %}" class="btn btn-ghost btn-full">Wyloguj</a>
+                        </div>
+                    </div>
+                </div>
             </div>
         </header>
 
@@ -66,6 +91,15 @@
                 {% block content %}{% endblock %}
             </div>
         </main>
+
+        <nav class="quick-access-dock" id="quick-access-dock" aria-label="Pasek szybkiego dostępu">
+            <a href="{% url 'dashboard' %}" data-dock-shortcut="start"><span>⌂</span><small>Start</small></a>
+            <a href="{% url 'worksheets' %}" data-dock-shortcut="worksheets"><span>▦</span><small>Arkusze</small></a>
+            <a href="{% url 'import_data' %}" data-dock-shortcut="import"><span>⇩</span><small>Import</small></a>
+            <a href="{% url 'reports' %}" data-dock-shortcut="reports"><span>◫</span><small>Raporty</small></a>
+            <a href="{% url 'history' %}" data-dock-shortcut="history"><span>⏱</span><small>Historia</small></a>
+            <a href="{% url 'profile' %}" data-dock-shortcut="profile"><span>⚙</span><small>Profil</small></a>
+        </nav>
     </div>
 </div>
 {% else %}
@@ -93,24 +127,121 @@
         const btn1 = document.getElementById('sidebar-toggle');
         const btn2 = document.getElementById('sidebar-toggle-top');
         const STORAGE_KEY = 'ares_sidebar_collapsed';
+        const themeKey = 'ares_theme';
+        const profileKey = 'ares_profile_settings';
+        const prefKey = 'ares_preferences';
+        const shortcutKey = 'ares_shortcuts';
 
-        if (!shell) return;
+        function loadJSON(key, fallback) {
+            try { return JSON.parse(localStorage.getItem(key)) ?? fallback; } catch (e) { return fallback; }
+        }
 
-        const applyState = (collapsed) => {
+        function applyState(collapsed) {
+            if (!shell) return;
             shell.classList.toggle('sidebar-collapsed', collapsed);
             localStorage.setItem(STORAGE_KEY, collapsed ? '1' : '0');
-        };
+        }
 
-        const initial = localStorage.getItem(STORAGE_KEY) === '1';
-        applyState(initial);
+        const prefs = loadJSON(prefKey, { showClock: true, compactSidebar: false, showQuickDock: true });
+        const shortcuts = loadJSON(shortcutKey, {});
 
-        [btn1, btn2].forEach(btn => {
-            if (!btn) return;
-            btn.addEventListener('click', () => {
-                const collapsed = shell.classList.contains('sidebar-collapsed');
-                applyState(!collapsed);
+        if (shell) {
+            const initial = localStorage.getItem(STORAGE_KEY) === '1' || prefs.compactSidebar === true;
+            applyState(initial);
+            [btn1, btn2].forEach(btn => {
+                if (!btn) return;
+                btn.addEventListener('click', () => {
+                    const collapsed = shell.classList.contains('sidebar-collapsed');
+                    applyState(!collapsed);
+                });
             });
+        }
+
+        const theme = localStorage.getItem(themeKey) || 'midnight-blue';
+        document.body.setAttribute('data-theme', theme);
+
+        const defaultUsername = '{{ request.user.username|escapejs }}';
+        const settings = loadJSON(profileKey, {
+            displayName: defaultUsername,
+            avatarText: defaultUsername ? defaultUsername.charAt(0).toUpperCase() : 'A',
+            avatarStyle: 'linear-gradient(135deg, #6ea8ff, #3d62ff)',
+            avatarImage: '',
+            avatarShape: 'rounded'
         });
+
+        const nameNode = document.getElementById('profile-trigger-name');
+        const triggerAvatar = document.getElementById('profile-trigger-avatar');
+        const dropdownAvatar = document.getElementById('profile-dropdown-avatar');
+        const dropdownDisplay = document.getElementById('profile-dropdown-display');
+
+        function getAvatarRadius(shape) {
+            const map = { rounded: '18px', circle: '999px', square: '10px', soft: '32%' };
+            return map[shape] || map.rounded;
+        }
+
+        function applyAvatar(el) {
+            if (!el) return;
+            el.style.background = settings.avatarStyle || 'linear-gradient(135deg, #6ea8ff, #3d62ff)';
+            el.style.borderRadius = getAvatarRadius(settings.avatarShape || 'rounded');
+            if (settings.avatarImage) {
+                el.innerHTML = '<img src="' + settings.avatarImage + '" alt="Avatar">';
+            } else {
+                el.textContent = settings.avatarText || 'A';
+            }
+        }
+
+        if (nameNode) nameNode.textContent = settings.displayName || defaultUsername;
+        if (dropdownDisplay) dropdownDisplay.textContent = settings.displayName || defaultUsername;
+        applyAvatar(triggerAvatar);
+        applyAvatar(dropdownAvatar);
+
+        const menu = document.getElementById('profile-menu');
+        const trigger = document.getElementById('profile-trigger');
+        const dropdown = document.getElementById('profile-dropdown');
+        if (menu && trigger && dropdown) {
+            trigger.addEventListener('click', function (e) {
+                e.stopPropagation();
+                const isHidden = dropdown.hasAttribute('hidden');
+                if (isHidden) {
+                    dropdown.removeAttribute('hidden');
+                    trigger.setAttribute('aria-expanded', 'true');
+                } else {
+                    dropdown.setAttribute('hidden', 'hidden');
+                    trigger.setAttribute('aria-expanded', 'false');
+                }
+            });
+            document.addEventListener('click', function (e) {
+                if (!menu.contains(e.target)) {
+                    dropdown.setAttribute('hidden', 'hidden');
+                    trigger.setAttribute('aria-expanded', 'false');
+                }
+            });
+        }
+
+        const clock = document.getElementById('topbar-clock');
+        function renderClock() {
+            if (!clock) return;
+            if (!prefs.showClock) {
+                clock.hidden = true;
+                return;
+            }
+            const now = new Date();
+            clock.hidden = false;
+            clock.textContent = now.toLocaleTimeString('pl-PL', {hour: '2-digit', minute: '2-digit'});
+        }
+        renderClock();
+        setInterval(renderClock, 1000 * 30);
+
+        const dock = document.getElementById('quick-access-dock');
+        if (dock) {
+            dock.hidden = prefs.showQuickDock === false;
+            dock.querySelectorAll('[data-dock-shortcut]').forEach(item => {
+                const key = item.dataset.dockShortcut;
+                if (key !== 'start' && key !== 'profile' && shortcuts[key] === false) {
+                    item.hidden = true;
+                }
+            });
+        }
     })();
 </script>
 {% endif %}
