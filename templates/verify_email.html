@@ -6,12 +6,46 @@
 <div class="auth-page">
     <div class="auth-card app-card">
         <h2>Potwierdzenie e-mail</h2>
-        <p>Wpisz kod wysłany na Twój adres e-mail.</p>
+        <p>Wpisz kod wysłany na Twój adres e-mail. Kod jest ważny 30 minut.</p>
 
         <form method="post">
             {% csrf_token %}
-            <input type="text" name="code" placeholder="Wpisz kod" required>
-            <button type="submit" class="btn btn-primary btn-full">Potwierdź</button>
+            <label for="verify-email">Adres e-mail</label>
+            <input
+                id="verify-email"
+                type="email"
+                name="email"
+                placeholder="adres@email.pl"
+                value="{{ verification_email|default:'' }}"
+                required
+            >
+
+            <label for="verify-code">Kod weryfikacyjny</label>
+            <input
+                id="verify-code"
+                type="text"
+                name="code"
+                placeholder="Wpisz 6-cyfrowy kod"
+                inputmode="numeric"
+                maxlength="6"
+                required
+            >
+
+            <button type="submit" class="btn btn-primary btn-full">Potwierdź konto</button>
+        </form>
+
+        <form method="post" action="{% url 'resend_verification_email' %}" class="auth-secondary-form">
+            {% csrf_token %}
+            <label for="resend-email">Adres e-mail do ponownej wysyłki</label>
+            <input
+                id="resend-email"
+                type="email"
+                name="email"
+                placeholder="adres@email.pl"
+                value="{{ verification_email|default:'' }}"
+                required
+            >
+            <button type="submit" class="btn btn-secondary btn-full">Wyślij kod ponownie</button>
         </form>
 
         <p class="auth-link">

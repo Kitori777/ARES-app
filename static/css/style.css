@@ -3297,3 +3297,126 @@ body[data-theme] .avatar-symbol-option {
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 }
+
+
+/* === v0.3.3 HARD FIX: spójne motywy na listach arkuszy, raportach, historii i imporcie === */
+html body[data-theme] .workspace-header-card,
+html body[data-theme] .sheet-card,
+html body[data-theme] .sheet-item-card,
+html body[data-theme] .sheet-list-summary,
+html body[data-theme] .ares-card,
+html body[data-theme] .stat-box,
+html body[data-theme] .mini-item,
+html body[data-theme] .timeline-item,
+html body[data-theme] .history-stats-card,
+html body[data-theme] .history-filters-card,
+html body[data-theme] .history-list-card,
+html body[data-theme] .report-card,
+html body[data-theme] .metric-card,
+html body[data-theme] .fake-upload-box,
+html body[data-theme] .preview-wrap,
+html body[data-theme] .inline-upload,
+html body[data-theme] .segment-btn,
+html body[data-theme] .status-box,
+html body[data-theme] .panel-card,
+html body[data-theme] .quick-access-dock {
+    background: linear-gradient(180deg, var(--panel) 0%, var(--panel-2) 100%) !important;
+    color: var(--text) !important;
+    border-color: var(--line) !important;
+}
+
+html body[data-theme] .workspace-header-card h1,
+html body[data-theme] .workspace-header-card h2,
+html body[data-theme] .sheet-card h1,
+html body[data-theme] .sheet-card h2,
+html body[data-theme] .sheet-item-card h3,
+html body[data-theme] .sheet-item-card strong,
+html body[data-theme] .ares-card h1,
+html body[data-theme] .ares-card h2,
+html body[data-theme] .ares-card h3,
+html body[data-theme] .stat-box strong,
+html body[data-theme] .mini-item strong,
+html body[data-theme] .timeline-title,
+html body[data-theme] .bar-top,
+html body[data-theme] .preview-table th,
+html body[data-theme] .preview-table td {
+    color: var(--text) !important;
+}
+
+html body[data-theme] .sheet-meta,
+html body[data-theme] .sheet-item-info p,
+html body[data-theme] .ares-muted,
+html body[data-theme] .ares-label,
+html body[data-theme] .stat-box span,
+html body[data-theme] .mini-item .muted,
+html body[data-theme] .timeline-date,
+html body[data-theme] .timeline-meta,
+html body[data-theme] .empty-box,
+html body[data-theme] .bar-top small,
+html body[data-theme] .ares-card p {
+    color: var(--muted) !important;
+}
+
+html body[data-theme] input,
+html body[data-theme] select,
+html body[data-theme] textarea,
+html body[data-theme] .settings-input,
+html body[data-theme] .filters-grid input,
+html body[data-theme] .filters-grid select,
+html body[data-theme] .form-grid input,
+html body[data-theme] .form-grid select {
+    background: var(--panel) !important;
+    color: var(--text) !important;
+    border-color: var(--line) !important;
+}
+
+html body[data-theme] select option {
+    background: var(--panel) !important;
+    color: var(--text) !important;
+}
+
+html body[data-theme] .preview-table,
+html body[data-theme] .preview-table th,
+html body[data-theme] .preview-table td {
+    background: var(--panel) !important;
+    color: var(--text) !important;
+    border-color: var(--line) !important;
+}
+
+html body[data-theme] .preview-table thead th {
+    background: color-mix(in srgb, var(--panel-2) 88%, var(--primary) 12%) !important;
+}
+
+/* Profile persistence / preview polish */
+.settings-hint {
+    margin: 10px 0 0;
+    color: var(--muted);
+    font-size: 0.92rem;
+    line-height: 1.45;
+}
+.settings-hint code {
+    color: var(--text);
+    background: color-mix(in srgb, var(--panel-2) 80%, transparent);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 2px 6px;
+}
+.theme-card.active::after {
+    content: 'Podgląd';
+    position: absolute;
+    right: 12px;
+    bottom: 10px;
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: .05em;
+    text-transform: uppercase;
+    color: var(--primary);
+}
+.theme-card {
+    position: relative;
+}
+
+/* Email verification forms */
+.auth-secondary-form {
+    margin-top: 12px;
+}

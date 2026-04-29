@@ -1756,3 +1756,452 @@ body {
         grid-template-columns: 1fr !important;
     }
 }
+
+/* === v0.3.1: pełne dopasowanie arkusza do wybranego motywu === */
+body[data-theme] .we-page-shell,
+body[data-theme] .we-toolbar-card,
+body[data-theme] .we-sheet-card,
+body[data-theme] .we-objects-card,
+body[data-theme] .we-ribbon,
+body[data-theme] .we-toolbar-group,
+body[data-theme] .we-formula-helper-popover,
+body[data-theme] .we-modal-box,
+body[data-theme] .we-menu-popover,
+body[data-theme] .we-workbook-tabs,
+body[data-theme] .we-object-card,
+body[data-theme] .we-chart-settings,
+body[data-theme] .we-pivot-panel,
+body[data-theme] .we-smart-insert-box {
+    background: linear-gradient(180deg, color-mix(in srgb, var(--panel-2) 86%, transparent), color-mix(in srgb, var(--panel) 98%, transparent)) !important;
+    border-color: var(--line) !important;
+    color: var(--text) !important;
+    box-shadow: var(--shadow, 0 18px 40px rgba(0,0,0,.18)) !important;
+}
+
+body[data-theme] .we-sheet-meta h1,
+body[data-theme] .we-label,
+body[data-theme] .we-cell-address,
+body[data-theme] .we-tab,
+body[data-theme] .we-insert-item,
+body[data-theme] .we-submenu-item,
+body[data-theme] .we-template-card strong,
+body[data-theme] .we-section-title,
+body[data-theme] .we-chart-object-title,
+body[data-theme] .we-pivot-title,
+body[data-theme] .we-smart-grid label,
+body[data-theme] .we-smart-preview-wrap,
+body[data-theme] .we-comment-box label,
+body[data-theme] .we-comment-preview-label,
+body[data-theme] .we-modal-top strong {
+    color: var(--text) !important;
+}
+
+body[data-theme] .we-sheet-meta p,
+body[data-theme] .we-autosave-badge,
+body[data-theme] .we-template-card small,
+body[data-theme] .we-template-card em,
+body[data-theme] .we-pivot-subtitle,
+body[data-theme] .we-smart-help,
+body[data-theme] .we-modal-subtitle,
+body[data-theme] .we-chart-object-subtitle,
+body[data-theme] .we-workbook-meta {
+    color: var(--muted) !important;
+}
+
+body[data-theme] .we-formula-input,
+body[data-theme] .we-toolbar-select,
+body[data-theme] .we-toolbar-number,
+body[data-theme] .we-smart-grid input,
+body[data-theme] .we-smart-grid select,
+body[data-theme] .we-smart-grid textarea,
+body[data-theme] .we-comment-box input,
+body[data-theme] .we-comment-box textarea,
+body[data-theme] .we-pivot-panel input,
+body[data-theme] .we-pivot-panel select,
+body[data-theme] .we-pivot-panel textarea {
+    background: color-mix(in srgb, var(--panel-2) 78%, transparent) !important;
+    border-color: var(--line) !important;
+    color: var(--text) !important;
+}
+
+body[data-theme] .we-formula-input::placeholder,
+body[data-theme] .we-smart-grid input::placeholder,
+body[data-theme] .we-smart-grid textarea::placeholder {
+    color: color-mix(in srgb, var(--muted) 78%, transparent) !important;
+}
+
+body[data-theme] .we-tab,
+body[data-theme] .we-insert-item,
+body[data-theme] .we-submenu-item,
+body[data-theme] .we-icon-btn,
+body[data-theme] .we-mini-btn,
+body[data-theme] .we-upload-btn,
+body[data-theme] .we-workbook-tab,
+body[data-theme] .we-sheet-color-swatch,
+body[data-theme] .we-template-card,
+body[data-theme] .we-pivot-field-item,
+body[data-theme] .we-pivot-zone,
+body[data-theme] .we-pivot-pill {
+    background: color-mix(in srgb, var(--panel-2) 76%, transparent) !important;
+    border-color: var(--line) !important;
+    color: var(--text) !important;
+}
+
+body[data-theme] .we-tab.active,
+body[data-theme] .we-insert-item.active,
+body[data-theme] .we-insert-item:hover,
+body[data-theme] .we-submenu-item:hover,
+body[data-theme] .we-icon-btn:hover,
+body[data-theme] .we-mini-btn:hover,
+body[data-theme] .we-template-card:hover,
+body[data-theme] .we-workbook-tab.active,
+body[data-theme] .we-pivot-field-item:hover {
+    background: color-mix(in srgb, var(--primary) 20%, var(--panel-2)) !important;
+    border-color: color-mix(in srgb, var(--primary) 42%, var(--line)) !important;
+    color: var(--text) !important;
+}
+
+body[data-theme] .we-svg-icon svg,
+body[data-theme] .we-svg-icon path,
+body[data-theme] .we-svg-icon line,
+body[data-theme] .we-svg-icon polyline,
+body[data-theme] .we-svg-icon rect {
+    stroke: currentColor !important;
+}
+
+body[data-theme] .we-sheet-scroll,
+body[data-theme] .we-sheet-table {
+    background: color-mix(in srgb, var(--panel) 96%, transparent) !important;
+    color: var(--text) !important;
+    border-color: var(--line) !important;
+}
+
+body[data-theme] .we-sheet-table th,
+body[data-theme] .we-sheet-table td {
+    border-color: var(--line) !important;
+    color: var(--text) !important;
+}
+
+body[data-theme] .we-sheet-table thead th,
+body[data-theme] .we-sheet-table .row-header,
+body[data-theme] .we-sheet-table thead th:first-child {
+    background: color-mix(in srgb, var(--panel-2) 88%, var(--primary) 8%) !important;
+    color: var(--text) !important;
+}
+
+body[data-theme] .we-sheet-table td {
+    background: color-mix(in srgb, var(--panel) 96%, transparent) !important;
+}
+
+body[data-theme] .we-sheet-table td.active-cell,
+body[data-theme] .we-sheet-table td:focus {
+    background: color-mix(in srgb, var(--primary) 16%, var(--panel)) !important;
+    box-shadow: inset 0 0 0 2px var(--primary) !important;
+}
+
+body[data-theme] .we-sheet-table td.selected-range {
+    background: color-mix(in srgb, var(--primary) 12%, var(--panel)) !important;
+}
+
+body[data-theme] .we-cell-link {
+    color: color-mix(in srgb, var(--primary) 70%, var(--text)) !important;
+}
+
+body[data-theme] .we-cell-dropdown {
+    background: color-mix(in srgb, var(--panel-2) 84%, transparent) !important;
+    color: var(--text) !important;
+    border-color: var(--line) !important;
+}
+
+body[data-theme] .we-checkbox-wrap {
+    color: var(--text) !important;
+    gap: 8px;
+}
+
+body[data-theme] .we-smart-preview,
+body[data-theme] .we-comment-preview {
+    background: color-mix(in srgb, var(--panel) 94%, transparent) !important;
+    color: var(--text) !important;
+    border-color: var(--line) !important;
+}
+
+body[data-theme] #sheet-context-menu {
+    background: color-mix(in srgb, var(--panel) 96%, transparent) !important;
+    border-color: var(--line) !important;
+    color: var(--text) !important;
+}
+
+body[data-theme] #sheet-context-menu button {
+    color: var(--text) !important;
+}
+
+body[data-theme] #sheet-context-menu button:hover {
+    background: color-mix(in srgb, var(--primary) 14%, var(--panel-2)) !important;
+}
+
+body[data-theme] #sheet-context-menu .we-menu-badge,
+body[data-theme] #sheet-context-menu .we-menu-separator {
+    color: var(--muted) !important;
+    border-color: var(--line) !important;
+}
+
+body[data-theme="arctic-light"] .we-sheet-table td,
+body[data-theme="sand-light"] .we-sheet-table td,
+body[data-theme="clean-slate"] .we-sheet-table td {
+    background: color-mix(in srgb, var(--panel) 98%, white 2%) !important;
+}
+
+body[data-theme="arctic-light"] .we-toolbar-card,
+body[data-theme="sand-light"] .we-toolbar-card,
+body[data-theme="clean-slate"] .we-toolbar-card,
+body[data-theme="arctic-light"] .we-sheet-card,
+body[data-theme="sand-light"] .we-sheet-card,
+body[data-theme="clean-slate"] .we-sheet-card {
+    background: linear-gradient(180deg, color-mix(in srgb, var(--panel) 96%, white 4%), color-mix(in srgb, var(--panel-2) 90%, white 10%)) !important;
+}
+
+
+/* === v0.3.3 HARD FIX: edytor arkusza w pełni podąża za motywem profilu === */
+html body[data-theme] .we-page-shell,
+html body[data-theme] .we-toolbar-card,
+html body[data-theme] .we-sheet-card,
+html body[data-theme] .we-objects-card,
+html body[data-theme] .we-workbook-tabs,
+html body[data-theme] .we-ribbon,
+html body[data-theme] .we-toolbar-group,
+html body[data-theme] .we-google-like-tools,
+html body[data-theme] .we-university-panel,
+html body[data-theme] .we-chart-builder-modal,
+html body[data-theme] .we-chart-types-panel,
+html body[data-theme] .we-chart-config-panel,
+html body[data-theme] .we-chart-preview-panel,
+html body[data-theme] .we-chart-object,
+html body[data-theme] .we-pivot-panel,
+html body[data-theme] .we-smart-insert-box,
+html body[data-theme] .we-comment-box,
+html body[data-theme] .we-emoji-box {
+    background: linear-gradient(180deg, var(--panel) 0%, var(--panel-2) 100%) !important;
+    color: var(--text) !important;
+    border-color: var(--line) !important;
+    box-shadow: var(--shadow, 0 18px 40px rgba(0,0,0,.18)) !important;
+}
+
+html body[data-theme] .we-sheet-meta h1,
+html body[data-theme] .we-label,
+html body[data-theme] .we-cell-address,
+html body[data-theme] .we-tab,
+html body[data-theme] .we-insert-item,
+html body[data-theme] .we-submenu-item,
+html body[data-theme] .we-template-card strong,
+html body[data-theme] .we-university-card strong,
+html body[data-theme] .we-section-title,
+html body[data-theme] .we-modal-top strong,
+html body[data-theme] .we-chart-object-title,
+html body[data-theme] .we-pivot-title,
+html body[data-theme] .we-formula-details-name,
+html body[data-theme] .we-formula-details-label,
+html body[data-theme] .we-formula-item-name,
+html body[data-theme] .we-chart-form-grid label,
+html body[data-theme] .we-smart-grid label,
+html body[data-theme] .we-comment-box label,
+html body[data-theme] .we-comment-preview-label {
+    color: var(--text) !important;
+}
+
+html body[data-theme] .we-sheet-meta p,
+html body[data-theme] .we-autosave-badge,
+html body[data-theme] .we-template-card small,
+html body[data-theme] .we-template-card em,
+html body[data-theme] .we-university-card small,
+html body[data-theme] .we-pivot-subtitle,
+html body[data-theme] .we-smart-help,
+html body[data-theme] .we-modal-subtitle,
+html body[data-theme] .we-chart-object-subtitle,
+html body[data-theme] .we-workbook-meta,
+html body[data-theme] .we-formula-item-syntax,
+html body[data-theme] .we-formula-details-empty,
+html body[data-theme] .we-chart-preview-note {
+    color: var(--muted) !important;
+}
+
+html body[data-theme] .we-formula-input,
+html body[data-theme] .we-toolbar-select,
+html body[data-theme] .we-toolbar-number,
+html body[data-theme] .we-chart-form-grid input,
+html body[data-theme] .we-chart-form-grid select,
+html body[data-theme] .we-smart-grid input,
+html body[data-theme] .we-smart-grid select,
+html body[data-theme] .we-smart-grid textarea,
+html body[data-theme] .we-comment-box input,
+html body[data-theme] .we-comment-box textarea,
+html body[data-theme] .we-pivot-panel input,
+html body[data-theme] .we-pivot-panel select,
+html body[data-theme] .we-pivot-panel textarea,
+html body[data-theme] #emoji-search-input {
+    background: var(--panel) !important;
+    color: var(--text) !important;
+    border-color: var(--line) !important;
+}
+
+html body[data-theme] .we-formula-input::placeholder,
+html body[data-theme] .we-smart-grid input::placeholder,
+html body[data-theme] .we-smart-grid textarea::placeholder,
+html body[data-theme] #emoji-search-input::placeholder {
+    color: var(--muted) !important;
+    opacity: .75;
+}
+
+html body[data-theme] .we-tab,
+html body[data-theme] .we-insert-item,
+html body[data-theme] .we-submenu-item,
+html body[data-theme] .we-icon-btn,
+html body[data-theme] .we-mini-btn,
+html body[data-theme] .we-upload-btn,
+html body[data-theme] .we-workbook-tab,
+html body[data-theme] .we-template-card,
+html body[data-theme] .we-university-card,
+html body[data-theme] .we-chart-type-card,
+html body[data-theme] .we-pivot-field-item,
+html body[data-theme] .we-pivot-zone,
+html body[data-theme] .we-pivot-pill,
+html body[data-theme] .we-emoji-category,
+html body[data-theme] .we-emoji-item,
+html body[data-theme] .we-color-chip {
+    background: color-mix(in srgb, var(--panel-2) 82%, transparent) !important;
+    color: var(--text) !important;
+    border-color: var(--line) !important;
+}
+
+html body[data-theme] .we-tab.active,
+html body[data-theme] .we-insert-item.active,
+html body[data-theme] .we-insert-item:hover,
+html body[data-theme] .we-submenu-item:hover,
+html body[data-theme] .we-icon-btn:hover:not(:disabled),
+html body[data-theme] .we-mini-btn:hover:not(:disabled),
+html body[data-theme] .we-template-card:hover,
+html body[data-theme] .we-university-card:hover,
+html body[data-theme] .we-workbook-tab.active,
+html body[data-theme] .we-chart-type-card.active,
+html body[data-theme] .we-chart-type-card:hover,
+html body[data-theme] .we-pivot-field-item:hover,
+html body[data-theme] .we-emoji-item:hover {
+    background: color-mix(in srgb, var(--primary) 22%, var(--panel-2)) !important;
+    border-color: color-mix(in srgb, var(--primary) 46%, var(--line)) !important;
+    color: var(--text) !important;
+}
+
+html body[data-theme] .we-icon-btn:disabled,
+html body[data-theme] .we-mini-btn:disabled {
+    opacity: .48;
+}
+
+html body[data-theme] .we-sheet-scroll,
+html body[data-theme] .we-sheet-table,
+html body[data-theme] .excel-sheet {
+    background: var(--panel) !important;
+    color: var(--text) !important;
+    border-color: var(--line) !important;
+}
+
+html body[data-theme] .we-sheet-table th,
+html body[data-theme] .we-sheet-table td {
+    background: color-mix(in srgb, var(--panel) 96%, var(--bg) 4%) !important;
+    color: var(--text) !important;
+    border-color: var(--line) !important;
+}
+
+html body[data-theme] .we-sheet-table thead th,
+html body[data-theme] .we-sheet-table .row-header,
+html body[data-theme] .we-sheet-table thead th:first-child {
+    background: color-mix(in srgb, var(--panel-2) 88%, var(--primary) 12%) !important;
+    color: var(--text) !important;
+}
+
+html body[data-theme] .we-sheet-table td.active-cell,
+html body[data-theme] .we-sheet-table td:focus {
+    background: color-mix(in srgb, var(--primary) 18%, var(--panel)) !important;
+    box-shadow: inset 0 0 0 2px var(--primary) !important;
+}
+
+html body[data-theme] .we-sheet-table td.selected-range {
+    background: color-mix(in srgb, var(--primary) 14%, var(--panel)) !important;
+}
+
+html body[data-theme] .we-cell-link {
+    color: color-mix(in srgb, var(--primary) 72%, var(--text)) !important;
+    font-weight: 700;
+}
+
+html body[data-theme] .we-cell-dropdown,
+html body[data-theme] .we-cell-checkbox {
+    accent-color: var(--primary) !important;
+}
+
+html body[data-theme] .we-cell-dropdown {
+    background: var(--panel-2) !important;
+    color: var(--text) !important;
+    border-color: var(--line) !important;
+}
+
+html body[data-theme] .we-checkbox-wrap,
+html body[data-theme] .we-smart-preview,
+html body[data-theme] .we-comment-preview {
+    color: var(--text) !important;
+}
+
+html body[data-theme] .we-smart-preview,
+html body[data-theme] .we-comment-preview,
+html body[data-theme] .we-formula-helper-popover,
+html body[data-theme] .we-formula-browser,
+html body[data-theme] .we-formula-details-card,
+html body[data-theme] .we-formula-list,
+html body[data-theme] .we-formula-item {
+    background: color-mix(in srgb, var(--panel) 94%, transparent) !important;
+    border-color: var(--line) !important;
+    color: var(--text) !important;
+}
+
+html body[data-theme] #sheet-context-menu,
+html body[data-theme] .we-menu-popover,
+html body[data-theme] .we-sheet-context-menu {
+    background: var(--panel) !important;
+    color: var(--text) !important;
+    border-color: var(--line) !important;
+}
+
+html body[data-theme] #sheet-context-menu button,
+html body[data-theme] .we-menu-popover button,
+html body[data-theme] .we-sheet-context-menu button {
+    color: var(--text) !important;
+}
+
+html body[data-theme] #sheet-context-menu button:hover:not(:disabled),
+html body[data-theme] .we-menu-popover button:hover:not(:disabled),
+html body[data-theme] .we-sheet-context-menu button:hover:not(:disabled) {
+    background: color-mix(in srgb, var(--primary) 16%, var(--panel-2)) !important;
+}
+
+html body[data-theme] .we-menu-separator {
+    background: var(--line) !important;
+}
+
+/* Jasne motywy: mocniejszy kontrast w arkuszu i nagłówkach */
+html body[data-theme="arctic-light"] .we-sheet-table td,
+html body[data-theme="sand-light"] .we-sheet-table td,
+html body[data-theme="clean-slate"] .we-sheet-table td {
+    background: #ffffff !important;
+}
+
+html body[data-theme="sand-light"] .we-sheet-table thead th,
+html body[data-theme="sand-light"] .we-sheet-table .row-header,
+html body[data-theme="sand-light"] .we-sheet-table thead th:first-child {
+    background: #f1e2c8 !important;
+    color: #2b2112 !important;
+}
+
+html body[data-theme="arctic-light"] .we-sheet-table thead th,
+html body[data-theme="arctic-light"] .we-sheet-table .row-header,
+html body[data-theme="clean-slate"] .we-sheet-table thead th,
+html body[data-theme="clean-slate"] .we-sheet-table .row-header {
+    background: color-mix(in srgb, var(--panel-2) 84%, var(--primary) 16%) !important;
+}

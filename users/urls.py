@@ -3,6 +3,7 @@ from .views import (
     login_view,
     register_view,
     verify_email_view,
+    resend_verification_email_view,
     dashboard_view,
     logout_view,
     worksheets_view,
@@ -11,12 +12,14 @@ from .views import (
     history_view,
     reports_view,
     profile_view,
+    profile_settings_api,
 )
 
 urlpatterns = [
     path('', login_view, name='login'),
     path('register/', register_view, name='register'),
     path('verify/', verify_email_view, name='verify_email'),
+    path('verify/resend/', resend_verification_email_view, name='resend_verification_email'),
     path('dashboard/', dashboard_view, name='dashboard'),
     path('worksheets/', worksheets_view, name='worksheets'),
     path('worksheets/editor/', worksheet_editor_view, name='worksheet_editor'),
@@ -24,5 +27,6 @@ urlpatterns = [
     path('history/', history_view, name='history'),
     path('reports/', reports_view, name='reports'),
     path('profile/', profile_view, name='profile'),
+    path('api/profile/settings/', profile_settings_api, name='profile_settings_api'),
     path('logout/', logout_view, name='logout'),
 ]
