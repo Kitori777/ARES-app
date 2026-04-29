@@ -423,3 +423,32 @@ uv run python manage.py runserver
 
 Projekt **ARES** jest aktualnie działającą koncepcją internetowego arkusza kalkulacyjnego. Najważniejszy problem, jaki rozwiązuje, to umożliwienie pracy na danych tabelarycznych i prostych obliczeniach bez użycia klasycznego oprogramowania desktopowego. Obecna wersja jest już funkcjonalna jako prototyp, ale docelowo powinna zostać rozwinięta o pełne przechowywanie danych po stronie serwera i bardziej zaawansowaną logikę arkusza.
 
+
+
+## Konfiguracja wysyłki e-mail na Renderze
+
+ARES obsługuje tryb wysyłki podobny do aplikacji SleepWatch. Na Renderze najprościej ustawić Gmail SMTP przez hasło aplikacji Google.
+
+W Environment Variables ustaw:
+
+```env
+EMAIL_DELIVERY_MODE=gmail
+EMAIL_HOST=smtp.gmail.com
+EMAIL_PORT=587
+EMAIL_USE_TLS=True
+EMAIL_USE_SSL=False
+EMAIL_TIMEOUT=20
+EMAIL_HOST_USER=twoj_adres@gmail.com
+EMAIL_HOST_PASSWORD=haslo_aplikacji_google
+DEFAULT_FROM_EMAIL=twoj_adres@gmail.com
+```
+
+`EMAIL_HOST_PASSWORD` musi być hasłem aplikacji Google, a nie zwykłym hasłem do Gmaila.
+
+Lokalnie można użyć:
+
+```env
+EMAIL_DELIVERY_MODE=console
+```
+
+Wtedy wiadomość z kodem weryfikacyjnym pojawi się w terminalu.

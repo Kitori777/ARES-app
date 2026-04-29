@@ -1,0 +1,8 @@
+Cześć {{ username }},
+
+Twój kod weryfikacyjny do systemu ARES to: {{ code }}
+
+Kod jest ważny do: {{ expires_local }}.
+
+Konto zostanie utworzone dopiero po poprawnym wpisaniu kodu.
+Jeżeli to nie Ty rozpoczynałeś rejestrację, zignoruj tę wiadomość.

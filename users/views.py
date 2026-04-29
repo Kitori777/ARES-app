@@ -13,6 +13,7 @@ from django.core.exceptions import ImproperlyConfigured
 from django.db import IntegrityError, transaction
 from django.http import JsonResponse
 from django.shortcuts import redirect, render
+from django.template.loader import render_to_string
 from django.utils import timezone
 from django.views.decorators.http import require_http_methods, require_POST
 
@@ -48,16 +49,19 @@ def _email_backend_is_smtp() -> bool:
 
 
 def _smtp_missing_configuration() -> list[str]:
-    """Zwraca brakujące zmienne SMTP, zanim Django spróbuje wysłać maila."""
+    """Zwraca brakujące dane SMTP, zanim Django spróbuje wysłać maila."""
     if not _email_backend_is_smtp():
         return []
 
+    delivery_mode = str(getattr(settings, 'EMAIL_DELIVERY_MODE', '')).lower()
     required = {
-        'EMAIL_HOST': settings.EMAIL_HOST,
-        'EMAIL_HOST_USER': settings.EMAIL_HOST_USER,
-        'EMAIL_HOST_PASSWORD': settings.EMAIL_HOST_PASSWORD,
-        'DEFAULT_FROM_EMAIL': settings.DEFAULT_FROM_EMAIL,
+        'EMAIL_HOST': getattr(settings, 'EMAIL_HOST', ''),
+        'EMAIL_HOST_USER': getattr(settings, 'EMAIL_HOST_USER', ''),
+        'EMAIL_HOST_PASSWORD': getattr(settings, 'EMAIL_HOST_PASSWORD', ''),
     }
+    if delivery_mode != 'gmail':
+        required['DEFAULT_FROM_EMAIL'] = getattr(settings, 'DEFAULT_FROM_EMAIL', '')
+
     return [name for name, value in required.items() if not str(value or '').strip()]
 
 
@@ -82,28 +86,14 @@ def _send_code_email(*, username: str, email: str, code: str, expires_at) -> int
 
     subject = 'ARES — kod weryfikacyjny konta'
     expires_local = timezone.localtime(expires_at).strftime('%d.%m.%Y, %H:%M')
-    message = (
-        f'Cześć {username},\n\n'
-        f'Twój kod weryfikacyjny do systemu ARES to: {code}\n\n'
-        f'Kod jest ważny do: {expires_local}.\n\n'
-        'Konto zostanie utworzone dopiero po poprawnym wpisaniu kodu.\n'
-        'Jeżeli to nie Ty rozpoczynałeś rejestrację, zignoruj tę wiadomość.\n'
-    )
-    html_message = f'''
-        <div style="font-family:Arial,sans-serif;line-height:1.55;color:#172033;background:#f5f7fb;padding:24px">
-            <div style="max-width:560px;margin:0 auto;background:white;border-radius:18px;padding:28px;border:1px solid #e4e9f2;box-shadow:0 18px 38px rgba(22,34,51,.10)">
-                <div style="font-size:13px;font-weight:800;letter-spacing:.12em;color:#4f73ff;text-transform:uppercase;margin-bottom:10px">ARES</div>
-                <h2 style="margin:0 0 12px;color:#172033">Potwierdzenie rejestracji</h2>
-                <p>Cześć <strong>{username}</strong>,</p>
-                <p>Wpisz poniższy kod na stronie weryfikacji, aby dokończyć zakładanie konta:</p>
-                <div style="font-size:32px;font-weight:900;letter-spacing:7px;padding:16px 20px;border-radius:14px;background:#eef4ff;display:inline-block;color:#1e4ed8;border:1px solid #d8e5ff">
-                    {code}
-                </div>
-                <p style="margin-top:18px">Kod jest ważny do: <strong>{expires_local}</strong>.</p>
-                <p style="color:#61708a;font-size:14px">Konto zostanie utworzone dopiero po poprawnym potwierdzeniu adresu e-mail.</p>
-            </div>
-        </div>
-    '''
+    email_context = {
+        'username': username,
+        'email': email,
+        'code': code,
+        'expires_local': expires_local,
+    }
+    message = render_to_string('emails/verification_code.txt', email_context)
+    html_message = render_to_string('emails/verification_code.html', email_context)
 
     if getattr(settings, 'EMAIL_VERIFICATION_LOG_CODE', False):
         logger.info('ARES verification code for %s: %s', email, code)

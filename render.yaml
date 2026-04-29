@@ -3,7 +3,7 @@ services:
     name: ares
     env: python
     buildCommand: ./build.sh
-    startCommand: uv run gunicorn projekt_baza.wsgi:application
+    startCommand: uv run gunicorn projekt_baza.wsgi:application --bind 0.0.0.0:$PORT --workers 1 --timeout 120 --access-logfile - --error-logfile -
     envVars:
       - key: DEBUG
         value: "False"
@@ -19,12 +19,14 @@ services:
           property: connectionString
       - key: DATABASE_SSL_REQUIRE
         value: "True"
+      - key: EMAIL_DELIVERY_MODE
+        value: gmail
       - key: EMAIL_BACKEND
         value: django.core.mail.backends.smtp.EmailBackend
       - key: DEFAULT_FROM_EMAIL
         sync: false
       - key: EMAIL_HOST
-        sync: false
+        value: smtp.gmail.com
       - key: EMAIL_PORT
         value: "587"
       - key: EMAIL_USE_TLS
@@ -33,6 +35,12 @@ services:
         sync: false
       - key: EMAIL_HOST_PASSWORD
         sync: false
+      - key: EMAIL_TIMEOUT
+        value: "20"
+      - key: EMAIL_VERIFICATION_CODE_ON_SCREEN
+        value: "True"
+      - key: EMAIL_VERIFICATION_LOG_CODE
+        value: "True"
 
 databases:
   - name: ares-db
