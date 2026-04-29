@@ -3,46 +3,47 @@
 {% block title %}ARES | Logowanie{% endblock %}
 
 {% block guest_content %}
-<section class="hero-app">
-    <div class="hero-left">
-        <span class="hero-badge">ARES SYSTEM</span>
-        <h1>Zarządzaj arkuszami jak w prawdziwej aplikacji</h1>
+<section class="auth-landing">
+    <div class="auth-showcase">
+        <span class="auth-kicker">ARES SYSTEM</span>
+        <h1>Twoje arkusze, raporty i analizy w jednym miejscu</h1>
         <p>
-            ARES to system do pracy z arkuszami kalkulacyjnymi, zestawieniami
-            i analizą danych. Po zalogowaniu użytkownik przechodzi od razu
-            do środowiska roboczego.
+            Zaloguj się do środowiska roboczego ARES i pracuj na arkuszach,
+            danych, wykresach, solverze oraz historii aktywności użytkownika.
         </p>
 
-        <div class="hero-features">
-            <div class="feature-card">
-                <h3>Arkusze robocze</h3>
-                <p>Praca na danych w jednym miejscu.</p>
-            </div>
-            <div class="feature-card">
-                <h3>Nowoczesny interfejs</h3>
-                <p>Układ przypominający aplikację, a nie zwykłą stronę.</p>
-            </div>
-            <div class="feature-card">
-                <h3>Bezpieczny dostęp</h3>
-                <p>Logowanie i rejestracja z weryfikacją e-mail.</p>
-            </div>
+        <div class="auth-feature-grid">
+            <div class="auth-feature-card"><strong>Arkusze online</strong><span>Formuły, tabele, wykresy i dane.</span></div>
+            <div class="auth-feature-card"><strong>Profil użytkownika</strong><span>Motywy, avatar i własne skróty.</span></div>
+            <div class="auth-feature-card"><strong>Bezpieczny dostęp</strong><span>Konto aktywowane dopiero po e-mailu.</span></div>
         </div>
     </div>
 
-    <div class="hero-right">
-        <div class="auth-card app-card">
-            <h2>Logowanie do ARES</h2>
+    <div class="auth-form-panel">
+        <div class="auth-card app-card auth-card-polished">
+            <div class="auth-card-head">
+                <span class="auth-card-icon">⌂</span>
+                <div>
+                    <h2>Logowanie</h2>
+                    <p>Wpisz dane konta ARES.</p>
+                </div>
+            </div>
 
-            <form method="post">
+            <form method="post" class="auth-form">
                 {% csrf_token %}
-                <input type="text" name="username" placeholder="Login" required>
-                <input type="password" name="password" placeholder="Hasło" required>
+                <label for="login-username">Login lub e-mail</label>
+                <input id="login-username" type="text" name="username" placeholder="np. stasi" autocomplete="username" required>
+
+                <label for="login-password">Hasło</label>
+                <input id="login-password" type="password" name="password" placeholder="Twoje hasło" autocomplete="current-password" required>
+
                 <button type="submit" class="btn btn-primary btn-full">Zaloguj się</button>
             </form>
 
-            <p class="auth-link">
-                Nie masz konta? <a href="{% url 'register' %}">Zarejestruj się</a>
-            </p>
+            <div class="auth-switch-box">
+                <span>Nie masz konta?</span>
+                <a href="{% url 'register' %}">Utwórz konto</a>
+            </div>
         </div>
     </div>
 </section>

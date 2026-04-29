@@ -1,5 +1,95 @@
 # Changelog
 
+## [v0.3.2] - 2026-04-29
+
+### Dodano
+- Model `PendingRegistration` do obsługi tymczasowej rejestracji użytkownika przed potwierdzeniem e-mail.
+- Migrację bazy danych dla tymczasowych rejestracji.
+- Mechanizm tworzenia właściwego konta użytkownika dopiero po poprawnym wpisaniu kodu weryfikacyjnego.
+- Ponowną wysyłkę kodu weryfikacyjnego e-mail.
+- Odświeżony wygląd stron:
+  - logowania,
+  - rejestracji,
+  - potwierdzenia e-mail.
+
+### Zmieniono
+- Proces rejestracji użytkownika.
+- Formularz rejestracji nie tworzy już od razu aktywnego konta `User`.
+- Dane rejestracyjne są najpierw zapisywane jako tymczasowe zgłoszenie rejestracji.
+- Konto użytkownika jest tworzone dopiero po skutecznej weryfikacji kodem e-mail.
+- Poprawiono komunikaty dla użytkownika przy rejestracji, weryfikacji i ponownej wysyłce kodu.
+
+### Naprawiono
+- Naprawiono problem, w którym konto użytkownika mogło zostać utworzone mimo braku potwierdzenia adresu e-mail.
+- Naprawiono sytuację, w której nieudana wysyłka e-maila mogła pozostawić niepotwierdzone konto w bazie.
+- Poprawiono obsługę błędów SMTP podczas rejestracji.
+- Zachowano zgodność ze starszymi nieaktywnymi kontami utworzonymi przed zmianą procesu rejestracji.
+
+### Techniczne
+- Dodano logikę tymczasowej rejestracji przed utworzeniem konta.
+- Dodano obsługę ważności kodu weryfikacyjnego.
+- Dodano obsługę ponownego generowania i wysyłania kodu.
+- Sprawdzono poprawność projektu komendami:
+  - `uv run python manage.py check`
+  - `uv run python manage.py migrate`
+
+
+## [v0.3.1] - 2026-04-28
+
+### Dodano
+- Przygotowanie aplikacji ARES pod wdrożenie na Render.
+- Obsługę konfiguracji przez zmienne środowiskowe.
+- Plik `.env.example` z przykładowymi zmiennymi konfiguracyjnymi.
+- Plik `build.sh` do budowania aplikacji na Renderze.
+- Opcjonalny plik `render.yaml` do konfiguracji usługi Render.
+- Obsługę `DATABASE_URL` dla produkcyjnej bazy PostgreSQL.
+- Konfigurację wysyłki e-mail przez SMTP.
+- Obsługę zmiennych środowiskowych dla:
+  - `SECRET_KEY`,
+  - `DEBUG`,
+  - `ALLOWED_HOSTS`,
+  - `CSRF_TRUSTED_ORIGINS`,
+  - `DATABASE_URL`,
+  - `EMAIL_BACKEND`,
+  - `DEFAULT_FROM_EMAIL`,
+  - `EMAIL_HOST`,
+  - `EMAIL_PORT`,
+  - `EMAIL_USE_TLS`,
+  - `EMAIL_USE_SSL`,
+  - `EMAIL_HOST_USER`,
+  - `EMAIL_HOST_PASSWORD`.
+- Konfigurację statycznych plików produkcyjnych.
+- Obsługę `collectstatic` dla deploymentu.
+- Konfigurację `gunicorn` jako serwera produkcyjnego.
+- Przygotowanie projektu pod użycie PostgreSQL na Renderze.
+
+### Zmieniono
+- Ustawienia Django zostały dostosowane do środowiska produkcyjnego.
+- Konfiguracja sekretów została przeniesiona do zmiennych środowiskowych.
+- Lokalny plik `.env` nie jest wymagany na Renderze, ponieważ wartości są ustawiane w panelu Environment Variables.
+- Poprawiono sposób definiowania `ALLOWED_HOSTS` i `CSRF_TRUSTED_ORIGINS`.
+- Poprawiono konfigurację statycznych plików dla środowiska produkcyjnego.
+- Zmieniono podejście do uruchamiania aplikacji z lokalnego `runserver` na produkcyjne `gunicorn`.
+
+### Naprawiono
+- Naprawiono problem braku `requirements.txt` przez przygotowanie projektu do pracy z `uv`.
+- Poprawiono konfigurację tak, aby aplikacja mogła być budowana z `pyproject.toml` i `uv.lock`.
+- Poprawiono obsługę SMTP przez zmienne środowiskowe.
+- Poprawiono zabezpieczenie przed przypadkowym wrzuceniem `.env` do repozytorium.
+
+### Techniczne
+- Dodano / uzupełniono zależności produkcyjne:
+  - `gunicorn`,
+  - `whitenoise`,
+  - `dj-database-url`,
+  - `psycopg`.
+- Przygotowano komendy Render:
+  - `uv sync && uv run python manage.py collectstatic --noinput && uv run python manage.py migrate`
+  - `uv run gunicorn projekt_baza.wsgi:application`
+- Dodano zalecenie ustawienia wersji Pythona przez `runtime.txt`.
+- Uporządkowano `.gitignore` pod deployment i lokalne środowisko.
+
+
 ## [v0.3.0] - 2026-04-26
 
 ### Dodano

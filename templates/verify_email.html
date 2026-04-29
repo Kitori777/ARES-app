@@ -1,56 +1,55 @@
 {% extends 'base.html' %}
 
-{% block title %}ARES | Weryfikacja{% endblock %}
+{% block title %}ARES | Weryfikacja e-mail{% endblock %}
 
 {% block guest_content %}
-<div class="auth-page">
-    <div class="auth-card app-card">
-        <h2>Potwierdzenie e-mail</h2>
-        <p>Wpisz kod wysłany na Twój adres e-mail. Kod jest ważny 30 minut.</p>
-
-        <form method="post">
-            {% csrf_token %}
-            <label for="verify-email">Adres e-mail</label>
-            <input
-                id="verify-email"
-                type="email"
-                name="email"
-                placeholder="adres@email.pl"
-                value="{{ verification_email|default:'' }}"
-                required
-            >
-
-            <label for="verify-code">Kod weryfikacyjny</label>
-            <input
-                id="verify-code"
-                type="text"
-                name="code"
-                placeholder="Wpisz 6-cyfrowy kod"
-                inputmode="numeric"
-                maxlength="6"
-                required
-            >
-
-            <button type="submit" class="btn btn-primary btn-full">Potwierdź konto</button>
-        </form>
-
-        <form method="post" action="{% url 'resend_verification_email' %}" class="auth-secondary-form">
-            {% csrf_token %}
-            <label for="resend-email">Adres e-mail do ponownej wysyłki</label>
-            <input
-                id="resend-email"
-                type="email"
-                name="email"
-                placeholder="adres@email.pl"
-                value="{{ verification_email|default:'' }}"
-                required
-            >
-            <button type="submit" class="btn btn-secondary btn-full">Wyślij kod ponownie</button>
-        </form>
-
-        <p class="auth-link">
-            <a href="{% url 'login' %}">Wróć do logowania</a>
+<section class="auth-landing auth-landing-compact verify-layout">
+    <div class="auth-showcase">
+        <span class="auth-kicker">WERYFIKACJA</span>
+        <h1>Potwierdź swój adres e-mail</h1>
+        <p>
+            Wpisz 6-cyfrowy kod z wiadomości. Dopiero po poprawnej weryfikacji
+            ARES utworzy konto i pozwoli Ci się zalogować.
         </p>
+        <div class="verify-mail-preview">
+            <span>✉</span>
+            <strong>{{ verification_email|default:'adres@email.pl' }}</strong>
+            <small>Kod jest ważny 30 minut.</small>
+        </div>
     </div>
-</div>
+
+    <div class="auth-form-panel">
+        <div class="auth-card app-card auth-card-polished">
+            <div class="auth-card-head">
+                <span class="auth-card-icon">✓</span>
+                <div>
+                    <h2>Wpisz kod</h2>
+                    <p>Sprawdź skrzynkę odbiorczą i folder spam.</p>
+                </div>
+            </div>
+
+            <form method="post" class="auth-form">
+                {% csrf_token %}
+                <label for="verify-email">Adres e-mail</label>
+                <input id="verify-email" type="email" name="email" placeholder="adres@email.pl" value="{{ verification_email|default:'' }}" autocomplete="email" required>
+
+                <label for="verify-code">Kod weryfikacyjny</label>
+                <input id="verify-code" class="verification-code-input" type="text" name="code" placeholder="000000" inputmode="numeric" maxlength="6" autocomplete="one-time-code" required>
+
+                <button type="submit" class="btn btn-primary btn-full">Potwierdź i utwórz konto</button>
+            </form>
+
+            <form method="post" action="{% url 'resend_verification_email' %}" class="auth-form auth-secondary-form">
+                {% csrf_token %}
+                <input type="hidden" name="email" value="{{ verification_email|default:'' }}">
+                <button type="submit" class="btn btn-secondary btn-full">Wyślij kod ponownie</button>
+            </form>
+
+            <div class="auth-switch-box">
+                <a href="{% url 'login' %}">Wróć do logowania</a>
+                <a href="{% url 'register' %}">Załóż konto od nowa</a>
+            </div>
+        </div>
+    </div>
+</section>
 {% endblock %}
