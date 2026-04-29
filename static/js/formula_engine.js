@@ -121,6 +121,11 @@
         if (trimmed.toUpperCase() === "TRUE") return true;
         if (trimmed.toUpperCase() === "FALSE") return false;
 
+        if (/[+\-*/^()]|\$?[A-Z]+\$?\d+/i.test(trimmed)) {
+            const evaluated = evaluate("=" + trimmed, ctx, visited);
+            if (ctx.isNumericValue(evaluated)) return ctx.parseNumber(evaluated);
+        }
+
         return trimmed;
     }
 
@@ -299,16 +304,29 @@
         if (!fnMatch) {
             const ref = ctx.cellRefToIndex(body);
             if (ref) return ctx.getCellComputedValue(ref.row, ref.col, visited);
-            const arithmetic = body.replace(/\$?[A-Z]+\$?\d+/gi, token => {
-                const clean = token.replace(/\$/g, "");
-                const cell = ctx.cellRefToIndex(clean);
-                if (!cell) return token;
-                const value = ctx.getCellComputedValue(cell.row, cell.col, visited);
-                return ctx.isNumericValue(value) ? String(ctx.parseNumber(value)) : "0";
-            });
-            if (/^[0-9+\-*/().,\s%^A-Za-z_]+$/.test(arithmetic)) {
+            let arithmeticSource = body;
+            for (let guard = 0; guard < 12 && /[A-Za-zĄĆĘŁŃÓŚŹŻąćęłńóśźż._]+\([^()]*\)/.test(arithmeticSource); guard += 1) {
+                arithmeticSource = arithmeticSource.replace(/[A-Za-zĄĆĘŁŃÓŚŹŻąćęłńóśźż._]+\([^()]*\)/g, match => {
+                    const value = evaluate("=" + match, ctx, visited);
+                    return ctx.isNumericValue(value) ? String(ctx.parseNumber(value)) : "0";
+                });
+            }
+            const arithmetic = arithmeticSource
+                .replace(/\$?[A-Z]+\$?\d+/gi, token => {
+                    const clean = token.replace(/\$/g, "");
+                    const cell = ctx.cellRefToIndex(clean);
+                    if (!cell) return token;
+                    const value = ctx.getCellComputedValue(cell.row, cell.col, visited);
+                    return ctx.isNumericValue(value) ? String(ctx.parseNumber(value)) : "0";
+                })
+                .replace(/√\s*\(/g, "SQRT(")
+                .replace(/×/g, "*")
+                .replace(/÷/g, "/")
+                .replace(/,/g, ".");
+            if (/^[0-9+\-*/().\s%^A-Za-z_]+$/.test(arithmetic)) {
                 const value = evalMathExpression(arithmetic, { x: 0, y: 0 });
                 if (Number.isFinite(value)) return value;
+                return "#BŁĄD";
             }
             return body;
         }

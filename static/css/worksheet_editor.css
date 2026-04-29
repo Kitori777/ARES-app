@@ -2205,3 +2205,843 @@ html body[data-theme="clean-slate"] .we-sheet-table thead th,
 html body[data-theme="clean-slate"] .we-sheet-table .row-header {
     background: color-mix(in srgb, var(--panel-2) 84%, var(--primary) 16%) !important;
 }
+
+/* ARES 0.3.5: sticky pasek formuły i poprawki kolorowania komórek. */
+.we-toolbar-card {
+    position: sticky;
+    top: 12px;
+    z-index: 900;
+    backdrop-filter: blur(14px);
+}
+
+.we-formula-bar {
+    position: sticky;
+    top: 12px;
+    z-index: 930;
+    padding: 8px 0;
+    background: linear-gradient(180deg, rgba(18,29,49,0.98), rgba(13,22,39,0.96));
+}
+
+.we-formula-result,
+.we-cell-dropdown,
+.we-cell-draw,
+.we-cell-indicator,
+.we-smart-chip {
+    color: inherit;
+}
+
+.we-workbook-tab {
+    border-bottom-width: 4px;
+    border-bottom-style: solid;
+}
+
+.we-workbook-tab.hidden-sheet {
+    opacity: 0.55;
+}
+
+/* ARES 0.3.6: kontrast, limity szerokości i przewijanie list/formuł. */
+html,
+body {
+    max-width: 100%;
+    overflow-x: hidden;
+}
+
+.we-page-shell,
+.we-toolbar-card,
+.we-sheet-card,
+.we-objects-card,
+.we-workbook-tabs {
+    max-width: calc(100vw - 48px);
+    box-sizing: border-box;
+}
+
+.we-sheet-card {
+    overflow: hidden;
+}
+
+.we-sheet-scroll {
+    width: 100%;
+    max-width: 100%;
+    overflow: auto;
+    overscroll-behavior: contain;
+}
+
+.we-sheet-table {
+    table-layout: fixed;
+}
+
+.we-sheet-table th,
+.we-sheet-table td {
+    max-width: 420px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.we-sheet-table td:focus {
+    overflow: visible;
+    white-space: normal;
+    min-width: 220px;
+    z-index: 20;
+}
+
+.we-ribbon {
+    max-width: 100%;
+    overflow-x: auto;
+}
+
+.we-formula-browser {
+    grid-template-columns: minmax(190px, 240px) minmax(260px, 340px) minmax(320px, 1fr);
+    max-width: 100%;
+}
+
+.we-formula-categories,
+.we-formula-list-wrap,
+.we-formula-details {
+    min-height: 0;
+    max-height: 520px;
+    overflow: auto;
+    background: #fffaf2 !important;
+    border-color: #ead7bb !important;
+    color: #2b2112 !important;
+}
+
+.we-formula-category-btn,
+.we-formula-item,
+.we-formula-details-card,
+.we-formula-details-name,
+.we-formula-details-empty,
+.we-formula-list-top,
+.we-formula-details-box {
+    color: #2b2112 !important;
+}
+
+.we-formula-category-btn:hover,
+.we-formula-category-btn.active,
+.we-formula-item:hover,
+.we-formula-item.active {
+    background: #f2dec0 !important;
+    border-color: #c68637 !important;
+    color: #17110a !important;
+}
+
+.we-formula-item {
+    position: relative;
+    background: #fffdf8 !important;
+    border: 1px solid #ead7bb !important;
+}
+
+.we-formula-item-name {
+    color: #17110a !important;
+}
+
+.we-formula-item-syntax,
+.we-formula-details-label {
+    color: #7b5d34 !important;
+}
+
+.we-formula-details-box {
+    background: #fffdf8 !important;
+    border-color: #ead7bb !important;
+}
+
+.we-formula-item:hover::after {
+    content: attr(data-syntax);
+    position: absolute;
+    left: 14px;
+    right: 14px;
+    bottom: calc(100% + 8px);
+    z-index: 50;
+    padding: 8px 10px;
+    border-radius: 10px;
+    background: #172033;
+    color: #f8fafc;
+    font-size: 0.82rem;
+    line-height: 1.3;
+    box-shadow: 0 12px 24px rgba(0,0,0,.22);
+    pointer-events: none;
+    white-space: normal;
+}
+
+.we-template-grid,
+.we-university-grid,
+.we-chart-types-grid,
+.we-emoji-grid {
+    max-height: 520px;
+    overflow: auto;
+    padding-right: 6px;
+}
+
+.we-template-card,
+.we-university-card {
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+html body[data-theme] .we-formula-categories,
+html body[data-theme] .we-formula-list-wrap,
+html body[data-theme] .we-formula-details,
+html body[data-theme] .we-formula-item,
+html body[data-theme] .we-formula-details-box {
+    background: #fffaf2 !important;
+    border-color: #ead7bb !important;
+    color: #2b2112 !important;
+}
+
+html body[data-theme] .we-formula-category-btn,
+html body[data-theme] .we-formula-item-name,
+html body[data-theme] .we-formula-details-name,
+html body[data-theme] .we-formula-details-empty,
+html body[data-theme] .we-formula-details-card,
+html body[data-theme] .we-formula-list-top {
+    color: #2b2112 !important;
+}
+
+html body[data-theme] .we-formula-item-syntax,
+html body[data-theme] .we-formula-details-label {
+    color: #7b5d34 !important;
+}
+
+@media (max-width: 1200px) {
+    .we-formula-browser {
+        grid-template-columns: 1fr;
+    }
+
+    .we-formula-categories,
+    .we-formula-list-wrap,
+    .we-formula-details {
+        max-height: 360px;
+    }
+}
+
+/* ARES 0.3.7: spójne kolory paska formuły i pełny hover w katalogu funkcji. */
+html body[data-theme] .we-toolbar-card,
+html body[data-theme] .we-formula-bar {
+    background: linear-gradient(180deg, color-mix(in srgb, var(--panel-2) 82%, transparent), color-mix(in srgb, var(--panel) 98%, transparent)) !important;
+    border-color: var(--line) !important;
+    color: var(--text) !important;
+}
+
+html body[data-theme] .we-cell-address {
+    background: color-mix(in srgb, var(--primary) 13%, var(--panel-2)) !important;
+    border-color: color-mix(in srgb, var(--primary) 34%, var(--line)) !important;
+    color: var(--text) !important;
+}
+
+html body[data-theme] .we-formula-input,
+html body[data-theme] .we-formula-input-wrap .we-formula-input {
+    background: color-mix(in srgb, var(--panel) 92%, transparent) !important;
+    border: 1px solid color-mix(in srgb, var(--primary) 22%, var(--line)) !important;
+    color: var(--text) !important;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.22) !important;
+}
+
+html body[data-theme] .we-formula-input::placeholder {
+    color: color-mix(in srgb, var(--muted) 75%, transparent) !important;
+}
+
+html body[data-theme] .we-formula-input:focus {
+    border-color: color-mix(in srgb, var(--primary) 56%, var(--line)) !important;
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 18%, transparent) !important;
+}
+
+html body[data-theme] .we-formula-browser {
+    overflow: hidden;
+}
+
+html body[data-theme] .we-formula-category-btn {
+    border: 1px solid transparent !important;
+}
+
+html body[data-theme] .we-formula-category-btn:hover,
+html body[data-theme] .we-formula-category-btn.active,
+html body[data-theme] .we-formula-item:hover,
+html body[data-theme] .we-formula-item.active {
+    background: color-mix(in srgb, var(--primary) 16%, var(--panel-2)) !important;
+    border-color: color-mix(in srgb, var(--primary) 40%, var(--line)) !important;
+}
+
+html body[data-theme] .we-formula-helper-popover {
+    background: var(--panel) !important;
+    border-color: color-mix(in srgb, var(--primary) 28%, var(--line)) !important;
+    color: var(--text) !important;
+}
+
+html body[data-theme] .we-formula-helper-head {
+    background: color-mix(in srgb, var(--primary) 16%, var(--panel-2)) !important;
+    color: var(--text) !important;
+}
+
+html body[data-theme] .we-formula-helper-body,
+html body[data-theme] .we-formula-helper-name,
+html body[data-theme] .we-formula-helper-syntax,
+html body[data-theme] .we-formula-helper-example {
+    color: var(--text) !important;
+}
+
+
+/* v0.3.8: spójne menu zakładek, hover na wybór i czytelna kolorystyka bez ręcznych fontów */
+.we-tabs .we-tab { transition: background .14s ease, border-color .14s ease, transform .14s ease; }
+.we-tabs .we-tab:hover { transform: translateY(-1px); }
+html body[data-theme] #sheet-context-menu.we-sheet-context-menu { font-family: inherit !important; background: var(--panel) !important; color: var(--text) !important; border: 1px solid var(--line) !important; box-shadow: var(--shadow) !important; min-width: 260px; max-width: min(360px, calc(100vw - 24px)); max-height: min(70vh, 560px); overflow: visible; }
+html body[data-theme] #sheet-context-menu button, html body[data-theme] #sheet-context-menu .we-menu-row > button { font-family: inherit !important; font-size: 14px !important; line-height: 1.2 !important; color: var(--text) !important; background: transparent !important; border: 0 !important; }
+html body[data-theme] #sheet-context-menu button:hover:not(:disabled), html body[data-theme] #sheet-context-menu .we-menu-row:hover > button { background: color-mix(in srgb, var(--primary) 20%, var(--panel-2)) !important; }
+html body[data-theme] #sheet-context-menu button.danger:hover:not(:disabled) { background: color-mix(in srgb, #d93025 24%, var(--panel-2)) !important; }
+html body[data-theme] #sheet-context-menu button:disabled { color: var(--muted) !important; opacity: .72; }
+html body[data-theme] #sheet-context-menu .we-menu-separator { background: var(--line) !important; }
+#sheet-context-menu .we-menu-section-label { padding: 8px 18px 4px; color: var(--muted); font: inherit; font-size: 12px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+#sheet-context-menu .we-menu-row { position: relative; }
+#sheet-context-menu .we-menu-row > button { pointer-events: none; }
+#sheet-context-menu .we-sheet-submenu { display: none; position: absolute; left: calc(100% - 4px); top: 0; z-index: 2300; min-width: 220px; max-height: 300px; overflow: auto; padding: 8px 0; border-radius: 10px; background: var(--panel); color: var(--text); border: 1px solid var(--line); box-shadow: var(--shadow); }
+#sheet-context-menu .we-menu-row:hover .we-sheet-submenu, #sheet-context-menu .we-menu-row:focus-within .we-sheet-submenu { display: block; }
+#sheet-context-menu .we-sheet-color-row { gap: 10px !important; padding: 9px 16px 12px !important; }
+#sheet-context-menu .we-sheet-color-swatch { width: 24px !important; height: 24px !important; border: 2px solid color-mix(in srgb, var(--text) 18%, transparent) !important; box-shadow: inset 0 0 0 1px rgba(0,0,0,.18); }
+#sheet-context-menu .we-sheet-color-swatch:hover { outline: 2px solid var(--primary) !important; outline-offset: 2px !important; }
+html body[data-theme] .we-formula-bar { background: linear-gradient(180deg, color-mix(in srgb, var(--panel) 92%, transparent), color-mix(in srgb, var(--panel-2) 94%, transparent)) !important; border: 1px solid var(--line) !important; }
+html body[data-theme] .we-formula-input, html body[data-theme] #formula-input { background: color-mix(in srgb, var(--panel-2) 74%, white 4%) !important; color: var(--text) !important; border-color: var(--line) !important; }
+html body[data-theme] .we-formula-input::placeholder { color: var(--muted) !important; }
+@media (max-width: 900px) { #sheet-context-menu .we-sheet-submenu { left: 12px; top: calc(100% - 4px); } }
+
+/* === v0.3.9: poprawki UX arkusza: overlay ribbon, kontrast formuł, działające kolory kart === */
+.we-toolbar-card {
+    position: sticky;
+    top: 0;
+    z-index: 80;
+    overflow: visible !important;
+}
+
+.we-tabs {
+    position: relative;
+    z-index: 91;
+}
+
+.we-ribbon {
+    position: absolute !important;
+    left: 16px;
+    right: 16px;
+    top: calc(100% - 8px);
+    z-index: 90;
+    max-height: min(56vh, 540px);
+    overflow: auto !important;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transform: translateY(-6px);
+    transition: opacity .14s ease, transform .14s ease, visibility .14s ease;
+}
+
+.we-toolbar-card.ribbon-open .we-ribbon,
+.we-ribbon:focus-within {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+    transform: translateY(0);
+}
+
+.we-toolbar-card.ribbon-open {
+    z-index: 120;
+}
+
+.we-sheet-card {
+    position: relative;
+    z-index: 1;
+}
+
+html body[data-theme] .we-formula-browser {
+    display: grid !important;
+    grid-template-columns: minmax(190px, 240px) minmax(260px, 330px) minmax(340px, 1fr) !important;
+    gap: 16px !important;
+    max-width: 100% !important;
+    overflow: visible !important;
+    color: var(--text) !important;
+}
+
+html body[data-theme] .we-formula-categories,
+html body[data-theme] .we-formula-list-wrap,
+html body[data-theme] .we-formula-details,
+html body[data-theme] .we-formula-details-card {
+    background: color-mix(in srgb, var(--panel) 94%, transparent) !important;
+    border: 1px solid color-mix(in srgb, var(--line) 88%, var(--primary) 12%) !important;
+    color: var(--text) !important;
+    box-shadow: none !important;
+}
+
+html body[data-theme] .we-formula-categories,
+html body[data-theme] .we-formula-list-wrap {
+    max-height: min(46vh, 420px) !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+}
+
+html body[data-theme] .we-formula-details {
+    max-height: min(46vh, 420px) !important;
+    overflow: auto !important;
+}
+
+html body[data-theme] .we-formula-category-btn,
+html body[data-theme] .we-formula-item,
+html body[data-theme] .we-formula-details-box {
+    background: color-mix(in srgb, var(--panel-2) 78%, transparent) !important;
+    border-color: color-mix(in srgb, var(--line) 85%, transparent) !important;
+    color: var(--text) !important;
+}
+
+html body[data-theme] .we-formula-category-btn,
+html body[data-theme] .we-formula-item-name,
+html body[data-theme] .we-formula-item-syntax,
+html body[data-theme] .we-formula-details-name,
+html body[data-theme] .we-formula-details-label,
+html body[data-theme] .we-formula-details-empty,
+html body[data-theme] .we-formula-details-card,
+html body[data-theme] .we-formula-list-top,
+html body[data-theme] .we-formula-details-box {
+    color: var(--text) !important;
+}
+
+html body[data-theme] .we-formula-item-syntax,
+html body[data-theme] .we-formula-details-label {
+    color: color-mix(in srgb, var(--text) 68%, var(--muted)) !important;
+}
+
+html body[data-theme] .we-formula-category-btn:hover,
+html body[data-theme] .we-formula-category-btn.active,
+html body[data-theme] .we-formula-item:hover,
+html body[data-theme] .we-formula-item.active {
+    background: color-mix(in srgb, var(--primary) 35%, var(--panel-2)) !important;
+    border-color: color-mix(in srgb, var(--primary) 72%, var(--line)) !important;
+    color: #fff !important;
+}
+
+html body[data-theme] .we-formula-category-btn:hover *,
+html body[data-theme] .we-formula-category-btn.active *,
+html body[data-theme] .we-formula-item:hover *,
+html body[data-theme] .we-formula-item.active * {
+    color: #fff !important;
+}
+
+html body[data-theme] .we-formula-details-box {
+    min-height: 42px;
+    display: flex;
+    align-items: center;
+}
+
+.we-workbook-tab {
+    border-bottom-width: 4px !important;
+    border-bottom-style: solid !important;
+    border-bottom-color: var(--tab-color, transparent) !important;
+}
+
+.we-workbook-tab[style*="--tab-color: transparent"],
+.we-workbook-tab[style*="--tab-color:transparent"] {
+    border-bottom-color: var(--line) !important;
+}
+
+html body[data-theme] #sheet-context-menu.we-sheet-context-menu {
+    padding: 10px !important;
+    min-width: 280px !important;
+    max-width: min(360px, calc(100vw - 24px)) !important;
+    max-height: min(78vh, 620px) !important;
+    overflow: visible !important;
+    background: var(--panel) !important;
+    color: var(--text) !important;
+    border: 1px solid var(--line) !important;
+}
+
+html body[data-theme] #sheet-context-menu button,
+html body[data-theme] #sheet-context-menu .we-menu-parent {
+    min-height: 36px;
+    color: var(--text) !important;
+    background: transparent !important;
+    border: 0 !important;
+    font-family: inherit !important;
+    font-weight: 700 !important;
+}
+
+html body[data-theme] #sheet-context-menu button:hover:not(:disabled),
+html body[data-theme] #sheet-context-menu .we-menu-row:hover > .we-menu-parent {
+    background: color-mix(in srgb, var(--primary) 26%, var(--panel-2)) !important;
+    color: #fff !important;
+}
+
+#sheet-context-menu .we-sheet-color-row {
+    display: grid !important;
+    grid-template-columns: repeat(6, 28px) !important;
+    gap: 10px !important;
+    padding: 10px 12px 14px !important;
+}
+
+#sheet-context-menu .we-sheet-color-swatch {
+    display: inline-grid !important;
+    place-items: center !important;
+    width: 26px !important;
+    height: 26px !important;
+    min-height: 26px !important;
+    padding: 0 !important;
+    border-radius: 50% !important;
+    border: 2px solid color-mix(in srgb, var(--text) 24%, transparent) !important;
+    background: var(--swatch-color) !important;
+    cursor: pointer !important;
+    box-shadow: inset 0 0 0 1px rgba(0,0,0,.16) !important;
+}
+
+#sheet-context-menu .we-sheet-color-swatch.active::after {
+    content: "✓";
+    color: #fff;
+    font-size: 13px;
+    font-weight: 900;
+    text-shadow: 0 1px 3px rgba(0,0,0,.75);
+}
+
+#sheet-context-menu .we-sheet-color-swatch:hover {
+    outline: 2px solid var(--primary) !important;
+    outline-offset: 2px !important;
+}
+
+#sheet-context-menu .we-sheet-submenu {
+    display: none;
+    position: absolute;
+    left: calc(100% - 4px);
+    top: 0;
+    z-index: 2300;
+    min-width: 220px;
+    max-height: min(45vh, 320px);
+    overflow: auto;
+    padding: 8px;
+    border-radius: 12px;
+    background: var(--panel) !important;
+    color: var(--text) !important;
+    border: 1px solid var(--line) !important;
+    box-shadow: var(--shadow) !important;
+}
+
+#sheet-context-menu .we-menu-row:hover .we-sheet-submenu,
+#sheet-context-menu .we-menu-row:focus-within .we-sheet-submenu {
+    display: block;
+}
+
+@media (max-width: 1200px) {
+    html body[data-theme] .we-formula-browser {
+        grid-template-columns: minmax(180px, 220px) minmax(240px, 300px) minmax(320px, 1fr) !important;
+    }
+}
+
+@media (max-width: 900px) {
+    .we-ribbon {
+        left: 8px;
+        right: 8px;
+        max-height: 60vh;
+    }
+
+    html body[data-theme] .we-formula-browser {
+        grid-template-columns: 1fr !important;
+    }
+
+    #sheet-context-menu .we-sheet-submenu {
+        left: 0;
+        top: calc(100% + 4px);
+    }
+}
+
+/* v0.4.0: czytelniejsze komentarze i notatki */
+html body[data-theme] .we-comment-box {
+    width: min(680px, 94vw) !important;
+    background: linear-gradient(180deg, color-mix(in srgb, var(--panel) 92%, var(--primary) 8%), var(--panel-2)) !important;
+}
+html body[data-theme] .we-comment-box .we-modal-top {
+    align-items: flex-start !important;
+    padding-bottom: 12px !important;
+    border-bottom: 1px solid var(--line) !important;
+}
+html body[data-theme] .we-comment-box .we-modal-top strong { font-size: 1.35rem !important; letter-spacing: .01em !important; }
+html body[data-theme] .we-comment-box label,
+html body[data-theme] .we-comment-preview-label {
+    color: color-mix(in srgb, var(--text) 88%, var(--primary)) !important;
+    font-size: .92rem !important;
+    text-transform: uppercase !important;
+    letter-spacing: .08em !important;
+}
+html body[data-theme] #comment-textarea {
+    min-height: 150px !important;
+    line-height: 1.55 !important;
+    font-size: 1rem !important;
+    resize: vertical !important;
+    background: color-mix(in srgb, var(--panel) 88%, white 4%) !important;
+    border: 1px solid color-mix(in srgb, var(--line) 70%, var(--primary) 30%) !important;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.04) !important;
+}
+html body[data-theme] .we-comment-preview {
+    min-height: 92px !important;
+    line-height: 1.55 !important;
+    font-size: 1rem !important;
+    background: color-mix(in srgb, var(--panel) 78%, var(--bg) 22%) !important;
+    border: 1px solid color-mix(in srgb, var(--line) 74%, var(--primary) 26%) !important;
+    box-shadow: inset 3px 0 0 var(--primary) !important;
+}
+.we-cell-tooltip {
+    max-width: min(420px, calc(100vw - 32px)) !important;
+    z-index: 3000 !important;
+    background: var(--panel, #fffbe6) !important;
+    color: var(--text, #1f2937) !important;
+    border: 1px solid color-mix(in srgb, var(--primary, #f59e0b) 45%, var(--line, #f5d26b)) !important;
+    box-shadow: 0 18px 42px rgba(0,0,0,.38) !important;
+    border-radius: 16px !important;
+    padding: 14px 16px !important;
+    font-size: .98rem !important;
+    line-height: 1.5 !important;
+}
+.we-cell-tooltip::before {
+    content: "Komentarz";
+    display: block;
+    margin-bottom: 7px;
+    color: var(--primary, #f59e0b);
+    font-weight: 900;
+    font-size: .78rem;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+}
+
+/* ARES v0.4.1 fixes: readable comments, whole row/column selection, border controls */
+html body[data-theme] .we-comment-box {
+    width: min(720px, 94vw) !important;
+    max-height: 86vh !important;
+    overflow: auto !important;
+}
+html body[data-theme] .we-comment-box .we-modal-subtitle {
+    color: var(--muted, #6f5b3c) !important;
+    font-size: .98rem !important;
+    line-height: 1.55 !important;
+}
+html body[data-theme] #comment-textarea {
+    min-height: 180px !important;
+    resize: vertical !important;
+    font-size: 1rem !important;
+    line-height: 1.5 !important;
+    color: var(--text, #241b12) !important;
+    background: var(--surface, #fffaf2) !important;
+    border: 1px solid color-mix(in srgb, var(--primary, #c68637) 38%, var(--line, #ead7bb)) !important;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.55) !important;
+}
+html body[data-theme] .we-comment-preview {
+    min-height: 90px !important;
+    color: var(--text, #241b12) !important;
+    background: color-mix(in srgb, var(--surface, #fffaf2) 92%, var(--primary, #c68637) 8%) !important;
+    border: 1px solid color-mix(in srgb, var(--primary, #c68637) 35%, var(--line, #ead7bb)) !important;
+    font-size: .98rem !important;
+    line-height: 1.5 !important;
+}
+.we-cell-tooltip {
+    max-width: 420px !important;
+    min-width: 220px !important;
+    color: #241b12 !important;
+    background: #fff8dc !important;
+    border: 1px solid #e0b85e !important;
+    box-shadow: 0 16px 36px rgba(0,0,0,.28) !important;
+    font-size: .98rem !important;
+    line-height: 1.45 !important;
+}
+.we-sheet-table th.selected-header,
+.we-sheet-table th.active-header {
+    background: color-mix(in srgb, var(--primary, #c68637) 26%, var(--surface-2, #f1e4cf)) !important;
+    color: var(--text, #241b12) !important;
+    box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--primary, #c68637) 48%, transparent) !important;
+}
+.we-sheet-table th.row-header,
+.we-sheet-table thead th {
+    cursor: pointer;
+    user-select: none;
+}
+.we-border-popover {
+    width: min(380px, calc(100vw - 24px)) !important;
+    color: var(--text, #241b12) !important;
+    background: var(--surface, #fffaf2) !important;
+    border: 1px solid var(--line, #ead7bb) !important;
+    box-shadow: 0 18px 42px rgba(0,0,0,.22) !important;
+}
+.we-border-controls {
+    grid-template-columns: 1fr 1fr 1fr !important;
+}
+.we-border-controls label,
+.we-color-popover-title {
+    color: var(--text, #241b12) !important;
+}
+.we-border-controls select,
+.we-border-controls input,
+.we-border-option {
+    background: var(--surface-2, #fff7eb) !important;
+    color: var(--text, #241b12) !important;
+    border-color: var(--line, #ead7bb) !important;
+}
+.we-border-option:hover {
+    outline-color: var(--primary, #c68637) !important;
+}
+.we-border-apply {
+    background: var(--primary, #c68637) !important;
+}
+
+/* ARES v0.4.3: Home toolbar stays visible; other ribbon tabs float over the sheet */
+html body[data-theme] .we-toolbar-card {
+    position: relative !important;
+    overflow: visible !important;
+}
+html body[data-theme] .we-toolbar-card .we-ribbon {
+    position: relative !important;
+    left: auto !important;
+    right: auto !important;
+    top: auto !important;
+    z-index: 20 !important;
+    max-height: none !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    pointer-events: auto !important;
+    transform: none !important;
+    overflow-x: auto !important;
+    overflow-y: visible !important;
+}
+html body[data-theme] .we-toolbar-card.ribbon-floating .we-ribbon {
+    position: absolute !important;
+    left: 16px !important;
+    right: 16px !important;
+    top: calc(100% - 8px) !important;
+    z-index: 140 !important;
+    max-height: min(56vh, 540px) !important;
+    overflow: auto !important;
+    box-shadow: 0 24px 64px rgba(0,0,0,.22) !important;
+}
+html body[data-theme] .we-toolbar-card:not(.ribbon-floating) .we-ribbon-panel:not([data-panel="start"]) {
+    display: none !important;
+}
+html body[data-theme] .we-toolbar-card:not(.ribbon-floating) .we-ribbon-panel[data-panel="start"] {
+    display: block !important;
+}
+
+/* v0.4.4: responsive sheet sizing, zoom without broken blank space, conditional formatting UI */
+.ares-main > .container:has(.we-page-shell) {
+    width: 100% !important;
+    max-width: none !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    padding-left: clamp(16px, 2.5vw, 42px) !important;
+    padding-right: clamp(16px, 2.5vw, 42px) !important;
+}
+.we-page-shell {
+    width: 100% !important;
+    max-width: none !important;
+    margin-inline: auto !important;
+}
+.we-toolbar-card,
+.we-sheet-card,
+.we-objects-card {
+    width: 100% !important;
+    max-width: none !important;
+    box-sizing: border-box;
+}
+.we-sheet-scroll {
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow: auto !important;
+    scrollbar-gutter: stable both-edges;
+}
+.we-sheet-table {
+    transform: none !important;
+    transform-origin: initial !important;
+    zoom: var(--we-table-zoom, 1);
+}
+@supports not (zoom: 1) {
+    .we-sheet-table {
+        transform: scale(var(--we-table-zoom, 1)) !important;
+        transform-origin: top left !important;
+    }
+}
+.we-smart-grid.we-conditional-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.we-conditional-list {
+    display: grid;
+    gap: 8px;
+    margin-top: 10px;
+    max-height: 180px;
+    overflow: auto;
+}
+.we-conditional-empty,
+.we-conditional-rule-line {
+    border: 1px solid rgba(255,255,255,.10);
+    background: rgba(255,255,255,.045);
+    border-radius: 12px;
+    color: #eef3ff;
+    padding: 10px 12px;
+}
+.we-conditional-rule-line {
+    display: grid;
+    grid-template-columns: 18px 1fr auto auto;
+    align-items: center;
+    gap: 10px;
+}
+.we-conditional-rule-line small { color: #aeb9cc; }
+.we-conditional-rule-line button {
+    border: 1px solid rgba(255,255,255,.12);
+    background: rgba(255,255,255,.06);
+    color: #eef3ff;
+    border-radius: 10px;
+    padding: 6px 10px;
+    cursor: pointer;
+    font-weight: 800;
+}
+.we-conditional-swatch {
+    width: 16px;
+    height: 16px;
+    border-radius: 999px;
+    border: 1px solid rgba(0,0,0,.22);
+    display: inline-block;
+}
+body[data-theme="arctic-light"] .we-conditional-empty,
+body[data-theme="arctic-light"] .we-conditional-rule-line,
+body[data-theme="sand-light"] .we-conditional-empty,
+body[data-theme="sand-light"] .we-conditional-rule-line,
+body[data-theme="clean-slate"] .we-conditional-empty,
+body[data-theme="clean-slate"] .we-conditional-rule-line {
+    background: #fffaf3;
+    border-color: #ead8bb;
+    color: #2f2418;
+}
+body[data-theme="arctic-light"] .we-conditional-rule-line small,
+body[data-theme="sand-light"] .we-conditional-rule-line small,
+body[data-theme="clean-slate"] .we-conditional-rule-line small { color: #765d3c; }
+body[data-theme="arctic-light"] .we-conditional-rule-line button,
+body[data-theme="sand-light"] .we-conditional-rule-line button,
+body[data-theme="clean-slate"] .we-conditional-rule-line button {
+    background: #f7ead6;
+    color: #2f2418;
+    border-color: #d8bf98;
+}
+@media (max-width: 760px) {
+    .we-smart-grid.we-conditional-grid { grid-template-columns: 1fr; }
+    .we-conditional-rule-line { grid-template-columns: 18px 1fr auto; }
+    .we-conditional-rule-line small { grid-column: 2 / 4; }
+}
+
+/* ARES v0.4.5: pewne kolorowanie zakładek arkusza */
+html body[data-theme] #sheet-context-menu.we-sheet-context-menu {
+    z-index: 999990 !important;
+    overflow: visible !important;
+}
+html body[data-theme] #sheet-context-menu .we-sheet-color-swatch,
+html body[data-theme] #sheet-context-menu button.we-sheet-color-swatch {
+    background-color: var(--swatch-color) !important;
+    background-image: none !important;
+    color: #111 !important;
+    opacity: 1 !important;
+    pointer-events: auto !important;
+    visibility: visible !important;
+}
+html body[data-theme] #sheet-context-menu .we-sheet-color-swatch[data-sheet-action="tab-color:#ffffff"] {
+    background: linear-gradient(135deg, #ffffff 0 47%, #d8d8d8 48% 52%, #ffffff 53% 100%) !important;
+}
+html body[data-theme] .we-workbook-tab {
+    border-bottom: 4px solid var(--tab-color, var(--line)) !important;
+    box-shadow: inset 0 -5px 0 color-mix(in srgb, var(--tab-color, transparent) 75%, transparent) !important;
+}
+html body[data-theme] .we-workbook-tab:not([style*="transparent"]):not([style*="--tab-color: "]) {
+    background: linear-gradient(180deg, var(--panel) 0%, color-mix(in srgb, var(--tab-color) 24%, var(--panel-2)) 100%) !important;
+}
+html body[data-theme] .we-workbook-tab.active {
+    border-color: var(--tab-color, var(--primary)) !important;
+}

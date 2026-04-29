@@ -1,6 +1,7 @@
 document.addEventListener("DOMContentLoaded", function () {
     const params = new URLSearchParams(window.location.search);
-    const sheetId = params.get("sheet");
+    let sheetId = params.get("sheet");
+    const initialOpenPanel = params.get("open");
 
     const head = document.getElementById("sheet-head");
     const body = document.getElementById("sheet-body");
@@ -19,6 +20,9 @@ document.addEventListener("DOMContentLoaded", function () {
 
     const tabs = document.querySelectorAll(".we-tab");
     const panels = document.querySelectorAll(".we-ribbon-panel");
+    const toolbarCard = document.querySelector(".we-toolbar-card");
+    const ribbonEl = document.querySelector(".we-ribbon");
+    let ribbonCloseTimer = null;
 
     const sortAscBtn = document.getElementById("sort-asc-btn");
     const sortDescBtn = document.getElementById("sort-desc-btn");
@@ -28,6 +32,11 @@ document.addEventListener("DOMContentLoaded", function () {
     const autofitBtn = document.getElementById("autofit-cols-btn");
     const sheetEditorCard = document.getElementById("sheet-editor-card");
     const sheetGridTable = document.getElementById("sheet-grid-table");
+    const zoomSelectEl = document.getElementById("zoom-select");
+    if (zoomSelectEl && !Array.from(zoomSelectEl.options).some(opt => opt.value === "Dopasuj")) {
+        const opt = new Option("Dopasuj", "Dopasuj");
+        zoomSelectEl.insertBefore(opt, zoomSelectEl.firstChild);
+    }
 
     const insertMenuItems = document.querySelectorAll(".we-insert-item");
     const insertSubmenuItems = document.querySelectorAll(".we-submenu-item");
@@ -134,6 +143,10 @@ document.addEventListener("DOMContentLoaded", function () {
     let currentSheet = null;
     let currentRows = 20;
     let currentCols = 10;
+    const MIN_ROWS = 20;
+    const MIN_COLS = 10;
+    const MAX_IMPORT_ROWS = 1000;
+    const MAX_IMPORT_COLS = 80;
     let activeCell = { row: 0, col: 0 };
     let autosaveTimer = null;
     let fullWidthMode = false;
@@ -358,39 +371,106 @@ document.addEventListener("DOMContentLoaded", function () {
 
         return { rows, cols };
     }
+ 
+    function makeUniqueSheetName(baseName = "Arkusz", ignoreIndex = null) {
+        const base = String(baseName || "Arkusz").trim() || "Arkusz";
+        if (!workbook?.sheets?.length) return base;
+
+        const existing = new Set(
+            workbook.sheets
+                .map((sheet, index) => index === ignoreIndex ? null : String(sheet.name || "").trim().toLowerCase())
+                .filter(Boolean)
+        );
+
+        if (!existing.has(base.toLowerCase())) return base;
+
+        let suffix = 2;
+        let candidate = `${base} ${suffix}`;
+        while (existing.has(candidate.toLowerCase())) {
+            suffix += 1;
+            candidate = `${base} ${suffix}`;
+        }
+        return candidate;
+    }
+
+    function normalizeSheetMeta(sheet, index) {
+        return {
+            name: sheet.name || `Arkusz ${index + 1}`,
+            grid: Array.isArray(sheet.grid) ? sheet.grid : emptyGrid(),
+            styles: sheet.styles || {},
+            conditionalRules: Array.isArray(sheet.conditionalRules) ? sheet.conditionalRules : [],
+            color: sheet.color || "",
+            hidden: Boolean(sheet.hidden),
+            protected: Boolean(sheet.protected)
+        };
+    }
+
+    function ensureUniqueWorkbookSheetNames() {
+        if (!workbook?.sheets?.length) return;
+        const used = new Set();
+        workbook.sheets.forEach((sheet, index) => {
+            const base = String(sheet.name || `Arkusz ${index + 1}`).trim() || `Arkusz ${index + 1}`;
+            let candidate = base;
+            let suffix = 2;
+            while (used.has(candidate.toLowerCase())) {
+                candidate = `${base} ${suffix}`;
+                suffix += 1;
+            }
+            sheet.name = candidate;
+            used.add(candidate.toLowerCase());
+        });
+    }
+
+    function formatFormulaValue(value, decimals = 10) {
+        if (Array.isArray(value)) {
+            return value.map(item => Array.isArray(item) ? item.map(v => formatFormulaValue(v, decimals)) : formatFormulaValue(item, decimals));
+        }
+        if (typeof value !== "number") return value;
+        if (!Number.isFinite(value)) return "#BŁĄD";
+        if (Number.isInteger(value)) return value;
+        const rounded = Number(value.toFixed(decimals));
+        return Object.is(rounded, -0) ? 0 : rounded;
+    }
+
+    function displayFormulaValue(value) {
+        const formatted = formatFormulaValue(value);
+        return String(formatted ?? "");
+    }
 
     function normalizeWorkbookData(data) {
         const rawGrid = data.grid;
-        if (rawGrid && !Array.isArray(rawGrid) && Array.isArray(rawGrid.sheets)) {
-            return {
+        const normalizedWorkbook = rawGrid && !Array.isArray(rawGrid) && Array.isArray(rawGrid.sheets)
+            ? {
                 activeSheetIndex: Math.min(rawGrid.activeSheetIndex || 0, rawGrid.sheets.length - 1),
-                sheets: rawGrid.sheets.map((sheet, index) => {
-                    const grid = Array.isArray(sheet.grid) ? sheet.grid : emptyGrid();
-                    return {
-                        name: sheet.name || `Arkusz ${index + 1}`,
-                        grid,
-                        styles: sheet.styles || {}
-                    };
-                })
+                sheets: rawGrid.sheets.map((sheet, index) => normalizeSheetMeta(sheet, index))
+            }
+            : {
+                activeSheetIndex: 0,
+                sheets: [{
+                    name: data.name || "Arkusz1",
+                    grid: Array.isArray(rawGrid) ? rawGrid : emptyGrid(),
+                    styles: data.styles || {},
+                    conditionalRules: Array.isArray(data.conditionalRules) ? data.conditionalRules : [],
+                    color: "",
+                    hidden: false,
+                    protected: false
+                }]
             };
-        }
 
-        return {
-            activeSheetIndex: 0,
-            sheets: [{
-                name: data.name || "Arkusz1",
-                grid: Array.isArray(rawGrid) ? rawGrid : emptyGrid(),
-                styles: data.styles || {}
-            }]
-        };
+        workbook = normalizedWorkbook;
+        ensureUniqueWorkbookSheetNames();
+        return workbook;
     }
 
     function commitActiveSheetToWorkbook() {
         if (!workbook || !currentSheet) return;
+        const previous = workbook.sheets[activeWorkbookSheetIndex] || {};
         workbook.sheets[activeWorkbookSheetIndex] = {
-            name: workbook.sheets[activeWorkbookSheetIndex]?.name || currentSheet.name || `Arkusz ${activeWorkbookSheetIndex + 1}`,
+            ...previous,
+            name: previous.name || currentSheet.activeTabName || currentSheet.name || `Arkusz ${activeWorkbookSheetIndex + 1}`,
             grid: currentSheet.grid,
-            styles: currentSheet.styles || {}
+            styles: currentSheet.styles || {},
+            conditionalRules: currentSheet.conditionalRules || []
         };
     }
 
@@ -402,6 +482,7 @@ document.addEventListener("DOMContentLoaded", function () {
         const selected = workbook.sheets[index];
         currentSheet.grid = selected.grid;
         currentSheet.styles = selected.styles || {};
+        currentSheet.conditionalRules = Array.isArray(selected.conditionalRules) ? selected.conditionalRules : [];
         currentSheet.activeTabName = selected.name;
         const dims = inferDimensionsFromGrid(currentSheet.grid);
         currentRows = dims.rows;
@@ -421,6 +502,7 @@ document.addEventListener("DOMContentLoaded", function () {
             const btn = document.createElement("button");
             btn.type = "button";
             btn.className = "we-workbook-tab" + (index === activeWorkbookSheetIndex ? " active" : "") + (sheet.hidden ? " hidden-sheet" : "");
+            btn.style.setProperty("--tab-color", sheet.color || "transparent");
             btn.style.borderBottomColor = sheet.color || "";
             btn.innerHTML = `<span class="we-tab-title">${escapeHtml(sheet.name || `Arkusz ${index + 1}`)}</span> <span class="we-workbook-tab-actions" title="Opcje arkusza">▾</span>`;
             btn.addEventListener("click", (event) => {
@@ -450,49 +532,71 @@ document.addEventListener("DOMContentLoaded", function () {
         const canMoveLeft = index > 0;
         const canMoveRight = index < workbook.sheets.length - 1;
         const tabColors = ["#ffffff", "#f28b82", "#fbbc04", "#fff475", "#ccff90", "#a7ffeb", "#cbf0f8", "#aecbfa", "#d7aefb", "#fdcfe8", "#4f8cff", "#3ccf91"];
+        const copyTargets = workbook.sheets
+            .map((sheet, sheetIndex) => ({ sheet, sheetIndex }))
+            .filter(item => item.sheetIndex !== index)
+            .map(item => `<button data-sheet-action="copy-to-index:${item.sheetIndex}">${escapeHtml(item.sheet.name || `Arkusz ${item.sheetIndex + 1}`)}</button>`)
+            .join("") || `<button disabled>Brak innych arkuszy</button>`;
+        const activeColor = workbook.sheets[index].color || "";
         sheetContextMenu.innerHTML = `
-            <button data-sheet-action="delete">Usuń</button>
-            <button data-sheet-action="duplicate">Duplikuj</button>
-            <button data-sheet-action="copy-to">Kopiuj do <span>›</span></button>
-            <button data-sheet-action="rename">Zmień nazwę</button>
-            <button data-sheet-action="protect">Chroń arkusz</button>
-            <button data-sheet-action="hide">Ukryj arkusz</button>
-            <button data-sheet-action="comments">Wyświetl komentarze</button>
+            <button type="button" data-sheet-action="rename">Zmień nazwę</button>
+            <button type="button" data-sheet-action="duplicate">Duplikuj</button>
+            <div class="we-menu-row has-submenu" tabindex="0">
+                <button type="button" class="we-menu-parent">Kopiuj do <span>›</span></button>
+                <div class="we-sheet-submenu">${copyTargets}<button type="button" data-sheet-action="copy-to-new">Nowy arkusz</button></div>
+            </div>
+            <button type="button" data-sheet-action="protect">${workbook.sheets[index].protected ? "Wyłącz ochronę" : "Chroń arkusz"}</button>
+            <button type="button" data-sheet-action="hide">${workbook.sheets[index].hidden ? "Pokaż arkusz" : "Ukryj arkusz"}</button>
+            <button type="button" data-sheet-action="comments">Wyświetl komentarze</button>
             <div class="we-menu-separator"></div>
-            <button type="button" disabled>Zmień kolor</button>
-            <div class="we-sheet-color-row">${tabColors.map(c => `<span class="we-sheet-color-swatch" data-sheet-action="tab-color:${c}" style="background:${c}" title="${c === "#ffffff" ? "Bez koloru" : c}"></span>`).join("")}</div>
+            <div class="we-menu-section-label">Zmień kolor</div>
+            <div class="we-sheet-color-row">${tabColors.map(c => `<button type="button" class="we-sheet-color-swatch${(c === activeColor || (c === "#ffffff" && !activeColor)) ? " active" : ""}" data-sheet-action="tab-color:${c}" style="--swatch-color:${c}; background:${c}" aria-label="${c === "#ffffff" ? "Bez koloru" : `Kolor ${c}`}" title="${c === "#ffffff" ? "Bez koloru" : c}"></button>`).join("")}</div>
             <div class="we-menu-separator"></div>
-            <button data-sheet-action="move-right" ${canMoveRight ? "" : "disabled"}>Przenieś w prawo</button>
-            <button data-sheet-action="move-left" ${canMoveLeft ? "" : "disabled"}>Przenieś w lewo</button>
+            <button type="button" data-sheet-action="move-right" ${canMoveRight ? "" : "disabled"}>Przenieś w prawo</button>
+            <button type="button" data-sheet-action="move-left" ${canMoveLeft ? "" : "disabled"}>Przenieś w lewo</button>
+            <div class="we-menu-separator"></div>
+            <button type="button" data-sheet-action="delete" class="danger">Usuń</button>
         `;
         const rect = anchor.getBoundingClientRect();
         sheetContextMenu.hidden = false;
         sheetContextMenu.style.visibility = "hidden";
-        sheetContextMenu.style.left = `${Math.max(8, Math.min(rect.left, window.innerWidth - 250))}px`;
-        const menuHeight = sheetContextMenu.offsetHeight || 360;
-        const topAbove = rect.top - menuHeight - 8;
-        sheetContextMenu.style.top = `${Math.max(8, topAbove)}px`;
+        const menuWidth = 260;
+        sheetContextMenu.style.left = `${Math.max(8, Math.min(rect.left, window.innerWidth - menuWidth - 8))}px`;
+        const menuHeight = sheetContextMenu.offsetHeight || 420;
+        const preferTop = rect.top - menuHeight - 8;
+        const top = preferTop > 8 ? preferTop : Math.min(rect.bottom + 8, window.innerHeight - menuHeight - 8);
+        sheetContextMenu.style.top = `${Math.max(8, top)}px`;
         sheetContextMenu.style.visibility = "visible";
     }
-
     function handleSheetContextAction(action) {
         const index = pendingSheetTabIndex;
         if (!workbook || index == null || !workbook.sheets[index]) return;
         if (action === "comments") return openCommentEditor("comment");
         if (action && action.startsWith("tab-color:")) {
-            const color = action.split(":")[1];
+            const color = action.slice("tab-color:".length);
             workbook.sheets[index].color = color === "#ffffff" ? "" : color;
             renderWorkbookTabs();
             return markDirty();
         }
         if (action === "rename") return renameWorkbookSheet(index);
-        if (action === "duplicate" || action === "copy-to") {
+        if (action === "duplicate" || action === "copy-to-new") {
             commitActiveSheetToWorkbook();
             const original = workbook.sheets[index];
             const copy = JSON.parse(JSON.stringify(original));
-            copy.name = `${original.name || `Arkusz ${index + 1}`} — kopia`;
+            copy.name = makeUniqueSheetName(`${original.name || `Arkusz ${index + 1}`} — kopia`);
             workbook.sheets.splice(index + 1, 0, copy);
             activateWorkbookSheet(index + 1);
+            return markDirty();
+        }
+        if (action && action.startsWith("copy-to-index:")) {
+            commitActiveSheetToWorkbook();
+            const targetIndex = parseInt(action.split(":")[1], 10);
+            if (!Number.isInteger(targetIndex) || !workbook.sheets[targetIndex]) return;
+            const original = workbook.sheets[index];
+            const copy = JSON.parse(JSON.stringify(original));
+            copy.name = makeUniqueSheetName(`${original.name || `Arkusz ${index + 1}`} — kopia`);
+            workbook.sheets.splice(targetIndex + 1, 0, copy);
+            activateWorkbookSheet(targetIndex + 1);
             return markDirty();
         }
         if (action === "delete") {
@@ -537,7 +641,8 @@ document.addEventListener("DOMContentLoaded", function () {
         if (!workbook) return;
         commitActiveSheetToWorkbook();
         const nextIndex = workbook.sheets.length + 1;
-        workbook.sheets.push({ name: `Arkusz ${nextIndex}`, grid: emptyGrid(), styles: {} });
+        const name = makeUniqueSheetName(`Arkusz ${nextIndex}`);
+        workbook.sheets.push({ name, grid: emptyGrid(), styles: {}, color: "", hidden: false, protected: false });
         activateWorkbookSheet(workbook.sheets.length - 1);
         markDirty();
     }
@@ -547,8 +652,9 @@ document.addEventListener("DOMContentLoaded", function () {
         const currentName = workbook.sheets[index].name || `Arkusz ${index + 1}`;
         const nextName = prompt("Podaj nazwę zakładki:", currentName);
         if (!nextName) return;
-        workbook.sheets[index].name = nextName.trim();
-        if (index === activeWorkbookSheetIndex && currentSheet) currentSheet.activeTabName = nextName.trim();
+        const uniqueName = makeUniqueSheetName(nextName.trim(), index);
+        workbook.sheets[index].name = uniqueName;
+        if (index === activeWorkbookSheetIndex && currentSheet) currentSheet.activeTabName = uniqueName;
         renderWorkbookTabs();
         if (sheetMetaEl) sheetMetaEl.textContent = `Zakładka: ${workbook.sheets[activeWorkbookSheetIndex].name} • Wiersze: ${currentRows} • Kolumny: ${currentCols}`;
         markDirty();
@@ -585,6 +691,7 @@ document.addEventListener("DOMContentLoaded", function () {
             ...data,
             category: data.category || "Bez kategorii",
             styles: active.styles || {},
+            conditionalRules: Array.isArray(active.conditionalRules) ? active.conditionalRules : [],
             grid: normalized,
             activeTabName: active.name || "Arkusz1"
         };
@@ -661,6 +768,7 @@ document.addEventListener("DOMContentLoaded", function () {
         return {
             grid: JSON.parse(JSON.stringify(currentSheet.grid || [])),
             styles: JSON.parse(JSON.stringify(currentSheet.styles || {})),
+            conditionalRules: JSON.parse(JSON.stringify(currentSheet.conditionalRules || [])),
             name: currentSheet.name,
             category: currentSheet.category
         };
@@ -678,6 +786,7 @@ document.addEventListener("DOMContentLoaded", function () {
     function restoreSheetSnapshot(snapshot) {
         currentSheet.grid = snapshot.grid;
         currentSheet.styles = snapshot.styles || {};
+        currentSheet.conditionalRules = Array.isArray(snapshot.conditionalRules) ? snapshot.conditionalRules : [];
         currentSheet.name = snapshot.name;
         currentSheet.category = snapshot.category;
 
@@ -784,7 +893,29 @@ document.addEventListener("DOMContentLoaded", function () {
         selectionEnd = null;
     }
 
+    function selectWholeRow(row) {
+        selectionStart = { row, col: 0 };
+        selectionEnd = { row, col: Math.max(0, currentCols - 1) };
+        setActiveCell(row, 0, false);
+        updateSelectionHighlight();
+    }
+
+    function selectWholeColumn(col) {
+        selectionStart = { row: 0, col };
+        selectionEnd = { row: Math.max(0, currentRows - 1), col };
+        setActiveCell(0, col, false);
+        updateSelectionHighlight();
+    }
+
+    function selectWholeSheet() {
+        selectionStart = { row: 0, col: 0 };
+        selectionEnd = { row: Math.max(0, currentRows - 1), col: Math.max(0, currentCols - 1) };
+        setActiveCell(0, 0, false);
+        updateSelectionHighlight();
+    }
+
     function updateSelectionHighlight() {
+        document.querySelectorAll(".we-sheet-table th").forEach(th => th.classList.remove("selected-header", "active-header"));
         document.querySelectorAll(".we-sheet-table td").forEach(td => {
             td.classList.remove("active-cell", "selected-range", "fill-preview");
 
@@ -809,6 +940,96 @@ document.addEventListener("DOMContentLoaded", function () {
                 td.classList.add("active-cell");
             }
         });
+        const bounds = getSelectionBounds();
+        if (bounds) {
+            document.querySelectorAll(".we-sheet-table thead th").forEach((th, index) => {
+                if (index > 0 && index - 1 >= bounds.colStart && index - 1 <= bounds.colEnd) th.classList.add("selected-header");
+                if (index > 0 && index - 1 === activeCell.col) th.classList.add("active-header");
+            });
+            document.querySelectorAll(".we-sheet-table tbody tr").forEach((tr, index) => {
+                const th = tr.querySelector("th.row-header");
+                if (th && index >= bounds.rowStart && index <= bounds.rowEnd) th.classList.add("selected-header");
+                if (th && index === activeCell.row) th.classList.add("active-header");
+            });
+        }
+    }
+
+
+    function ensureConditionalRules() {
+        if (!currentSheet) return [];
+        if (!Array.isArray(currentSheet.conditionalRules)) currentSheet.conditionalRules = [];
+        return currentSheet.conditionalRules;
+    }
+
+    function parseRangeBounds(rangeText) {
+        const text = String(rangeText || "").trim() || getCurrentSelectionRangeText();
+        const parts = text.split(":").map(part => normalizeCellRefText(part));
+        const start = cellRefToIndex(parts[0]);
+        const end = cellRefToIndex(parts[1] || parts[0]);
+        if (!start || !end) return null;
+        return { rowStart: Math.min(start.row, end.row), rowEnd: Math.max(start.row, end.row), colStart: Math.min(start.col, end.col), colEnd: Math.max(start.col, end.col) };
+    }
+
+    function isCellInsideRuleRange(row, col, rangeText) {
+        const bounds = parseRangeBounds(rangeText);
+        return Boolean(bounds && row >= bounds.rowStart && row <= bounds.rowEnd && col >= bounds.colStart && col <= bounds.colEnd);
+    }
+
+    function buildConditionalStyle(preset) {
+        const styles = {
+            green: { fillColor: "#dcfce7", textColor: "#166534", bold: true },
+            red: { fillColor: "#fee2e2", textColor: "#991b1b", bold: true },
+            yellow: { fillColor: "#fef3c7", textColor: "#92400e", bold: true },
+            blue: { fillColor: "#dbeafe", textColor: "#1d4ed8", bold: true },
+            purple: { fillColor: "#ede9fe", textColor: "#6d28d9", bold: true }
+        };
+        return styles[preset] || styles.yellow;
+    }
+
+    function conditionalRuleMatches(rule, row, col) {
+        if (!rule || !isCellInsideRuleRange(row, col, rule.range)) return false;
+        const value = getCellComputedValue(row, col);
+        const text = String(value ?? "");
+        const needle = String(rule.value ?? "");
+        const number = isNumericValue(value) ? parseNumber(value) : NaN;
+        const a = String(rule.value ?? "").trim();
+        const b = String(rule.value2 ?? "").trim();
+        const na = isNumericValue(a) ? parseNumber(a) : NaN;
+        const nb = isNumericValue(b) ? parseNumber(b) : NaN;
+        switch (rule.type) {
+            case "text-eq": return text.trim().toLowerCase() === needle.trim().toLowerCase();
+            case "text-contains": return text.toLowerCase().includes(needle.toLowerCase());
+            case "empty": return text.trim() === "";
+            case "not-empty": return text.trim() !== "";
+            case "number-gt": return Number.isFinite(number) && Number.isFinite(na) && number > na;
+            case "number-lt": return Number.isFinite(number) && Number.isFinite(na) && number < na;
+            case "number-between": return Number.isFinite(number) && Number.isFinite(na) && Number.isFinite(nb) && number >= Math.min(na, nb) && number <= Math.max(na, nb);
+            default: return false;
+        }
+    }
+
+    function getConditionalStyleForCell(row, col) {
+        return ensureConditionalRules().reduce((style, rule) => conditionalRuleMatches(rule, row, col) ? { ...style, ...(rule.style || buildConditionalStyle(rule.preset)) } : style, {});
+    }
+
+    function renderConditionalRulesSummary() {
+        if (!smartInsertBody || smartInsertMode !== "conditional-format") return;
+        const list = smartInsertBody.querySelector("#conditional-rules-list");
+        if (!list) return;
+        const rules = ensureConditionalRules();
+        if (!rules.length) {
+            list.innerHTML = '<div class="we-conditional-empty">Brak reguł. Wybierz przykład i kliknij „Zastosuj”.</div>';
+            return;
+        }
+        list.innerHTML = rules.map((rule, index) => '<div class="we-conditional-rule-line"><span class="we-conditional-swatch" style="background:' + escapeHtml((rule.style && rule.style.fillColor) || '#fef3c7') + '"></span><strong>' + escapeHtml(rule.label || rule.type) + '</strong><small>' + escapeHtml(rule.range || '') + '</small><button type="button" data-delete-conditional="' + index + '">Usuń</button></div>').join('');
+        list.querySelectorAll('[data-delete-conditional]').forEach(btn => btn.addEventListener('click', () => {
+            const idx = parseInt(btn.dataset.deleteConditional || '0', 10);
+            pushHistorySnapshot();
+            ensureConditionalRules().splice(idx, 1);
+            renderConditionalRulesSummary();
+            renderGrid();
+            markDirty();
+        }));
     }
 
     function applyStyleToSelectionOrActive(patch) {
@@ -832,22 +1053,30 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     function applyCellStyleToElement(td, row, col) {
-        const style = getCellStyle(row, col);
+        const style = { ...getCellStyle(row, col), ...getConditionalStyleForCell(row, col) };
 
         td.style.fontFamily = style.fontFamily || "";
         td.style.fontSize = style.fontSize ? `${style.fontSize}px` : "";
         td.style.fontWeight = style.bold ? "700" : "";
         td.style.fontStyle = style.italic ? "italic" : "";
         td.style.textDecoration = style.underline ? "underline" : "";
-        td.style.color = style.textColor || "";
-        td.style.backgroundColor = style.fillColor || "";
+        if (style.textColor) td.style.setProperty("color", style.textColor, "important");
+        else td.style.removeProperty("color");
+
+        if (style.fillColor) td.style.setProperty("background-color", style.fillColor, "important");
+        else td.style.removeProperty("background-color");
         td.style.textAlign = style.align || "";
         
-        td.style.border = style.border ? "2px solid rgba(91, 141, 239, 0.9)" : "";
+        td.style.borderTop = "";
+        td.style.borderRight = "";
+        td.style.borderBottom = "";
+        td.style.borderLeft = "";
         const bColor = style.borderColor || "rgba(91, 141, 239, 0.9)";
         const bStyle = style.borderLineStyle || "solid";
         const bWidth = style.borderWidth || "2px";
         const borderCss = `${bWidth} ${bStyle} ${bColor}`;
+        if (style.border) td.style.border = borderCss;
+        else td.style.border = "";
         if (style.borderTop) td.style.borderTop = borderCss;
         if (style.borderRight) td.style.borderRight = borderCss;
         if (style.borderBottom) td.style.borderBottom = borderCss;
@@ -980,7 +1209,7 @@ document.addEventListener("DOMContentLoaded", function () {
                         matrix.forEach((spillRow, rr) => {
                             spillRow.forEach((spillValue, cc) => {
                                 if (rr === 0 && cc === 0) return;
-                                currentSheet.grid[r + rr][c + cc] = `${SPILL_PREFIX}${spillValue ?? ""}`;
+                                currentSheet.grid[r + rr][c + cc] = `${SPILL_PREFIX}${displayFormulaValue(spillValue)}`;
                             });
                         });
                     }
@@ -1092,7 +1321,8 @@ document.addEventListener("DOMContentLoaded", function () {
 
         if (typeof raw === "string" && raw.startsWith(SPILL_PREFIX)) {
             return {
-                html: `<span class="we-formula-result">${escapeHtml(raw.slice(SPILL_PREFIX.length))}</span>`,
+                html: `<span class="we-formula-result">${escapeHtml(displayFormulaValue(raw.slice(SPILL_PREFIX.length)))}</span>`,
+                text: displayFormulaValue(raw.slice(SPILL_PREFIX.length)),
                 special: true
             };
         }
@@ -1100,15 +1330,16 @@ document.addEventListener("DOMContentLoaded", function () {
         if (typeof raw === "string" && raw.trim().startsWith("=")) {
             const result = getCellComputedValue(row, col);
             if (Array.isArray(result)) {
-                return { html: `<span class="we-formula-result">[tablica]</span>`, special: true };
+                return { html: `<span class="we-formula-result">[tablica]</span>`, text: "[tablica]", special: true };
             }
             return {
-                html: `<span class="we-formula-result">${escapeHtml(result)}</span>`,
+                html: `<span class="we-formula-result">${escapeHtml(displayFormulaValue(result))}</span>`,
+                text: displayFormulaValue(result),
                 special: true
             };
         }
 
-        return { html: escapeHtml(raw), special: false };
+        return { html: escapeHtml(raw), text: String(raw ?? ""), special: false };
     }
 
     function updateFormulaBar() {
@@ -1299,9 +1530,14 @@ document.addEventListener("DOMContentLoaded", function () {
         corner.textContent = "#";
         headerRow.appendChild(corner);
 
+        corner.title = "Zaznacz cały arkusz";
+        corner.addEventListener("click", selectWholeSheet);
+
         for (let col = 0; col < currentCols; col += 1) {
             const th = document.createElement("th");
             th.textContent = colToLabel(col);
+            th.title = `Zaznacz całą kolumnę ${colToLabel(col)}`;
+            th.addEventListener("click", () => selectWholeColumn(col));
             headerRow.appendChild(th);
         }
         head.appendChild(headerRow);
@@ -1312,6 +1548,8 @@ document.addEventListener("DOMContentLoaded", function () {
             const rowHeader = document.createElement("th");
             rowHeader.className = "row-header";
             rowHeader.textContent = row + 1;
+            rowHeader.title = `Zaznacz cały wiersz ${row + 1}`;
+            rowHeader.addEventListener("click", () => selectWholeRow(row));
             tr.appendChild(rowHeader);
 
             for (let col = 0; col < currentCols; col += 1) {
@@ -1438,20 +1676,18 @@ document.addEventListener("DOMContentLoaded", function () {
                         if (newValue !== (currentSheet.grid[row][col] ?? "")) {
                             pushHistorySnapshot();
                             currentSheet.grid[row][col] = newValue;
-                            td.innerHTML = cellDisplayValue(row, col).html;
-                            applyCellStyleToElement(td, row, col);
                             markDirty();
                             logUserAction("Edycja komórki", { type: "cell_edit", cell: cellAddress(row, col), newValue });
-                        } else {
-                            td.innerHTML = cellDisplayValue(row, col).html;
-                            applyCellStyleToElement(td, row, col);
                         }
+                        td.innerHTML = cellDisplayValue(row, col).html;
+                        applyCellStyleToElement(td, row, col);
+                        refreshComputedCells(row, col);
                     }
                 });
 
                 td.addEventListener("input", () => {
-                    if (!editableBlocked && formulaInput) {
-                        formulaInput.value = td.textContent ?? "";
+                    if (!editableBlocked) {
+                        commitActiveCellLive(row, col, td);
                     }
                 });
 
@@ -1482,6 +1718,38 @@ document.addEventListener("DOMContentLoaded", function () {
         updateSelectionHighlight();
         autoFitColumns();
         rerenderGeneratedObjects();
+    }
+
+    function refreshComputedCells(changedRow = null, changedCol = null) {
+        if (!currentSheet || !body) return;
+        const focused = document.activeElement;
+        body.querySelectorAll("td[data-row][data-col]").forEach(td => {
+            const row = Number(td.dataset.row);
+            const col = Number(td.dataset.col);
+            if (!Number.isInteger(row) || !Number.isInteger(col)) return;
+            if (td === focused) return;
+            const raw = currentSheet.grid?.[row]?.[col] ?? "";
+            const shouldRefresh = typeof raw === "string" && (raw.trim().startsWith("=") || raw.startsWith(SPILL_PREFIX));
+            if (!shouldRefresh) return;
+            const display = cellDisplayValue(row, col);
+            td.innerHTML = display.html;
+            applyCellStyleToElement(td, row, col);
+            if (row === activeCell.row && col === activeCell.col) {
+                td.insertAdjacentHTML("beforeend", '<span class="we-fill-handle" contenteditable="false" title="Przeciągnij, aby skopiować formułę lub wartość"></span>');
+            }
+        });
+    }
+
+    function commitActiveCellLive(row, col, td) {
+        if (!currentSheet || !td) return;
+        const newValue = td.textContent ?? "";
+        ensureDimensions(row + 1, col + 1);
+        currentSheet.grid[row][col] = newValue;
+        if (formulaInput) formulaInput.value = newValue;
+        clearTimeout(autosaveTimer);
+        autosaveTimer = setTimeout(saveSheet, 900);
+        setAutosaveState("saving", "Zapisywanie...");
+        window.requestAnimationFrame(() => refreshComputedCells(row, col));
     }
 
 
@@ -1551,7 +1819,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 const raw = currentSheet.grid[row][col] ?? "";
                 const text = String(
                     typeof raw === "string" && raw.trim().startsWith("=")
-                        ? getCellComputedValue(row, col)
+                        ? displayFormulaValue(getCellComputedValue(row, col))
                         : raw
                 );
                 colWidths[col] = Math.min(420, Math.max(colWidths[col], (text.length * 8) + 34));
@@ -1618,13 +1886,19 @@ document.addEventListener("DOMContentLoaded", function () {
                 btn.classList.add("active");
             }
 
-            btn.addEventListener("click", () => {
+            const selectCategory = () => {
+                if (activeFormulaCategory === category) return;
                 activeFormulaCategory = category;
                 activeFormulaName = null;
                 renderFormulaCategories();
                 renderFormulaList();
                 renderFormulaDetails();
-            });
+            };
+
+            btn.title = `Pokaż funkcje z kategorii: ${btn.textContent}`;
+            btn.addEventListener("mouseenter", selectCategory);
+            btn.addEventListener("focus", selectCategory);
+            btn.addEventListener("click", selectCategory);
 
             formulaCategoriesEl.appendChild(btn);
         });
@@ -1652,11 +1926,22 @@ document.addEventListener("DOMContentLoaded", function () {
                 item.classList.add("active");
             }
 
+            item.title = `${fn.name}\n${fn.syntax}\n${fn.description || ""}`.trim();
+            item.dataset.syntax = fn.syntax || "";
             item.innerHTML = `
                 <div class="we-formula-item-name">${escapeHtml(fn.name)}</div>
                 <div class="we-formula-item-syntax">${escapeHtml(fn.syntax)}</div>
             `;
 
+            const selectFormula = () => {
+                if (activeFormulaName === fn.name) return;
+                activeFormulaName = fn.name;
+                renderFormulaList();
+                renderFormulaDetails();
+            };
+
+            item.addEventListener("mouseenter", selectFormula);
+            item.addEventListener("focus", selectFormula);
             item.addEventListener("click", () => {
                 activeFormulaName = fn.name;
                 renderFormulaList();
@@ -1665,6 +1950,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
             formulaListEl.appendChild(item);
         });
+
     }
 
     function renderFormulaDetails() {
@@ -2176,6 +2462,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 category: currentSheet.category || "Bez kategorii",
                 grid: workbookPayloadForSave(),
                 styles: currentSheet.styles || {},
+                conditionalRules: currentSheet.conditionalRules || [],
                 action: "Zapisano arkusz"
             });
 
@@ -2186,8 +2473,36 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     }
 
+    async function ensureSheetIdForEditor() {
+        if (sheetId && sheetId !== "undefined" && sheetId !== "null") return sheetId;
+        const sheets = await getJson('/ares/api/sheets/');
+        let first = Array.isArray(sheets) && sheets.length ? sheets[0] : null;
+        if (!first) {
+            first = await postJson('/ares/api/sheets/create/', { name: 'Arkusz 1', category: 'Bez kategorii' });
+        }
+        sheetId = String(first.id);
+        params.set('sheet', sheetId);
+        const nextUrl = `${window.location.pathname}?${params.toString()}`;
+        window.history.replaceState({}, '', nextUrl);
+        return sheetId;
+    }
+
+    function openInitialQuickPanel() {
+        if (!initialOpenPanel) return;
+        const map = {
+            charts: () => openModal(chartModal),
+            solver: () => openModal(solverModal),
+            math: () => activateRibbonTab(document.querySelector('.we-tab[data-tab="university"]')),
+            merge: () => activateRibbonTab(document.querySelector('.we-tab[data-tab="data"]')),
+        };
+        window.setTimeout(() => {
+            map[initialOpenPanel]?.();
+        }, 180);
+    }
+
     async function loadSheet() {
         try {
+            await ensureSheetIdForEditor();
             console.log("Ładowanie arkusza, sheetId =", sheetId);
 
             const data = await getJson(`/ares/api/sheets/${sheetId}/`);
@@ -2207,7 +2522,10 @@ document.addEventListener("DOMContentLoaded", function () {
 
             initializeFormulaBrowser();
             renderGrid();
+            activateStartRibbon();
             setAutosaveState("", "Brak zmian");
+            openInitialQuickPanel();
+            window.ARES_I18N?.refresh?.();
         } catch (error) {
             console.error("Błąd w loadSheet():", error);
             if (sheetMetaEl) sheetMetaEl.textContent = "Nie udało się załadować danych arkusza.";
@@ -2236,27 +2554,121 @@ document.addEventListener("DOMContentLoaded", function () {
         logUserAction("Eksport CSV", { type: "csv_export", rows: currentSheet.grid.length, cols: currentSheet.grid[0]?.length || 0 });
     }
 
+    function detectCsvDelimiter(text) {
+        const firstLine = String(text || "").split(/\r?\n/).find(line => line.trim()) || "";
+        const counts = {
+            semicolon: (firstLine.match(/;/g) || []).length,
+            comma: (firstLine.match(/,/g) || []).length,
+            tab: (firstLine.match(/\t/g) || []).length
+        };
+        if (counts.tab >= counts.semicolon && counts.tab >= counts.comma && counts.tab > 0) return "\t";
+        if (counts.comma > counts.semicolon) return ",";
+        return ";";
+    }
+
+    function parseCsvText(text) {
+        const delimiter = detectCsvDelimiter(text);
+        const rows = [];
+        let row = [];
+        let cell = "";
+        let inQuotes = false;
+        const input = String(text || "");
+
+        for (let i = 0; i < input.length; i += 1) {
+            const char = input[i];
+            const next = input[i + 1];
+
+            if (char === '"') {
+                if (inQuotes && next === '"') {
+                    cell += '"';
+                    i += 1;
+                } else {
+                    inQuotes = !inQuotes;
+                }
+                continue;
+            }
+
+            if (!inQuotes && char === delimiter) {
+                row.push(cell);
+                cell = "";
+                continue;
+            }
+
+            if (!inQuotes && (char === "\n" || char === "\r")) {
+                if (char === "\r" && next === "\n") i += 1;
+                row.push(cell);
+                if (row.some(value => String(value).trim() !== "")) rows.push(row);
+                row = [];
+                cell = "";
+                continue;
+            }
+
+            cell += char;
+        }
+
+        row.push(cell);
+        if (row.some(value => String(value).trim() !== "")) rows.push(row);
+        return rows;
+    }
+
+    function importRowsIntoSheet(rows, sourceInfo = {}) {
+        if (!currentSheet) return;
+        const sourceRowCount = rows.length;
+        const sourceColCount = Math.max(0, ...rows.map(row => row.length));
+        const safeRows = rows.slice(0, MAX_IMPORT_ROWS).map(row => row.slice(0, MAX_IMPORT_COLS));
+
+        if (!safeRows.length) {
+            alert("Plik jest pusty albo nie udało się odczytać tabeli.");
+            return;
+        }
+
+        if (sourceRowCount > MAX_IMPORT_ROWS || sourceColCount > MAX_IMPORT_COLS) {
+            alert("Import przycięto do " + MAX_IMPORT_ROWS + " wierszy i " + MAX_IMPORT_COLS + " kolumn, żeby układ strony się nie rozjechał. Pełny plik możesz podzielić i importować partiami.");
+        }
+
+        pushHistorySnapshot();
+        currentRows = Math.max(safeRows.length, MIN_ROWS);
+        currentCols = Math.max(MIN_COLS, ...safeRows.map(row => row.length));
+        currentSheet.grid = emptyGrid(currentRows, currentCols);
+        currentSheet.styles = {};
+
+        safeRows.forEach((row, r) => {
+            row.forEach((cell, c) => {
+                currentSheet.grid[r][c] = cell == null ? "" : String(cell);
+            });
+        });
+
+        renderGrid();
+        markDirty();
+        logUserAction("Import pliku w edytorze", { type: "file_import", fileName: sourceInfo.fileName || "plik", rows: safeRows.length, cols: Math.max(...safeRows.map(row => row.length), 0) });
+    }
+
     function importCsv(file) {
+        const name = String(file?.name || "").toLowerCase();
+        if ((name.endsWith(".xlsx") || name.endsWith(".xls")) && window.XLSX) {
+            const reader = new FileReader();
+            reader.onload = event => {
+                try {
+                    const workbookXlsx = window.XLSX.read(event.target?.result, { type: "array" });
+                    const firstSheetName = workbookXlsx.SheetNames[0];
+                    const sheet = workbookXlsx.Sheets[firstSheetName];
+                    const rows = window.XLSX.utils.sheet_to_json(sheet, { header: 1, raw: false, defval: "" })
+                        .map(row => row.map(cell => String(cell ?? "")))
+                        .filter(row => row.some(value => String(value).trim() !== ""));
+                    importRowsIntoSheet(rows, { fileName: file.name });
+                } catch (error) {
+                    console.error(error);
+                    alert("Nie udało się odczytać pliku XLSX/XLS. Sprawdź, czy plik nie jest uszkodzony.");
+                }
+            };
+            reader.readAsArrayBuffer(file);
+            return;
+        }
+
         const reader = new FileReader();
         reader.onload = event => {
             const text = String(event.target?.result ?? "");
-            const rows = text.split(/\r?\n/).filter(Boolean).map(line => line.split(";"));
-
-            pushHistorySnapshot();
-
-            currentRows = Math.max(rows.length, 20);
-            currentCols = Math.max(10, ...rows.map(row => row.length));
-            currentSheet.grid = emptyGrid(currentRows, currentCols);
-
-            rows.forEach((row, r) => {
-                row.forEach((cell, c) => {
-                    currentSheet.grid[r][c] = cell;
-                });
-            });
-
-            renderGrid();
-            markDirty();
-            logUserAction("Import CSV w edytorze", { type: "csv_import", fileName: file.name, rows: rows.length, cols: Math.max(...rows.map(row => row.length), 0) });
+            importRowsIntoSheet(parseCsvText(text), { fileName: file.name });
         };
         reader.readAsText(file, "utf-8");
     }
@@ -2384,6 +2796,7 @@ document.addEventListener("DOMContentLoaded", function () {
         if (action === "link") return openSmartInsert("link");
         if (action === "checkbox") return openSmartInsert("checkbox");
         if (action === "dropdown") return openSmartInsert("dropdown");
+        if (action === "conditional-format") return openSmartInsert("conditional-format");
 
         if (action === "emoji") {
             openEmojiPicker();
@@ -2397,7 +2810,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
     const TABLE_TEMPLATES = [
         { id:"loan", title:"Rata kredytu", tag:"finanse", desc:"PMT: kwota, oprocentowanie, liczba rat i rata miesięczna.", rows:[["Parametr","Wartość","Opis"],["Kwota kredytu",250000,"kapitał początkowy"],["Oprocentowanie roczne",0.075,"7,5%"],["Liczba rat",240,"miesięcy"],["Rata miesięczna","=PMT(B3/12;B4;-B2)","wynik"]] },
-        { id:"npv", title:"NPV projektu", tag:"finanse", desc:"Stopa dyskontowa, nakład początkowy i przepływy.", rows:[["Rok","Przepływ"],[0,-10000],[1,3000],[2,3500],[3,4200],[4,4500],["Stopa",0.1],["NPV","=NPV(B7;B3:B6)+B2"]] },
+        { id:"npv", title:"NPV projektu", tag:"finanse", desc:"Stopa dyskontowa, nakład początkowy i przepływy.", rows:[["Rok","Przepływ"],[0,-10000],[1,3000],[2,3500],[3,4200],[4,4500],["Stopa",0.1],["NPV","=ROUND(NPV(B7;B3:B6)+B2;2)"]] },
         { id:"irr", title:"IRR inwestycji", tag:"finanse", desc:"Wewnętrzna stopa zwrotu z serii przepływów.", rows:[["Okres","Cash flow"],[0,-15000],[1,2500],[2,4000],[3,6000],[4,7000],["IRR","=IRR(B2:B6)"]] },
         { id:"budget", title:"Budżet miesięczny", tag:"finanse", desc:"Przychody, koszty, saldo i udział kosztów.", rows:[["Pozycja","Typ","Kwota"],["Pensja","Przychód",7000],["Premia","Przychód",800],["Czynsz","Koszt",1800],["Jedzenie","Koszt",1500],["Transport","Koszt",450],["Suma przychodów","","=SUMA(C2:C3)"],["Suma kosztów","","=SUMA(C4:C6)"],["Saldo","","=C7-C8"],["Koszty % przychodów","","=C8/C7"]] },
         { id:"solver_mix", title:"Solver: produkcja", tag:"solver", desc:"Maksymalizacja zysku przy ograniczeniach zasobów.", rows:[["","Produkt A","Produkt B"],["Ilość",5,7],["Zysk jednostkowy",530,624],["Zysk razem","=SUMA.ILOCZYNÓW(B2:C2;B3:C3)"],["Zasób","Zużycie A","Zużycie B","Limit","Zużycie"],["bagażowy",1,1,12,"=SUMA.ILOCZYNÓW(B2:C2;B6:C6)"],["pocztowy",1,0,8,"=SUMA.ILOCZYNÓW(B2:C2;B7:C7)"],["2 klasa",5,8,81,"=SUMA.ILOCZYNÓW(B2:C2;B8:C8)"],["1 klasa",6,4,70,"=SUMA.ILOCZYNÓW(B2:C2;B9:C9)"]] },
@@ -2480,8 +2893,8 @@ document.addEventListener("DOMContentLoaded", function () {
         view: [{label:"Tryb pełnej szerokości", action:"full-width"},{label:"Pokaż / ukryj siatkę", action:"grid"},{label:"Wyrównaj do tekstu", action:"autofit"}],
         insert: [{label:"Funkcja", action:"function-helper"},{label:"Link", action:"link"},{label:"Pole wyboru", action:"checkbox"},{label:"Menu rozwijane", action:"dropdown"},{label:"Tabela przestawna", action:"pivot"},{label:"Solver", action:"solver"},{label:"Emotikony", action:"emoji"}],
         format: [{label:"Pogrubienie", action:"bold"},{label:"Kursywa", action:"italic"},{label:"Podkreślenie", action:"underline"}],
-        data: [{label:"Sortuj A-Z", action:"sort-asc"},{label:"Sortuj Z-A", action:"sort-desc"}],
-        tools: [{label:"Solver", action:"solver"},{label:"Walidacja formuły", action:"function-helper"}],
+        data: [{label:"Sortuj A-Z", action:"sort-asc"},{label:"Sortuj Z-A", action:"sort-desc"},{label:"Formatowanie warunkowe", action:"conditional-format"}],
+        tools: [{label:"Solver", action:"solver"},{label:"Walidacja formuły", action:"function-helper"},{label:"Formatowanie warunkowe", action:"conditional-format"}],
         extensions: [{label:"Brak rozszerzeń", action:"noop", disabled:true}],
         help: [{label:"Podpowiedzi formuł", action:"function-helper"},{label:"Skróty: F4 blokuje adresy", action:"noop", disabled:true}]
     };
@@ -2519,7 +2932,8 @@ document.addEventListener("DOMContentLoaded", function () {
             function: { title:"Wstaw funkcję", subtitle:"Wybierz funkcję z katalogu albo zacznij pisać w pasku formuły. Podpowiedzi pokażą wymagane argumenty.", body:`<div class="we-smart-grid"><label>Funkcja<select id="smart-function-select"></select></label><label>Zakres / argumenty<input id="smart-function-args" placeholder="np. A1:A10"></label><p class="we-smart-help">Przykład: SUMA z argumentem A1:A10 utworzy =SUMA(A1:A10). F4 w pasku formuły przełącza blokady $.</p></div>` },
             link: { title:"Wstaw link", subtitle:"Podaj tekst i adres. Link będzie klikalny w komórce.", body:`<div class="we-smart-grid"><label>Tekst wyświetlany<input id="smart-link-text" value="Otwórz"></label><label>Adres URL<input id="smart-link-url" value="https://"></label></div>` },
             checkbox: { title:"Wstaw pole wyboru", subtitle:"Ustaw początkowy stan pola wyboru i opcjonalny opis.", body:`<div class="we-smart-grid"><label class="we-smart-check"><input id="smart-checkbox-checked" type="checkbox"> Zaznaczone na start</label><label>Opis obok pola<input id="smart-checkbox-label" placeholder="opcjonalnie"></label></div>` },
-            dropdown: { title:"Reguła sprawdzania poprawności danych", subtitle:"Utwórz menu rozwijane podobne do Arkuszy Google. Każda linia to jedna opcja.", body:`<div class="we-smart-grid"><label>Zastosuj do komórki<input value="${cellAddress(activeCell.row, activeCell.col)}" readonly></label><label>Kryteria<select><option>Menu</option><option>Menu z zakresu</option></select></label><label class="we-grid-span-2">Opcje<textarea id="smart-dropdown-options" rows="5">Opcja 1\nOpcja 2\nGotowe</textarea></label><label class="we-smart-check"><input id="smart-dropdown-multi" type="checkbox"> Zezwalaj na wybieranie wielu opcji</label></div>` }
+            dropdown: { title:"Reguła sprawdzania poprawności danych", subtitle:"Utwórz menu rozwijane podobne do Arkuszy Google. Każda linia to jedna opcja.", body:`<div class="we-smart-grid"><label>Zastosuj do komórki<input value="${cellAddress(activeCell.row, activeCell.col)}" readonly></label><label>Kryteria<select><option>Menu</option><option>Menu z zakresu</option></select></label><label class="we-grid-span-2">Opcje<textarea id="smart-dropdown-options" rows="5">Opcja 1\nOpcja 2\nGotowe</textarea></label><label class="we-smart-check"><input id="smart-dropdown-multi" type="checkbox"> Zezwalaj na wybieranie wielu opcji</label></div>` },
+            "conditional-format": { title:"Formatowanie warunkowe", subtitle:"Gotowe reguły jak w Arkuszach Google: zaznacz zakres, wybierz warunek i kolor. Reguła działa automatycznie po zmianie danych.", body:`<div class="we-smart-grid we-conditional-grid"><label>Zakres<input id="conditional-range" value="${getCurrentSelectionRangeText()}" placeholder="np. A1:C10"></label><label>Przykład<select id="conditional-template"><option value="text-contains">Tekst zawiera…</option><option value="text-eq">Tekst to dokładnie…</option><option value="number-gt">Liczba większa niż…</option><option value="number-lt">Liczba mniejsza niż…</option><option value="number-between">Liczba między…</option><option value="empty">Puste komórki</option><option value="not-empty">Niepuste komórki</option></select></label><label>Wartość<input id="conditional-value" value="OK" placeholder="np. OK, 100, ❌"></label><label>Druga wartość<input id="conditional-value2" value="" placeholder="tylko dla zakresu między"></label><label>Kolor reguły<select id="conditional-preset"><option value="green">zielony — dobrze / OK</option><option value="red">czerwony — błąd / źle</option><option value="yellow">żółty — uwaga</option><option value="blue">niebieski — informacja</option><option value="purple">fioletowy — wyróżnienie</option></select></label><p class="we-smart-help">Przykłady: tekst zawiera ✅, tekst zawiera ❌, liczba większa niż 100, liczba mniejsza niż 0, komórka jest pusta. Reguły zapisują się w arkuszu.</p><div class="we-grid-span-2"><strong>Aktywne reguły</strong><div id="conditional-rules-list" class="we-conditional-list"></div></div></div>` }
         };
         const cfg = configs[mode] || configs.function;
         smartInsertTitle.textContent = cfg.title;
@@ -2549,6 +2963,7 @@ document.addEventListener("DOMContentLoaded", function () {
             el.addEventListener("change", updateSmartPreview);
         });
         updateSmartPreview();
+        renderConditionalRulesSummary();
         openModal(smartInsertModal);
     }
 
@@ -2581,10 +2996,37 @@ document.addEventListener("DOMContentLoaded", function () {
             const options = (document.getElementById("smart-dropdown-options")?.value || "Opcja 1\nOpcja 2").split(/\n+/).map(x => x.trim()).filter(Boolean);
             return buildDropdownFormula(options, options[0] || "");
         }
+        if (smartInsertMode === "conditional-format") {
+            const type = document.getElementById("conditional-template")?.value || "text-contains";
+            const range = document.getElementById("conditional-range")?.value || getCurrentSelectionRangeText();
+            const value = document.getElementById("conditional-value")?.value || "";
+            const value2 = document.getElementById("conditional-value2")?.value || "";
+            return `Reguła: ${range} • ${type} • ${value}${value2 ? " / " + value2 : ""}`;
+        }
         return "";
     }
 
     function applySmartInsert() {
+        if (smartInsertMode === "conditional-format") {
+            if (!currentSheet) return;
+            const range = document.getElementById("conditional-range")?.value?.trim() || getCurrentSelectionRangeText();
+            if (!parseRangeBounds(range)) return alert("Podaj poprawny zakres, np. A1:C10.");
+            const type = document.getElementById("conditional-template")?.value || "text-contains";
+            const preset = document.getElementById("conditional-preset")?.value || "yellow";
+            const value = document.getElementById("conditional-value")?.value || "";
+            const value2 = document.getElementById("conditional-value2")?.value || "";
+            pushHistorySnapshot();
+            ensureConditionalRules().push({
+                id: `cf_${Date.now()}`, range, type, value, value2, preset,
+                style: buildConditionalStyle(preset),
+                label: `${type} ${value || ""}`.trim()
+            });
+            closeModal(smartInsertModal);
+            renderGrid();
+            markDirty();
+            logUserAction("Dodano formatowanie warunkowe", { type: "conditional_format", range });
+            return;
+        }
         const formula = buildSmartInsertFormula();
         if (!formula || !currentSheet) return;
         if (smartInsertMode === "link" && !/^=LINK\(.+\|https?:\/\//i.test(formula)) return alert("Podaj poprawny adres URL zaczynający się od http:// albo https://.");
@@ -2812,7 +3254,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 <div><strong>Variable Cells:</strong> ${escapeHtml(variablesRaw)}</div>
                 <div><strong>Objective Sense:</strong> ${mode === "max" ? "maximise" : mode === "min" ? "minimise" : `target value ${targetValue}`}</div>
                 <div><strong>Best values:</strong> ${escapeHtml(bestCombination.join(", "))}</div>
-                <div><strong>Objective value:</strong> ${bestValue}</div>
+                <div><strong>Objective value:</strong> ${escapeHtml(displayFormulaValue(bestValue))}</div>
                 <div><strong>Constraints:</strong> ${constraints.length ? escapeHtml(solverConstraintsInput.value.replace(/\n/g, " | ")) : "brak"}</div>
             </div>
         `;
@@ -2850,18 +3292,60 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     }
 
-    function initializeTabs() {
-        tabs.forEach(tab => {
-            tab.addEventListener("click", () => {
-                const target = tab.dataset.tab;
-                tabs.forEach(item => item.classList.remove("active"));
-                panels.forEach(panel => panel.classList.remove("active"));
-                tab.classList.add("active");
-                document.querySelector(`.we-ribbon-panel[data-panel="${target}"]`)?.classList.add("active");
-            });
-        });
+    function setRibbonFloating(target) {
+        if (!toolbarCard) return;
+        const isFloating = target && target !== "start";
+        toolbarCard.classList.toggle("ribbon-floating", Boolean(isFloating));
+        toolbarCard.classList.toggle("ribbon-open", Boolean(isFloating));
     }
 
+    function openRibbon() {
+        window.clearTimeout(ribbonCloseTimer);
+        const activeTarget = document.querySelector(".we-tab.active")?.dataset.tab || "start";
+        setRibbonFloating(activeTarget);
+    }
+
+    function activateStartRibbon() {
+        const startTab = document.querySelector('.we-tab[data-tab="start"]');
+        if (!startTab) return;
+        tabs.forEach(item => item.classList.remove("active"));
+        panels.forEach(panel => panel.classList.remove("active"));
+        startTab.classList.add("active");
+        document.querySelector('.we-ribbon-panel[data-panel="start"]')?.classList.add("active");
+        setRibbonFloating("start");
+    }
+
+    function closeRibbonSoon() {
+        window.clearTimeout(ribbonCloseTimer);
+        ribbonCloseTimer = window.setTimeout(() => {
+            activateStartRibbon();
+        }, 160);
+    }
+
+    function activateRibbonTab(tab, keepOpen = true) {
+        if (!tab) return;
+        const target = tab.dataset.tab;
+        tabs.forEach(item => item.classList.remove("active"));
+        panels.forEach(panel => panel.classList.remove("active"));
+        tab.classList.add("active");
+        document.querySelector(`.we-ribbon-panel[data-panel="${target}"]`)?.classList.add("active");
+        if (keepOpen) setRibbonFloating(target);
+        else setRibbonFloating("start");
+    }
+
+    function initializeTabs() {
+        tabs.forEach(tab => {
+            tab.addEventListener("click", () => activateRibbonTab(tab));
+            tab.addEventListener("mouseenter", () => activateRibbonTab(tab));
+            tab.addEventListener("focus", () => activateRibbonTab(tab));
+            tab.addEventListener("mouseleave", closeRibbonSoon);
+            tab.addEventListener("blur", closeRibbonSoon);
+        });
+        ribbonEl?.addEventListener("mouseenter", openRibbon);
+        ribbonEl?.addEventListener("mouseleave", closeRibbonSoon);
+        ribbonEl?.addEventListener("focusin", openRibbon);
+        ribbonEl?.addEventListener("focusout", closeRibbonSoon);
+    }
     function initializeModals() {
         modalCloseButtons.forEach(button => {
             button.addEventListener("click", () => {
@@ -3205,7 +3689,10 @@ document.addEventListener("DOMContentLoaded", function () {
         workbook.sheets.push({
             name,
             grid: mergedGrid,
-            styles: {}
+            styles: {},
+            color: "",
+            hidden: false,
+            protected: false
         });
         activateWorkbookSheet(workbook.sheets.length - 1);
         markDirty();
@@ -3281,15 +3768,15 @@ document.addEventListener("DOMContentLoaded", function () {
         return getSelectionBounds() || { rowStart: activeCell.row, rowEnd: activeCell.row, colStart: activeCell.col, colEnd: activeCell.col };
     }
 
-    function applyBorderPreset(preset, color = "#5b8def", lineStyle = "solid") {
+    function applyBorderPreset(preset, color = "#5b8def", lineStyle = "solid", width = "2px") {
         if (!currentSheet) return;
         pushHistorySnapshot();
         const b = getSelectedBoundsOrActive();
         for (let row = b.rowStart; row <= b.rowEnd; row += 1) {
             for (let col = b.colStart; col <= b.colEnd; col += 1) {
-                const patch = { border: false, borderColor: color, borderLineStyle: lineStyle, borderWidth: "2px" };
+                const patch = { border: false, borderColor: color, borderLineStyle: lineStyle, borderWidth: width };
                 if (preset === "clear") {
-                    Object.assign(patch, { borderTop: false, borderRight: false, borderBottom: false, borderLeft: false });
+                    Object.assign(patch, { border: false, borderTop: false, borderRight: false, borderBottom: false, borderLeft: false });
                 } else if (preset === "all") {
                     Object.assign(patch, { borderTop: true, borderRight: true, borderBottom: true, borderLeft: true });
                 } else if (preset === "outer") {
@@ -3340,7 +3827,7 @@ document.addEventListener("DOMContentLoaded", function () {
             </div>
             <div class="we-border-controls">
                 <label>Kolor <input id="border-popover-color" type="color" value="#5b8def"></label>
-                <label>Styl <select id="border-popover-style"><option value="solid">ciągła</option><option value="dashed">przerywana</option><option value="dotted">kropkowana</option><option value="double">podwójna</option></select></label>
+                <label>Styl <select id="border-popover-style"><option value="solid">ciągła</option><option value="dashed">przerywana</option><option value="dotted">kropkowana</option><option value="double">podwójna</option></select></label><label>Grubość <select id="border-popover-width"><option value="1px">cienka</option><option value="2px" selected>średnia</option><option value="3px">gruba</option><option value="4px">bardzo gruba</option></select></label>
             </div>
             <button class="we-border-apply" data-border-preset="all">Zastosuj wszystkie krawędzie</button>`;
         document.body.appendChild(pop);
@@ -3352,7 +3839,8 @@ document.addEventListener("DOMContentLoaded", function () {
             if (!btn) return;
             const color = pop.querySelector("#border-popover-color")?.value || "#5b8def";
             const style = pop.querySelector("#border-popover-style")?.value || "solid";
-            applyBorderPreset(btn.dataset.borderPreset, color, style);
+            const width = pop.querySelector("#border-popover-width")?.value || "2px";
+            applyBorderPreset(btn.dataset.borderPreset, color, style, width);
             pop.remove();
         });
         setTimeout(() => {
@@ -3363,6 +3851,39 @@ document.addEventListener("DOMContentLoaded", function () {
                 }
             });
         }, 0);
+    }
+
+
+    function setSheetZoom(scale, updateSelect = true) {
+        const value = Math.max(0.5, Math.min(1.8, Number(scale) || 1));
+        if (sheetGridTable) {
+            sheetGridTable.style.transform = "";
+            sheetGridTable.style.transformOrigin = "";
+            sheetGridTable.style.setProperty("--we-table-zoom", String(value));
+        }
+        if (updateSelect) {
+            const zoom = document.getElementById("zoom-select");
+            if (zoom) zoom.value = Math.round(value * 100) + "%";
+        }
+    }
+
+    function fitSheetToAvailableWidth() {
+        if (!sheetEditorCard || !sheetGridTable) return;
+        setSheetZoom(1, false);
+        window.requestAnimationFrame(() => {
+            const scroll = sheetEditorCard.querySelector(".we-sheet-scroll");
+            const available = Math.max(360, (scroll?.clientWidth || sheetEditorCard.clientWidth || window.innerWidth) - 18);
+            const natural = sheetGridTable.scrollWidth || sheetGridTable.offsetWidth || available;
+            const next = natural > available ? available / natural : 1;
+            setSheetZoom(next, false);
+            const zoom = document.getElementById("zoom-select");
+            if (zoom) zoom.value = "Dopasuj";
+        });
+    }
+
+    function refreshEditorResponsiveLayout() {
+        document.documentElement.style.setProperty("--we-viewport-width", window.innerWidth + "px");
+        if (document.getElementById("zoom-select")?.value === "Dopasuj") fitSheetToAvailableWidth();
     }
 
     function applyRibbonAction(action) {
@@ -3381,11 +3902,9 @@ document.addEventListener("DOMContentLoaded", function () {
             sheetGridTable?.classList.toggle("freeze-first-col");
             return;
         }
+        if (action === "zoom-fit") return fitSheetToAvailableWidth();
         if (action === "zoom-100") {
-            const zoom = document.getElementById("zoom-select");
-            if (zoom) zoom.value = "100%";
-            sheetGridTable.style.transform = "scale(1)";
-            sheetGridTable.style.transformOrigin = "top left";
+            setSheetZoom(1);
             return;
         }
         if (action === "compact-view") {
@@ -3443,7 +3962,22 @@ document.addEventListener("DOMContentLoaded", function () {
                 renderFormulaHelper();
             }
         });
-        formulaInput?.addEventListener("input", renderFormulaHelper);
+        formulaInput?.addEventListener("input", () => {
+            renderFormulaHelper();
+            if (!currentSheet) return;
+            const value = formulaInput.value ?? "";
+            const activeTd = body?.querySelector(`td[data-row="${activeCell.row}"][data-col="${activeCell.col}"]`);
+            ensureDimensions(activeCell.row + 1, activeCell.col + 1);
+            currentSheet.grid[activeCell.row][activeCell.col] = value;
+            if (activeTd && document.activeElement !== activeTd) {
+                activeTd.innerHTML = cellDisplayValue(activeCell.row, activeCell.col).html;
+                applyCellStyleToElement(activeTd, activeCell.row, activeCell.col);
+            }
+            clearTimeout(autosaveTimer);
+            autosaveTimer = setTimeout(saveSheet, 900);
+            setAutosaveState("saving", "Zapisywanie...");
+            window.requestAnimationFrame(() => refreshComputedCells(activeCell.row, activeCell.col));
+        });
         formulaInput?.addEventListener("focus", renderFormulaHelper);
         document.addEventListener("click", event => {
             if (!formulaHelperPopover || formulaHelperPopover.hidden) return;
@@ -3600,11 +4134,13 @@ document.addEventListener("DOMContentLoaded", function () {
             button.addEventListener("click", () => applyRibbonAction(button.dataset.ribbonAction));
         });
         document.getElementById("zoom-select")?.addEventListener("change", event => {
+            if (String(event.target.value) === "Dopasuj") return fitSheetToAvailableWidth();
             const raw = String(event.target.value || "100%").replace("%", "");
-            const scale = Math.max(0.5, Math.min(2, Number(raw) / 100 || 1));
-            sheetGridTable.style.transform = `scale(${scale})`;
-            sheetGridTable.style.transformOrigin = "top left";
+            setSheetZoom(Number(raw) / 100 || 1, false);
         });
+        window.addEventListener("resize", refreshEditorResponsiveLayout);
+        window.visualViewport?.addEventListener("resize", refreshEditorResponsiveLayout);
+        setTimeout(refreshEditorResponsiveLayout, 80);
         menuBar?.addEventListener("click", event => {
             const btn = event.target.closest("[data-menu]");
             if (btn) showMenuPopover(btn.dataset.menu, btn);
@@ -3615,6 +4151,14 @@ document.addEventListener("DOMContentLoaded", function () {
             menuPopover.hidden = true;
             handleMenuAction(btn.dataset.menuAction);
         });
+        sheetContextMenu?.addEventListener("pointerdown", event => {
+            const swatch = event.target.closest(".we-sheet-color-swatch[data-sheet-action]");
+            if (!swatch || swatch.disabled) return;
+            event.preventDefault();
+            event.stopPropagation();
+            handleSheetContextAction(swatch.dataset.sheetAction);
+            sheetContextMenu.hidden = true;
+        }, true);
         sheetContextMenu?.addEventListener("click", event => {
             const cellBtn = event.target.closest("[data-cell-action]");
             if (cellBtn && !cellBtn.disabled) {

@@ -3778,3 +3778,142 @@ html body[data-theme] .preview-table thead th {
     color: #fff;
     font-weight: 800;
 }
+
+/* ARES 0.3.7: jeden przycisk menu i bezpieczny układ importu. */
+.sidebar-toggle-inside {
+    display: none !important;
+}
+
+.import-page-shell,
+.import-grid,
+.import-grid > *,
+.import-preview-card,
+.import-controls-card {
+    min-width: 0 !important;
+}
+
+.import-preview-card {
+    overflow: hidden !important;
+}
+
+.import-preview-card .preview-wrap {
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow: auto !important;
+}
+
+.import-preview-card .preview-table {
+    width: max-content !important;
+    min-width: 100% !important;
+    max-width: none !important;
+}
+
+.import-preview-card .preview-table th,
+.import-preview-card .preview-table td {
+    max-width: 260px !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+}
+
+.import-preview-card .preview-table td:hover {
+    white-space: normal !important;
+    overflow: visible !important;
+}
+
+
+/* v0.3.8: lista arkuszy i import korzystają z głównego stylu aplikacji i jednego fontu */
+html body[data-theme] .sheet-item-card, html body[data-theme] .sheet-item-card * { font-family: inherit !important; }
+html body[data-theme] .sheet-item-card { background: linear-gradient(180deg, var(--panel) 0%, var(--panel-2) 100%) !important; border-color: var(--line) !important; color: var(--text) !important; }
+html body[data-theme] .sheet-item-card .sheet-meta, html body[data-theme] .sheet-item-card .sheet-item-info p { color: var(--muted) !important; }
+html body[data-theme] .sheet-card-tools { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+html body[data-theme] .sheet-item-actions { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+html body[data-theme] .import-page-shell, html body[data-theme] .import-grid, html body[data-theme] .import-preview-card, html body[data-theme] .import-controls-card { min-width: 0 !important; max-width: 100% !important; }
+html body[data-theme] .preview-wrap { overflow: auto !important; max-width: 100% !important; }
+html body[data-theme] .preview-table { width: max-content !important; min-width: 100% !important; table-layout: fixed; }
+html body[data-theme] .preview-table th, html body[data-theme] .preview-table td { max-width: 220px !important; min-width: 120px; text-overflow: ellipsis; overflow: hidden; white-space: nowrap; }
+html body[data-theme] .preview-table td:hover { white-space: normal; overflow: visible; position: relative; z-index: 5; }
+
+/* v0.4.0: język aplikacji w profilu */
+.language-card {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) minmax(170px, 240px) !important;
+    align-items: center !important;
+    gap: 16px !important;
+}
+.language-card-main { display: grid; gap: 4px; }
+.language-select { margin: 0 !important; min-height: 44px !important; cursor: pointer; }
+@media (max-width: 720px) { .language-card { grid-template-columns: 1fr !important; } }
+
+/* === v0.4.2: functional quick action dock === */
+.quick-access-dock {
+    max-width: min(980px, calc(100vw - 32px));
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: thin;
+    justify-content: flex-start;
+}
+.quick-access-dock a[hidden] {
+    display: none !important;
+}
+.quick-access-dock a {
+    flex: 0 0 auto;
+    min-width: 68px;
+}
+.quick-access-dock a[aria-current="page"],
+.quick-access-dock a.active {
+    background: color-mix(in srgb, var(--primary) 18%, transparent);
+    border-color: color-mix(in srgb, var(--primary) 42%, transparent);
+}
+@media (min-width: 1100px) {
+    .quick-access-dock {
+        justify-content: center;
+    }
+}
+
+/* ARES v0.4.5: profil zawsze nad treścią + czytelny dropdown */
+.app-topbar,
+.topbar-actions,
+.profile-menu {
+    position: relative;
+    z-index: 20000 !important;
+}
+.profile-dropdown[hidden] { display: none !important; }
+.profile-dropdown {
+    z-index: 999999 !important;
+    isolation: isolate;
+    background: linear-gradient(180deg, color-mix(in srgb, var(--panel) 98%, #fff 2%), color-mix(in srgb, var(--panel-2) 98%, #000 2%)) !important;
+    color: var(--text) !important;
+    border: 1px solid color-mix(in srgb, var(--line) 90%, var(--primary) 10%) !important;
+    box-shadow: 0 28px 80px rgba(0,0,0,.38) !important;
+    backdrop-filter: blur(18px) saturate(1.1);
+    opacity: 1 !important;
+}
+.profile-dropdown::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: color-mix(in srgb, var(--panel) 82%, transparent);
+    z-index: -1;
+}
+.profile-dropdown,
+.profile-dropdown * { text-shadow: none !important; }
+.profile-dropdown-head strong,
+.profile-dropdown-links a,
+.profile-dropdown-footer a,
+.profile-dropdown small {
+    color: var(--text) !important;
+    opacity: 1 !important;
+}
+.profile-dropdown-head small { color: var(--muted) !important; }
+.profile-dropdown-links a {
+    background: color-mix(in srgb, var(--panel-2) 72%, transparent) !important;
+    border: 1px solid var(--line) !important;
+}
+.profile-dropdown-links a:hover { background: color-mix(in srgb, var(--primary) 18%, var(--panel-2)) !important; }
+body[data-theme="arctic-light"] .profile-dropdown,
+body[data-theme="sand-light"] .profile-dropdown,
+body[data-theme="clean-slate"] .profile-dropdown {
+    background: linear-gradient(180deg, #fffdf8, #f8efe0) !important;
+    color: var(--text) !important;
+}

@@ -5,7 +5,7 @@
 {% block topbar_title %}Edytor arkusza{% endblock %}
 
 {% block extra_head %}
-<link rel="stylesheet" href="{% static 'css/worksheet_editor.css' %}?v=0.3.4">
+<link rel="stylesheet" href="{% static 'css/worksheet_editor.css' %}?v=0.4.5">
 {% endblock %}
 
 {% block content %}
@@ -49,7 +49,7 @@
                         <button id="rename-sheet-btn" class="btn btn-secondary we-icon-btn" type="button" title="Zmień nazwę" aria-label="Zmień nazwę"><span class="we-svg-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></span></button>
                         <button id="save-sheet-btn" class="btn btn-primary we-icon-btn" type="button" title="Zapisz" aria-label="Zapisz"><span class="we-svg-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2Z"/><path d="M17 21v-8H7v8"/><path d="M7 3v5h8"/></svg></span></button>
                         <button id="export-csv-btn" class="btn btn-ghost we-icon-btn" type="button" title="Eksport CSV" aria-label="Eksport CSV"><span class="we-svg-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg></span></button>
-                        <label class="we-upload-btn we-icon-btn" title="Import CSV" aria-label="Import CSV"><span class="we-svg-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 21V9"/><path d="m7 14 5-5 5 5"/><path d="M5 3h14"/></svg></span><input id="csv-import-input" type="file" accept=".csv"></label>
+                        <label class="we-upload-btn we-icon-btn" title="Import CSV/XLSX" aria-label="Import CSV/XLSX"><span class="we-svg-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 21V9"/><path d="m7 14 5-5 5 5"/><path d="M5 3h14"/></svg></span><input id="csv-import-input" type="file" accept=".csv,.txt,.tsv,.xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel"></label>
                     </div>
 
                     <div class="we-toolbar-sep"></div>
@@ -131,6 +131,7 @@
                         <button class="we-insert-item" data-action="link" type="button">Link</button>
                         <button class="we-insert-item" data-action="checkbox" type="button">Pole wyboru</button>
                         <button class="we-insert-item" data-action="dropdown" type="button">Menu</button>
+                        <button class="we-insert-item" data-action="conditional-format" type="button">Formatowanie warunkowe</button>
                         <button class="we-insert-item" data-action="emoji" type="button">Emotikony</button>
                         <button class="we-insert-item" data-action="comment" type="button">Komentarz</button>
                         <button class="we-insert-item" data-action="note" type="button">Notatka</button>
@@ -210,6 +211,7 @@
                     <button class="btn btn-secondary" data-ribbon-action="filter" type="button">Filtr</button>
                     <button class="btn btn-secondary" data-ribbon-action="pivot" type="button">Tabela przestawna</button>
                     <button class="btn btn-secondary" data-ribbon-action="dropdown" type="button">Sprawdzanie danych / menu</button>
+                    <button class="btn btn-secondary" data-ribbon-action="conditional-format" type="button">Formatowanie warunkowe</button>
                     <button class="btn btn-secondary" data-ribbon-action="checkbox" type="button">Pole wyboru</button>
                     <button class="btn btn-secondary" data-ribbon-action="chart" type="button">Wykres</button>
                     <button class="btn btn-secondary" data-ribbon-action="solver" type="button">Solver</button>
@@ -225,6 +227,7 @@
                     <button class="btn btn-secondary" data-ribbon-action="freeze-first-row" type="button">Zablokuj pierwszy wiersz</button>
                     <button class="btn btn-secondary" data-ribbon-action="freeze-first-col" type="button">Zablokuj pierwszą kolumnę</button>
                     <button class="btn btn-secondary" data-ribbon-action="comments" type="button">Komentarze i notatki</button>
+                    <button class="btn btn-secondary" data-ribbon-action="zoom-fit" type="button">Dopasuj do szerokości</button>
                     <button class="btn btn-secondary" data-ribbon-action="zoom-100" type="button">Zoom 100%</button>
                     <button class="btn btn-secondary" data-ribbon-action="compact-view" type="button">Widok kompaktowy</button>
                 </div>
@@ -404,9 +407,10 @@
 <div class="we-modal" id="comment-modal">
     <div class="we-modal-box we-comment-box">
         <div class="we-modal-top"><strong id="comment-modal-title">Komentarz</strong><button type="button" class="we-modal-close" data-close-modal="comment-modal">✕</button></div>
-        <label for="comment-textarea">Treść</label>
-        <textarea id="comment-textarea" rows="5" placeholder="Wpisz komentarz lub notatkę widoczną po najechaniu na komórkę"></textarea>
-        <div class="we-comment-preview-label">Podgląd</div>
+        <p class="we-modal-subtitle">Komentarz będzie widoczny jako czytelna dymkowa podpowiedź po najechaniu na komórkę. Notatka działa tak samo, ale ma niebieski znacznik.</p>
+        <label for="comment-textarea">Treść komentarza / notatki</label>
+        <textarea id="comment-textarea" rows="6" placeholder="Wpisz komentarz lub notatkę widoczną po najechaniu na komórkę"></textarea>
+        <div class="we-comment-preview-label">Podgląd dymku</div>
         <div id="comment-preview" class="we-comment-preview">Brak treści.</div>
         <div class="we-modal-actions"><button id="comment-delete-btn" class="btn btn-secondary" type="button">Usuń</button><button id="comment-save-btn" class="btn btn-primary" type="button">Zapisz</button></div>
     </div>
@@ -477,7 +481,8 @@
 {% endblock %}
 
 {% block extra_js %}
-<script src="{% static 'js/formula_catalog.js' %}?v=0.3.4"></script>
-<script src="{% static 'js/formula_engine.js' %}?v=0.3.4"></script>
-<script src="{% static 'js/worksheet_editor.js' %}?v=0.3.4"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="{% static 'js/formula_catalog.js' %}?v=0.3.8"></script>
+<script src="{% static 'js/formula_engine.js' %}?v=0.3.8"></script>
+<script src="{% static 'js/worksheet_editor.js' %}?v=0.4.5"></script>
 {% endblock %}

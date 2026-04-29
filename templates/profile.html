@@ -54,7 +54,7 @@
                 <input id="profile-avatar-text" class="settings-input" type="text" maxlength="2" value="{{ request.user.username|slice:':1'|upper }}" placeholder="np. S">
 
                 <label class="field-label">Opcjonalny adres obrazka</label>
-                <input id="profile-avatar-image" class="settings-input" type="text" placeholder="https://.../avatar.png">
+                <input id="profile-avatar-image" class="settings-input" type="text" placeholder="Opcjonalnie: https://.../avatar.png">
 
                 <label class="field-label">Lub wgraj własne profilowe</label>
                 <input id="profile-avatar-upload" class="settings-input settings-file" type="file" accept="image/*">
@@ -205,6 +205,17 @@
             <label class="toggle-card"><input type="checkbox" id="pref-confirm-actions" checked><strong>Wymagaj potwierdzeń dla ważnych akcji</strong><small>Do wykorzystania przy usuwaniu i nadpisywaniu danych.</small></label>
             <label class="toggle-card"><input type="checkbox" id="pref-show-tips" checked><strong>Pokazuj komunikaty i podpowiedzi</strong><small>Drobne wskazówki w pulpicie i modułach.</small></label>
             <label class="toggle-card"><input type="checkbox" id="pref-show-quick-dock" checked><strong>Pokazuj dolny pasek szybkiego dostępu</strong><small>Mały pasek z najważniejszymi przejściami na dole ekranu.</small></label>
+            <label class="toggle-card language-card">
+                <span class="language-card-main">
+                    <strong>Język aplikacji</strong>
+                    <small>Domyślnie zostaje polski. Po zmianie interfejs przełącza się od razu na wybrany język.</small>
+                </span>
+                <select id="pref-language" class="settings-input language-select">
+                    <option value="pl">Polski</option>
+                    <option value="en">Angielski</option>
+                    <option value="de">Niemiecki</option>
+                </select>
+            </label>
         </div>
         <div class="settings-actions dual">
             <button class="btn btn-primary" id="save-preferences-btn" type="button">Zapisz preferencje</button>
@@ -221,6 +232,9 @@
         const profileKey = 'ares_profile_settings';
         const shortcutsKey = 'ares_shortcuts';
         const prefKey = 'ares_preferences';
+        const languageKey = 'ares_language';
+        let uploadedAvatarDataUri = '';
+        let uploadedAvatarObjectUrl = '';
         const defaultName = '{{ request.user.username|escapejs }}';
         const defaultProfile = {
             displayName: defaultName,
@@ -245,6 +259,7 @@
             confirmActions: true,
             showTips: true,
             showQuickDock: true,
+            language: localStorage.getItem(languageKey) || 'pl',
         };
 
         function loadJSON(key, fallback) {
@@ -307,12 +322,14 @@
         function hydrateProfileForm() {
             displayNameInput.value = profile.displayName || defaultName;
             avatarTextInput.value = profile.avatarText || defaultProfile.avatarText;
-            avatarImageInput.value = profile.avatarImage || '';
+            avatarImageInput.value = (profile.avatarImage && !String(profile.avatarImage).startsWith('data:image/')) ? profile.avatarImage : '';
             document.getElementById('pref-show-clock').checked = !!prefs.showClock;
             document.getElementById('pref-compact-sidebar').checked = !!prefs.compactSidebar;
             document.getElementById('pref-confirm-actions').checked = !!prefs.confirmActions;
             document.getElementById('pref-show-tips').checked = !!prefs.showTips;
             document.getElementById('pref-show-quick-dock').checked = prefs.showQuickDock !== false;
+            const languageSelect = document.getElementById('pref-language');
+            if (languageSelect) languageSelect.value = prefs.language || localStorage.getItem(languageKey) || 'pl';
 
             document.querySelectorAll('#shortcut-grid input[type="checkbox"]').forEach(el => {
                 el.checked = !!shortcuts[el.dataset.shortcut];
@@ -337,16 +354,19 @@
             savedTheme = currentTheme;
             document.body.setAttribute('data-theme', currentTheme);
             renderProfilePreview();
+            updateQuickDockPreview();
         }
 
         displayNameInput.value = profile.displayName || defaultName;
         avatarTextInput.value = profile.avatarText || defaultProfile.avatarText;
-        avatarImageInput.value = profile.avatarImage || '';
+        avatarImageInput.value = (profile.avatarImage && !String(profile.avatarImage).startsWith('data:image/')) ? profile.avatarImage : '';
         document.getElementById('pref-show-clock').checked = !!prefs.showClock;
         document.getElementById('pref-compact-sidebar').checked = !!prefs.compactSidebar;
         document.getElementById('pref-confirm-actions').checked = !!prefs.confirmActions;
         document.getElementById('pref-show-tips').checked = !!prefs.showTips;
         document.getElementById('pref-show-quick-dock').checked = prefs.showQuickDock !== false;
+        const languageSelectInit = document.getElementById('pref-language');
+        if (languageSelectInit) languageSelectInit.value = prefs.language || localStorage.getItem(languageKey) || 'pl';
 
         document.querySelectorAll('#shortcut-grid input[type="checkbox"]').forEach(el => {
             el.checked = !!shortcuts[el.dataset.shortcut];
@@ -378,17 +398,36 @@
                 displayName: (displayNameInput.value || defaultName).trim(),
                 avatarText: (avatarTextInput.value || defaultProfile.avatarText).trim().slice(0, 2),
                 avatarStyle: document.querySelector('.avatar-style-option.active')?.dataset.style || profile.avatarStyle || defaultProfile.avatarStyle,
-                avatarImage: (avatarImageInput.value || '').trim(),
+                avatarImage: uploadedAvatarObjectUrl || (avatarImageInput.value || '').trim(),
                 avatarShape: document.querySelector('.avatar-shape-option.active')?.dataset.shape || profile.avatarShape || defaultProfile.avatarShape,
             };
             previewName.textContent = state.displayName;
             liveName.textContent = state.displayName;
             previewTheme.textContent = currentThemeLabel;
             const enabledShortcuts = document.querySelectorAll('#shortcut-grid input[type="checkbox"]:checked').length;
-            previewShortcuts.textContent = enabledShortcuts + ' skrótów';
+            previewShortcuts.textContent = enabledShortcuts + ' ' + (window.ARES_I18N?.t('skrótów') || 'skrótów');
             applyAvatar(previewAvatar, state);
             applyAvatar(liveAvatar, state);
             return state;
+        }
+
+        function collectShortcutState() {
+            const data = {};
+            document.querySelectorAll('#shortcut-grid input[type="checkbox"]').forEach(el => {
+                data[el.dataset.shortcut] = el.checked;
+            });
+            return { ...defaultShortcuts, ...data };
+        }
+
+        function updateQuickDockPreview() {
+            const dock = document.getElementById('quick-access-dock');
+            if (!dock) return;
+            dock.hidden = prefs.showQuickDock === false;
+            dock.querySelectorAll('[data-dock-shortcut]').forEach(item => {
+                const key = item.dataset.dockShortcut;
+                item.hidden = key !== 'start' && key !== 'profile' && shortcuts[key] === false;
+            });
+            window.ARES_I18N?.refresh?.();
         }
 
         document.querySelectorAll('.avatar-style-option').forEach(btn => {
@@ -419,6 +458,9 @@
             btn.addEventListener('click', () => {
                 avatarTextInput.value = btn.dataset.symbol || 'A';
                 avatarImageInput.value = '';
+                uploadedAvatarDataUri = '';
+                if (uploadedAvatarObjectUrl) URL.revokeObjectURL(uploadedAvatarObjectUrl);
+                uploadedAvatarObjectUrl = '';
                 if (avatarUploadInput) avatarUploadInput.value = '';
                 renderProfilePreview();
             });
@@ -431,15 +473,39 @@
         avatarUploadInput?.addEventListener('change', () => {
             const file = avatarUploadInput.files && avatarUploadInput.files[0];
             if (!file) return;
+            if (!file.type || !file.type.startsWith('image/')) {
+                alert('Wybierz plik graficzny: PNG, JPG, GIF albo WEBP.');
+                avatarUploadInput.value = '';
+                return;
+            }
+            if (file.size > 2 * 1024 * 1024) {
+                alert('Avatar jest za duży. Wybierz obraz do 2 MB.');
+                avatarUploadInput.value = '';
+                return;
+            }
+            if (uploadedAvatarObjectUrl) URL.revokeObjectURL(uploadedAvatarObjectUrl);
+            uploadedAvatarObjectUrl = URL.createObjectURL(file);
+            avatarImageInput.value = file.name;
             const reader = new FileReader();
             reader.onload = () => {
-                avatarImageInput.value = String(reader.result || '');
+                uploadedAvatarDataUri = String(reader.result || '');
                 renderProfilePreview();
             };
             reader.readAsDataURL(file);
         });
         document.querySelectorAll('#shortcut-grid input[type="checkbox"]').forEach(input => {
-            input.addEventListener('change', renderProfilePreview);
+            input.addEventListener('change', () => {
+                shortcuts = collectShortcutState();
+                saveJSON(shortcutsKey, shortcuts);
+                renderProfilePreview();
+                updateQuickDockPreview();
+            });
+        });
+        document.getElementById('pref-language')?.addEventListener('change', event => {
+            const lang = event.target.value || 'pl';
+            prefs.language = lang;
+            localStorage.setItem(languageKey, lang);
+            window.ARES_I18N?.setLanguage(lang);
         });
 
         function selectTheme(themeName, persistLocal = true) {
@@ -472,28 +538,34 @@
 
         document.getElementById('save-profile-btn').addEventListener('click', async () => {
             const state = renderProfilePreview();
-            profile = state;
-            saveJSON(profileKey, state);
-            await saveServerSettings({ profile: state, theme: currentTheme, shortcuts, preferences: prefs });
-            window.location.reload();
+            const payloadProfile = { ...state, avatarImage: uploadedAvatarDataUri || (avatarImageInput.value || '').trim() };
+            const saved = await saveServerSettings({ profile: payloadProfile, theme: currentTheme, shortcuts, preferences: prefs });
+            profile = { ...payloadProfile, ...(saved?.profile || {}) };
+            if (uploadedAvatarObjectUrl) URL.revokeObjectURL(uploadedAvatarObjectUrl);
+            uploadedAvatarObjectUrl = '';
+            uploadedAvatarDataUri = '';
+            saveJSON(profileKey, profile);
+            hydrateProfileForm();
+            alert('Profil został zapisany.');
         });
 
         document.getElementById('clear-avatar-image-btn').addEventListener('click', () => {
             avatarImageInput.value = '';
+            uploadedAvatarDataUri = '';
+            if (uploadedAvatarObjectUrl) URL.revokeObjectURL(uploadedAvatarObjectUrl);
+            uploadedAvatarObjectUrl = '';
             if (avatarUploadInput) avatarUploadInput.value = '';
             renderProfilePreview();
         });
 
         document.getElementById('save-shortcuts-btn').addEventListener('click', async () => {
-            const data = {};
-            document.querySelectorAll('#shortcut-grid input[type="checkbox"]').forEach(el => {
-                data[el.dataset.shortcut] = el.checked;
-            });
+            const data = collectShortcutState();
             shortcuts = data;
             saveJSON(shortcutsKey, data);
             renderProfilePreview();
+            updateQuickDockPreview();
             await saveServerSettings({ shortcuts: data, profile: renderProfilePreview(), theme: currentTheme, preferences: prefs });
-            alert('Skróty zostały zapisane na koncie użytkownika.');
+            alert(window.ARES_I18N?.t('Skróty zostały zapisane na koncie użytkownika.') || 'Skróty zostały zapisane na koncie użytkownika.');
         });
 
         document.getElementById('save-preferences-btn').addEventListener('click', async () => {
@@ -503,12 +575,16 @@
                 confirmActions: document.getElementById('pref-confirm-actions').checked,
                 showTips: document.getElementById('pref-show-tips').checked,
                 showQuickDock: document.getElementById('pref-show-quick-dock').checked,
+                language: document.getElementById('pref-language')?.value || 'pl',
             };
+            localStorage.setItem(languageKey, data.language);
+            window.ARES_I18N?.setLanguage(data.language);
             prefs = data;
             saveJSON(prefKey, data);
+            updateQuickDockPreview();
             await saveServerSettings({ preferences: data, profile: renderProfilePreview(), theme: currentTheme, shortcuts });
             alert('Preferencje zostały zapisane na koncie użytkownika.');
-            window.location.reload();
+            window.ARES_I18N?.refresh?.();
         });
 
         document.getElementById('reset-profile-btn').addEventListener('click', async () => {

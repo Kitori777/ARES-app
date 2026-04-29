@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}ARES{% endblock %}</title>
-    <link rel="stylesheet" href="{% static 'css/style.css' %}?v=0.3.5">
+    <link rel="stylesheet" href="{% static 'css/style.css' %}?v=0.4.5">
     {% block extra_head %}{% endblock %}
 </head>
 <body class="ares-body" data-theme="midnight-blue">
@@ -93,12 +93,16 @@
         </main>
 
         <nav class="quick-access-dock" id="quick-access-dock" aria-label="Pasek szybkiego dostępu">
-            <a href="{% url 'dashboard' %}" data-dock-shortcut="start"><span>⌂</span><small>Start</small></a>
-            <a href="{% url 'worksheets' %}" data-dock-shortcut="worksheets"><span>▦</span><small>Arkusze</small></a>
-            <a href="{% url 'import_data' %}" data-dock-shortcut="import"><span>⇩</span><small>Import</small></a>
-            <a href="{% url 'reports' %}" data-dock-shortcut="reports"><span>◫</span><small>Raporty</small></a>
-            <a href="{% url 'history' %}" data-dock-shortcut="history"><span>⏱</span><small>Historia</small></a>
-            <a href="{% url 'profile' %}" data-dock-shortcut="profile"><span>⚙</span><small>Profil</small></a>
+            <a href="{% url 'dashboard' %}" data-dock-shortcut="start" title="Start"><span>⌂</span><small>Start</small></a>
+            <a href="{% url 'worksheets' %}" data-dock-shortcut="worksheets" title="Arkusze"><span>▦</span><small>Arkusze</small></a>
+            <a href="{% url 'import_data' %}" data-dock-shortcut="import" title="Import danych"><span>⇩</span><small>Import</small></a>
+            <a href="{% url 'reports' %}" data-dock-shortcut="reports" title="Raporty"><span>◫</span><small>Raporty</small></a>
+            <a href="{% url 'history' %}" data-dock-shortcut="history" title="Historia zmian"><span>⏱</span><small>Historia</small></a>
+            <a href="{% url 'worksheet_editor' %}?open=charts" data-dock-shortcut="charts" title="Wykresy"><span>◒</span><small>Wykresy</small></a>
+            <a href="{% url 'worksheet_editor' %}?open=solver" data-dock-shortcut="solver" title="Solver"><span>∑</span><small>Solver</small></a>
+            <a href="{% url 'worksheet_editor' %}?open=math" data-dock-shortcut="math" title="Matematyka akademicka"><span>∫</span><small>Matematyka</small></a>
+            <a href="{% url 'worksheet_editor' %}?open=merge" data-dock-shortcut="merge" title="Scalanie arkuszy"><span>⇄</span><small>Scalanie</small></a>
+            <a href="{% url 'profile' %}" data-dock-shortcut="profile" title="Profil"><span>⚙</span><small>Profil</small></a>
         </nav>
     </div>
 </div>
@@ -121,6 +125,7 @@
 {% endif %}
 
 {% if request.user.is_authenticated %}
+<script src="{% static 'js/ares_i18n.js' %}?v=0.4.5"></script>
 <script>
     (function () {
         const shell = document.getElementById('app-shell');
@@ -131,6 +136,7 @@
         const profileKey = 'ares_profile_settings';
         const prefKey = 'ares_preferences';
         const shortcutKey = 'ares_shortcuts';
+        const languageKey = 'ares_language';
 
         function loadJSON(key, fallback) {
             try { return JSON.parse(localStorage.getItem(key)) ?? fallback; } catch (e) { return fallback; }
@@ -142,8 +148,8 @@
             localStorage.setItem(STORAGE_KEY, collapsed ? '1' : '0');
         }
 
-        const prefs = loadJSON(prefKey, { showClock: true, compactSidebar: false, showQuickDock: true });
-        const shortcuts = loadJSON(shortcutKey, {});
+        let prefs = loadJSON(prefKey, { showClock: true, compactSidebar: false, showQuickDock: true, language: localStorage.getItem(languageKey) || 'pl' });
+        let shortcuts = loadJSON(shortcutKey, {});
 
         if (shell) {
             const initial = localStorage.getItem(STORAGE_KEY) === '1' || prefs.compactSidebar === true;
@@ -159,6 +165,8 @@
 
         const theme = localStorage.getItem(themeKey) || 'midnight-blue';
         document.body.setAttribute('data-theme', theme);
+        localStorage.setItem(languageKey, prefs.language || localStorage.getItem(languageKey) || 'pl');
+        window.ARES_I18N?.setLanguage(localStorage.getItem(languageKey) || 'pl');
 
         const defaultUsername = '{{ request.user.username|escapejs }}';
         const settings = loadJSON(profileKey, {
@@ -199,22 +207,40 @@
         const trigger = document.getElementById('profile-trigger');
         const dropdown = document.getElementById('profile-dropdown');
         if (menu && trigger && dropdown) {
+            function placeProfileDropdown() {
+                const rect = trigger.getBoundingClientRect();
+                const width = Math.min(340, Math.max(280, dropdown.offsetWidth || 300));
+                const left = Math.max(12, Math.min(rect.right - width, window.innerWidth - width - 12));
+                dropdown.style.position = 'fixed';
+                dropdown.style.left = left + 'px';
+                dropdown.style.right = 'auto';
+                dropdown.style.top = Math.min(rect.bottom + 12, window.innerHeight - 20) + 'px';
+                dropdown.style.width = width + 'px';
+            }
+            function openProfileDropdown() {
+                dropdown.removeAttribute('hidden');
+                menu.classList.add('profile-menu-open');
+                trigger.setAttribute('aria-expanded', 'true');
+                placeProfileDropdown();
+                window.ARES_I18N?.refresh?.();
+            }
+            function closeProfileDropdown() {
+                dropdown.setAttribute('hidden', 'hidden');
+                menu.classList.remove('profile-menu-open');
+                trigger.setAttribute('aria-expanded', 'false');
+            }
             trigger.addEventListener('click', function (e) {
                 e.stopPropagation();
-                const isHidden = dropdown.hasAttribute('hidden');
-                if (isHidden) {
-                    dropdown.removeAttribute('hidden');
-                    trigger.setAttribute('aria-expanded', 'true');
-                } else {
-                    dropdown.setAttribute('hidden', 'hidden');
-                    trigger.setAttribute('aria-expanded', 'false');
-                }
+                dropdown.hasAttribute('hidden') ? openProfileDropdown() : closeProfileDropdown();
             });
+            window.addEventListener('resize', function () {
+                if (!dropdown.hasAttribute('hidden')) placeProfileDropdown();
+            });
+            window.addEventListener('scroll', function () {
+                if (!dropdown.hasAttribute('hidden')) placeProfileDropdown();
+            }, true);
             document.addEventListener('click', function (e) {
-                if (!menu.contains(e.target)) {
-                    dropdown.setAttribute('hidden', 'hidden');
-                    trigger.setAttribute('aria-expanded', 'false');
-                }
+                if (!menu.contains(e.target) && !dropdown.contains(e.target)) closeProfileDropdown();
             });
         }
 
@@ -234,6 +260,13 @@
 
         const dock = document.getElementById('quick-access-dock');
         if (dock) {
+            const currentPath = window.location.pathname;
+            dock.querySelectorAll('a[href]').forEach(link => {
+                try {
+                    const url = new URL(link.href, window.location.origin);
+                    if (url.pathname === currentPath) link.setAttribute('aria-current', 'page');
+                } catch (error) {}
+            });
             dock.hidden = prefs.showQuickDock === false;
             dock.querySelectorAll('[data-dock-shortcut]').forEach(item => {
                 const key = item.dataset.dockShortcut;
@@ -316,20 +349,26 @@
                 });
             }
             if (payload.preferences) {
-                localStorage.setItem(prefKey, JSON.stringify(payload.preferences));
+                prefs = { ...prefs, ...payload.preferences };
+                localStorage.setItem(prefKey, JSON.stringify(prefs));
+                if (payload.preferences.language) {
+                    localStorage.setItem(languageKey, payload.preferences.language);
+                    window.ARES_I18N?.setLanguage(payload.preferences.language);
+                }
                 if (shell) {
                     const shouldCollapse = payload.preferences.compactSidebar === true || localStorage.getItem(STORAGE_KEY) === '1';
                     shell.classList.toggle('sidebar-collapsed', shouldCollapse);
                 }
-                if (clock) clock.hidden = payload.preferences.showClock === false;
+                renderClock();
                 if (dock) dock.hidden = payload.preferences.showQuickDock === false;
             }
             if (payload.shortcuts) {
-                localStorage.setItem(shortcutKey, JSON.stringify(payload.shortcuts));
+                shortcuts = { ...shortcuts, ...payload.shortcuts };
+                localStorage.setItem(shortcutKey, JSON.stringify(shortcuts));
                 if (dock) {
                     dock.querySelectorAll('[data-dock-shortcut]').forEach(item => {
                         const key = item.dataset.dockShortcut;
-                        item.hidden = key !== 'start' && key !== 'profile' && payload.shortcuts[key] === false;
+                        item.hidden = key !== 'start' && key !== 'profile' && shortcuts[key] === false;
                     });
                 }
             }

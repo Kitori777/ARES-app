@@ -8,9 +8,14 @@
 <style>
     .import-grid {
         display: grid;
-        grid-template-columns: 1.1fr 0.9fr;
+        grid-template-columns: minmax(260px, 300px) minmax(0, 1fr);
         gap: 20px;
         align-items: start;
+        max-width: 100%;
+    }
+
+    .import-grid > *, .import-preview-card, .import-controls-card {
+        min-width: 0;
     }
 
     .ares-card {
@@ -90,7 +95,7 @@
 
     .stats-grid {
         display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
+        grid-template-columns: 1fr;
         gap: 12px;
         margin-top: 18px;
     }
@@ -112,18 +117,23 @@
     .stat-box strong {
         color: #eef3ff;
         font-size: 1.1rem;
+        display: block;
+        max-width: 100%;
+        overflow-wrap: anywhere;
     }
 
     .preview-wrap {
         overflow: auto;
-        max-height: 420px;
+        max-height: 560px;
+        max-width: 100%;
         border-radius: 16px;
         border: 1px solid rgba(255,255,255,0.08);
         margin-top: 18px;
     }
 
     .preview-table {
-        width: 100%;
+        width: max-content;
+        min-width: 100%;
         border-collapse: separate;
         border-spacing: 0;
         background: #0f1726;
@@ -136,6 +146,14 @@
         border-bottom: 1px solid rgba(255,255,255,0.06);
         color: #eef3ff;
         white-space: nowrap;
+        max-width: 220px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .preview-table td:hover {
+        white-space: normal;
+        overflow: visible;
     }
 
     .preview-table thead th {
@@ -182,7 +200,7 @@
 {% endblock %}
 
 {% block content %}
-<section class="editor-page-shell">
+<section class="editor-page-shell import-page-shell">
     <div class="ares-card">
         <div class="ares-label">Import</div>
         <h1 class="ares-h1">Import danych do arkusza</h1>
@@ -192,7 +210,7 @@
     </div>
 
     <div class="import-grid">
-        <section class="ares-card">
+        <section class="ares-card import-controls-card">
             <div class="ares-label">Tryb importu</div>
 
             <div class="segmented">
@@ -215,8 +233,8 @@
                 </div>
 
                 <div>
-                    <label for="csv-file">Plik CSV</label>
-                    <input id="csv-file" type="file" accept=".csv">
+                    <label for="csv-file">Plik CSV / XLSX</label>
+                    <input id="csv-file" type="file" accept=".csv,.txt,.tsv,.xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel">
                 </div>
             </div>
 
@@ -241,16 +259,16 @@
 
             <div class="action-row">
                 <button id="preview-btn" class="btn btn-secondary" type="button">Pokaż podgląd</button>
-                <button id="import-btn" class="btn btn-primary" type="button">Importuj CSV</button>
+                <button id="import-btn" class="btn btn-primary" type="button">Importuj plik</button>
             </div>
 
             <div id="import-status" class="status-box"></div>
         </section>
 
-        <section class="ares-card">
+        <section class="ares-card import-preview-card">
             <div class="ares-label">Podgląd danych</div>
             <div class="ares-muted">
-                Pokazujemy pierwsze 10 wierszy po wczytaniu pliku.
+                Pokazujemy pierwsze 10 wierszy po wczytaniu pliku. Przy większej liczbie kolumn użyj poziomego suwaka w podglądzie.
             </div>
 
             <div class="preview-wrap">
@@ -265,6 +283,7 @@
 {% endblock %}
 
 {% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script>
 document.addEventListener("DOMContentLoaded", function () {
     const modeButtons = document.querySelectorAll(".segment-btn");
@@ -350,7 +369,41 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     }
 
-    function parseCsvSmart(text) {
+    function detectDelimiter(text) {
+        const sample = text.split(/\r?\n/).filter(line => line.trim()).slice(0, 8);
+        const candidates = [";", "\t", ","];
+        let best = ";";
+        let bestScore = -1;
+
+        candidates.forEach(delimiter => {
+            const counts = sample.map(line => {
+                let count = 0;
+                let inQuotes = false;
+                for (let i = 0; i < line.length; i++) {
+                    const ch = line[i];
+                    const next = line[i + 1];
+                    if (ch === '"') {
+                        if (inQuotes && next === '"') i++;
+                        else inQuotes = !inQuotes;
+                    } else if (ch === delimiter && !inQuotes) {
+                        count++;
+                    }
+                }
+                return count;
+            });
+            const positive = counts.filter(v => v > 0);
+            const score = positive.length ? positive.reduce((a, b) => a + b, 0) - new Set(positive).size : 0;
+            if (score > bestScore) {
+                bestScore = score;
+                best = delimiter;
+            }
+        });
+
+        return best;
+    }
+
+    function parseDelimitedSmart(text) {
+        const delimiter = detectDelimiter(text);
         const rows = [];
         let row = [];
         let current = "";
@@ -367,7 +420,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 } else {
                     inQuotes = !inQuotes;
                 }
-            } else if ((ch === ";" || ch === ",") && !inQuotes) {
+            } else if (ch === delimiter && !inQuotes) {
                 row.push(current);
                 current = "";
             } else if (ch === "\n" && !inQuotes) {
@@ -388,6 +441,28 @@ document.addEventListener("DOMContentLoaded", function () {
         return ensureRectangularGrid(
             rows.filter(r => r.some(cell => String(cell).trim() !== ""))
         );
+    }
+
+    async function parseWorkbook(file) {
+        if (!window.XLSX) {
+            throw new Error("Brak biblioteki XLSX. Sprawdź połączenie z internetem albo użyj CSV.");
+        }
+        const buffer = await file.arrayBuffer();
+        const workbook = XLSX.read(buffer, { type: "array", cellDates: true });
+        const firstSheetName = workbook.SheetNames[0];
+        if (!firstSheetName) return [];
+        const worksheet = workbook.Sheets[firstSheetName];
+        const rows = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: "", raw: false });
+        return ensureRectangularGrid(rows.filter(r => r.some(cell => String(cell).trim() !== "")));
+    }
+
+    async function parseSelectedFile(file) {
+        const name = file.name.toLowerCase();
+        if (name.endsWith(".xlsx") || name.endsWith(".xls")) {
+            return await parseWorkbook(file);
+        }
+        const text = await file.text();
+        return parseDelimitedSmart(text);
     }
 
     function renderPreview(grid) {
@@ -449,14 +524,13 @@ document.addEventListener("DOMContentLoaded", function () {
         fileNameEl.textContent = file.name;
 
         try {
-            const text = await file.text();
-            parsedGrid = parseCsvSmart(text);
+            parsedGrid = await parseSelectedFile(file);
             rowsCountEl.textContent = parsedGrid.length;
             colsCountEl.textContent = parsedGrid[0] ? parsedGrid[0].length : 0;
             renderPreview(parsedGrid);
         } catch (e) {
             console.error(e);
-            setStatus("Nie udało się odczytać pliku CSV.", "err");
+            setStatus("Nie udało się odczytać pliku. Sprawdź format CSV/XLSX.", "err");
         }
     });
 
@@ -468,7 +542,7 @@ document.addEventListener("DOMContentLoaded", function () {
         clearStatus();
 
         if (!parsedGrid.length) {
-            setStatus("Najpierw wybierz i wczytaj plik CSV.", "err");
+            setStatus("Najpierw wybierz i wczytaj plik CSV/XLSX.", "err");
             return;
         }
 
@@ -500,14 +574,14 @@ document.addEventListener("DOMContentLoaded", function () {
 
             await postJson(`/ares/api/sheets/${targetId}/save/`, {
                 grid: parsedGrid,
-                action: "Zaimportowano plik CSV"
+                action: "Zaimportowano plik CSV/XLSX"
             });
 
             await postJson("/ares/api/history/add/", {
                 sheetId: targetId,
-                action: "Zaimportowano plik CSV",
+                action: "Zaimportowano plik CSV/XLSX",
                 details: {
-                    type: "csv_import",
+                    type: "file_import",
                     rows: parsedGrid.length,
                     cols: parsedGrid[0] ? parsedGrid[0].length : 0,
                     fileName: csvFile.files?.[0]?.name || null

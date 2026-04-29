@@ -98,6 +98,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
                 <div class="sheet-item-actions">
                     <a class="btn btn-primary" href="/worksheets/editor/?sheet=${sheet.id}">Otwórz</a>
+                    <button class="btn btn-secondary rename-sheet-list-btn" data-sheet-id="${sheet.id}" data-sheet-name="${String(sheet.name || "").replace(/&/g, "&amp;").replace(/"/g, "&quot;")}" data-sheet-category="${String(sheet.category || "").replace(/&/g, "&amp;").replace(/"/g, "&quot;")}">Zmień nazwę</button>
                     <button class="btn btn-secondary delete-sheet-btn" data-sheet-id="${sheet.id}">Usuń</button>
                 </div>
             `;
@@ -109,6 +110,22 @@ document.addEventListener("DOMContentLoaded", function () {
                 const sheetId = this.dataset.sheetId;
                 toggleFavorite(sheetId);
                 await renderSheets();
+            });
+        });
+
+
+        document.querySelectorAll(".rename-sheet-list-btn").forEach(btn => {
+            btn.addEventListener("click", async function () {
+                const sheetId = this.dataset.sheetId;
+                const currentName = this.dataset.sheetName || "Arkusz";
+                const currentCategory = this.dataset.sheetCategory || "Bez kategorii";
+                const name = prompt("Podaj nową nazwę arkusza:", currentName);
+                if (!name || !name.trim()) return;
+                const category = prompt("Kategoria arkusza:", currentCategory) || currentCategory;
+                try {
+                    await apiPost(`/ares/api/sheets/${sheetId}/save/`, { name: name.trim(), category: category.trim(), action: "Zmieniono nazwę arkusza" });
+                    await renderSheets();
+                } catch (e) { alert("Nie udało się zmienić nazwy arkusza."); }
             });
         });
 
