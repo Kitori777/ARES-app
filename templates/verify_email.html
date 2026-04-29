@@ -28,6 +28,14 @@
                 </div>
             </div>
 
+            {% if emergency_verification_code %}
+                <div class="verification-emergency-code">
+                    <div class="verification-emergency-label">Kod awaryjny / testowy</div>
+                    <div class="verification-emergency-value">{{ emergency_verification_code }}</div>
+                    <p>SMTP nie wysłał wiadomości. Konto nadal nie zostanie utworzone bez wpisania kodu. Docelowo popraw dane SMTP w Renderze i ustaw <code>EMAIL_VERIFICATION_CODE_ON_SCREEN=False</code>.</p>
+                </div>
+            {% endif %}
+
             <form method="post" class="auth-form">
                 {% csrf_token %}
                 <label for="verify-email">Adres e-mail</label>

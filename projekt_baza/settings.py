@@ -112,6 +112,13 @@ EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER', '')
 EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD', '')
 EMAIL_TIMEOUT = int(os.getenv('EMAIL_TIMEOUT', '20'))
 
+# Tryb awaryjny dla rejestracji, gdy SMTP nie jest jeszcze poprawnie ustawiony.
+# User nadal powstaje dopiero po wpisaniu kodu. W produkcji docelowo ustaw False,
+# a prawdziwe dane SMTP ustaw w Render → Environment Variables.
+EMAIL_VERIFICATION_CODE_ON_SCREEN = env_bool('EMAIL_VERIFICATION_CODE_ON_SCREEN', True)
+EMAIL_VERIFICATION_LOG_CODE = env_bool('EMAIL_VERIFICATION_LOG_CODE', True)
+
+
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 SESSION_COOKIE_SECURE = env_bool('SESSION_COOKIE_SECURE', not DEBUG)
 CSRF_COOKIE_SECURE = env_bool('CSRF_COOKIE_SECURE', not DEBUG)

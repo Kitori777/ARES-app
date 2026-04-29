@@ -8,7 +8,8 @@ from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.hashers import check_password, make_password
 from django.contrib.auth.models import User
-from django.core.mail import send_mail
+from django.core.mail import EmailMultiAlternatives
+from django.core.exceptions import ImproperlyConfigured
 from django.db import IntegrityError, transaction
 from django.http import JsonResponse
 from django.shortcuts import redirect, render
@@ -42,7 +43,43 @@ def _remember_pending_registration(request, pending: PendingRegistration) -> Non
     request.session.pop('user_id_to_verify', None)
 
 
-def _send_code_email(*, username: str, email: str, code: str, expires_at) -> None:
+def _email_backend_is_smtp() -> bool:
+    return 'smtp' in str(settings.EMAIL_BACKEND).lower()
+
+
+def _smtp_missing_configuration() -> list[str]:
+    """Zwraca brakujące zmienne SMTP, zanim Django spróbuje wysłać maila."""
+    if not _email_backend_is_smtp():
+        return []
+
+    required = {
+        'EMAIL_HOST': settings.EMAIL_HOST,
+        'EMAIL_HOST_USER': settings.EMAIL_HOST_USER,
+        'EMAIL_HOST_PASSWORD': settings.EMAIL_HOST_PASSWORD,
+        'DEFAULT_FROM_EMAIL': settings.DEFAULT_FROM_EMAIL,
+    }
+    return [name for name, value in required.items() if not str(value or '').strip()]
+
+
+def _remember_emergency_code(request, code: str) -> None:
+    """Kod awaryjny do testów/deploy preview, gdy SMTP jest jeszcze źle skonfigurowany."""
+    if getattr(settings, 'EMAIL_VERIFICATION_CODE_ON_SCREEN', False):
+        request.session['emergency_verification_code'] = code
+    else:
+        request.session.pop('emergency_verification_code', None)
+
+
+def _clear_emergency_code(request) -> None:
+    request.session.pop('emergency_verification_code', None)
+
+
+def _send_code_email(*, username: str, email: str, code: str, expires_at) -> int:
+    missing = _smtp_missing_configuration()
+    if missing:
+        raise ImproperlyConfigured(
+            'Brakuje konfiguracji SMTP: ' + ', '.join(missing)
+        )
+
     subject = 'ARES — kod weryfikacyjny konta'
     expires_local = timezone.localtime(expires_at).strftime('%d.%m.%Y, %H:%M')
     message = (
@@ -67,14 +104,22 @@ def _send_code_email(*, username: str, email: str, code: str, expires_at) -> Non
             </div>
         </div>
     '''
-    send_mail(
+
+    if getattr(settings, 'EMAIL_VERIFICATION_LOG_CODE', False):
+        logger.info('ARES verification code for %s: %s', email, code)
+
+    email_message = EmailMultiAlternatives(
         subject=subject,
-        message=message,
+        body=message,
         from_email=settings.DEFAULT_FROM_EMAIL,
-        recipient_list=[email],
-        fail_silently=False,
-        html_message=html_message,
+        to=[email],
+        headers={'X-ARES-Email-Type': 'verification-code'},
     )
+    email_message.attach_alternative(html_message, 'text/html')
+    sent_count = email_message.send(fail_silently=False)
+    if sent_count < 1:
+        raise RuntimeError('Backend pocztowy nie zwrócił potwierdzenia wysłania wiadomości.')
+    return sent_count
 
 
 def _send_verification_email(user: User, verification: EmailVerification) -> None:
@@ -130,7 +175,7 @@ def _find_pending_registration(request, email: str | None = None) -> PendingRegi
     return None
 
 
-def _auth_page_context(**extra):
+def _auth_page_context(request=None, **extra):
     context = {
         'auth_features': [
             'Arkusze kalkulacyjne online',
@@ -138,6 +183,8 @@ def _auth_page_context(**extra):
             'Profil użytkownika i motywy',
         ]
     }
+    if request is not None and getattr(settings, 'EMAIL_VERIFICATION_CODE_ON_SCREEN', False):
+        context['emergency_verification_code'] = request.session.get('emergency_verification_code', '')
     context.update(extra)
     return context
 
@@ -173,7 +220,7 @@ def login_view(request):
 
         messages.error(request, 'Nieprawidłowy login lub hasło.')
 
-    return render(request, 'login.html', _auth_page_context())
+    return render(request, 'login.html', _auth_page_context(request))
 
 
 def register_view(request):
@@ -204,26 +251,38 @@ def register_view(request):
                 pending.save()
                 _send_pending_registration_email(pending)
             except Exception as exc:
-                # Jeżeli SMTP nie działa, nie tworzymy właściwego konta i usuwamy próbę rejestracji.
+                # Konto User nadal NIE powstaje. Zostawiamy tylko oczekującą rejestrację,
+                # żeby po poprawieniu SMTP można było wysłać kod ponownie.
                 logger.exception('Nie udało się wysłać e-maila weryfikacyjnego do %s', email)
-                if pending.pk and not settings.DEBUG:
-                    pending.delete()
-                elif pending.pk and settings.DEBUG:
+                if pending.pk:
                     _remember_pending_registration(request, pending)
-                    messages.warning(request, f'Nie udało się wysłać e-maila. Tryb DEBUG — kod testowy: {pending.verification_code}')
+                    _remember_emergency_code(request, pending.verification_code)
+                    if getattr(settings, 'EMAIL_VERIFICATION_CODE_ON_SCREEN', False):
+                        messages.warning(
+                            request,
+                            'SMTP nie wysłał wiadomości, ale konto nie zostało utworzone. '
+                            'Rejestracja czeka na potwierdzenie — użyj kodu awaryjnego widocznego poniżej albo popraw SMTP i wyślij kod ponownie.',
+                        )
+                        return redirect('verify_email')
+                    messages.error(
+                        request,
+                        'Nie udało się wysłać e-maila weryfikacyjnego. Konto nie zostało utworzone. '
+                        'Rejestracja czeka na potwierdzenie — popraw SMTP i kliknij „Wyślij kod ponownie”.',
+                    )
                     return redirect('verify_email')
                 messages.error(
                     request,
-                    'Nie udało się wysłać e-maila weryfikacyjnego. Konto nie zostało utworzone. Sprawdź konfigurację SMTP albo spróbuj później.',
+                    'Nie udało się przygotować rejestracji. Sprawdź konfigurację SMTP albo spróbuj później.',
                 )
             else:
+                _clear_emergency_code(request)
                 _remember_pending_registration(request, pending)
                 messages.success(request, 'Kod weryfikacyjny został wysłany na Twój e-mail. Konto zostanie utworzone dopiero po potwierdzeniu kodu.')
                 return redirect('verify_email')
     else:
         form = RegisterForm()
 
-    return render(request, 'register.html', _auth_page_context(form=form))
+    return render(request, 'register.html', _auth_page_context(request, form=form))
 
 
 def verify_email_view(request):
@@ -237,11 +296,11 @@ def verify_email_view(request):
         if pending:
             if pending.is_expired:
                 messages.error(request, 'Kod wygasł. Wyślij nowy kod weryfikacyjny.')
-                return render(request, 'verify_email.html', _auth_page_context(verification_email=pending.email))
+                return render(request, 'verify_email.html', _auth_page_context(request, verification_email=pending.email))
 
             if pending.verification_code != code:
                 messages.error(request, 'Nieprawidłowy kod weryfikacyjny.')
-                return render(request, 'verify_email.html', _auth_page_context(verification_email=pending.email))
+                return render(request, 'verify_email.html', _auth_page_context(request, verification_email=pending.email))
 
             try:
                 with transaction.atomic():
@@ -256,10 +315,11 @@ def verify_email_view(request):
                     pending.delete()
             except IntegrityError:
                 messages.error(request, 'Nie można utworzyć konta, ponieważ login lub e-mail został już użyty.')
-                return render(request, 'verify_email.html', _auth_page_context(verification_email=email or verification_email))
+                return render(request, 'verify_email.html', _auth_page_context(request, verification_email=email or verification_email))
 
             request.session.pop('pending_registration_id', None)
             request.session.pop('verification_email', None)
+            _clear_emergency_code(request)
             messages.success(request, 'Konto zostało utworzone i aktywowane. Możesz się zalogować.')
             return redirect('login')
 
@@ -267,7 +327,7 @@ def verify_email_view(request):
         user = _find_verification_user(request, email=email)
         if not user:
             messages.error(request, 'Nie znaleziono oczekującej rejestracji dla podanego adresu e-mail.')
-            return render(request, 'verify_email.html', _auth_page_context(verification_email=email or verification_email))
+            return render(request, 'verify_email.html', _auth_page_context(request, verification_email=email or verification_email))
 
         verification = (
             EmailVerification.objects
@@ -278,11 +338,11 @@ def verify_email_view(request):
 
         if not verification:
             messages.error(request, 'Nieprawidłowy kod weryfikacyjny.')
-            return render(request, 'verify_email.html', _auth_page_context(verification_email=user.email))
+            return render(request, 'verify_email.html', _auth_page_context(request, verification_email=user.email))
 
         if verification.expires_at < timezone.now():
             messages.error(request, 'Kod wygasł. Wyślij nowy kod weryfikacyjny.')
-            return render(request, 'verify_email.html', _auth_page_context(verification_email=user.email))
+            return render(request, 'verify_email.html', _auth_page_context(request, verification_email=user.email))
 
         user.is_active = True
         user.save(update_fields=['is_active'])
@@ -290,11 +350,12 @@ def verify_email_view(request):
         EmailVerification.objects.filter(user=user).delete()
         request.session.pop('user_id_to_verify', None)
         request.session.pop('verification_email', None)
+        _clear_emergency_code(request)
 
         messages.success(request, 'Konto zostało aktywowane. Możesz się zalogować.')
         return redirect('login')
 
-    return render(request, 'verify_email.html', _auth_page_context(verification_email=verification_email))
+    return render(request, 'verify_email.html', _auth_page_context(request, verification_email=verification_email))
 
 
 @require_POST
@@ -307,11 +368,13 @@ def resend_verification_email_view(request):
         _remember_pending_registration(request, pending)
         try:
             _send_pending_registration_email(pending)
+            _clear_emergency_code(request)
             messages.success(request, 'Nowy kod weryfikacyjny został wysłany na e-mail.')
         except Exception:
             logger.exception('Nie udało się ponownie wysłać e-maila weryfikacyjnego do %s', pending.email)
-            if settings.DEBUG:
-                messages.warning(request, f'Nie udało się wysłać e-maila. Tryb DEBUG — kod testowy: {pending.verification_code}')
+            _remember_emergency_code(request, pending.verification_code)
+            if getattr(settings, 'EMAIL_VERIFICATION_CODE_ON_SCREEN', False):
+                messages.warning(request, 'SMTP nadal nie wysyła wiadomości. Użyj kodu awaryjnego widocznego poniżej albo popraw konfigurację SMTP.')
             else:
                 messages.error(request, 'Nie udało się wysłać e-maila. Sprawdź konfigurację SMTP albo spróbuj ponownie później.')
         return redirect('verify_email')
@@ -327,11 +390,13 @@ def resend_verification_email_view(request):
 
     try:
         _send_verification_email(user, verification)
+        _clear_emergency_code(request)
         messages.success(request, 'Nowy kod weryfikacyjny został wysłany na e-mail.')
     except Exception:
         logger.exception('Nie udało się ponownie wysłać e-maila weryfikacyjnego do %s', user.email)
-        if settings.DEBUG:
-            messages.warning(request, f'Nie udało się wysłać e-maila. Kod testowy: {verification.code}')
+        _remember_emergency_code(request, verification.code)
+        if getattr(settings, 'EMAIL_VERIFICATION_CODE_ON_SCREEN', False):
+            messages.warning(request, 'SMTP nadal nie wysyła wiadomości. Użyj kodu awaryjnego widocznego poniżej albo popraw konfigurację SMTP.')
         else:
             messages.error(request, 'Nie udało się wysłać e-maila. Sprawdź konfigurację SMTP albo spróbuj ponownie później.')
 
