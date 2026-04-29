@@ -20,17 +20,24 @@ services:
       - key: DATABASE_SSL_REQUIRE
         value: "True"
       - key: EMAIL_DELIVERY_MODE
-        value: gmail
-      - key: EMAIL_BACKEND
-        value: django.core.mail.backends.smtp.EmailBackend
+        value: brevo_api
+      - key: BREVO_API_KEY
+        sync: false
+      - key: BREVO_SENDER_EMAIL
+        sync: false
+      - key: BREVO_SENDER_NAME
+        value: ARES
       - key: DEFAULT_FROM_EMAIL
         sync: false
+      # SMTP/Gmail fallback - potrzebne tylko, gdy EMAIL_DELIVERY_MODE=gmail albo smtp
       - key: EMAIL_HOST
         value: smtp.gmail.com
       - key: EMAIL_PORT
         value: "587"
       - key: EMAIL_USE_TLS
         value: "True"
+      - key: EMAIL_USE_SSL
+        value: "False"
       - key: EMAIL_HOST_USER
         sync: false
       - key: EMAIL_HOST_PASSWORD

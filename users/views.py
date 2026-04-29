@@ -48,8 +48,21 @@ def _email_backend_is_smtp() -> bool:
     return 'smtp' in str(settings.EMAIL_BACKEND).lower()
 
 
-def _smtp_missing_configuration() -> list[str]:
-    """Zwraca brakujące dane SMTP, zanim Django spróbuje wysłać maila."""
+def _email_backend_is_brevo_api() -> bool:
+    backend = str(getattr(settings, 'EMAIL_BACKEND', '')).lower()
+    mode = str(getattr(settings, 'EMAIL_DELIVERY_MODE', '')).lower()
+    return 'brevo' in backend or mode in {'brevo', 'brevo_api', 'anymail'}
+
+
+def _missing_email_configuration() -> list[str]:
+    """Zwraca brakujące dane poczty zanim Django spróbuje wysłać wiadomość."""
+    if _email_backend_is_brevo_api():
+        required = {
+            'BREVO_API_KEY': getattr(settings, 'BREVO_API_KEY', ''),
+            'DEFAULT_FROM_EMAIL': getattr(settings, 'DEFAULT_FROM_EMAIL', ''),
+        }
+        return [name for name, value in required.items() if not str(value or '').strip()]
+
     if not _email_backend_is_smtp():
         return []
 
@@ -78,10 +91,10 @@ def _clear_emergency_code(request) -> None:
 
 
 def _send_code_email(*, username: str, email: str, code: str, expires_at) -> int:
-    missing = _smtp_missing_configuration()
+    missing = _missing_email_configuration()
     if missing:
         raise ImproperlyConfigured(
-            'Brakuje konfiguracji SMTP: ' + ', '.join(missing)
+            'Brakuje konfiguracji poczty: ' + ', '.join(missing)
         )
 
     subject = 'ARES — kod weryfikacyjny konta'

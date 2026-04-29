@@ -37,6 +37,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'anymail',
     'users',
     'ares',
     'widget_tweaks',
@@ -99,17 +100,44 @@ MEDIA_ROOT = BASE_DIR / 'media'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # E-mail delivery
-# Podejście wzorowane na SleepWatch: jednym przełącznikiem wybieramy tryb wysyłki.
-# - console: lokalnie pokazuje wiadomość w terminalu, bez prawdziwego SMTP
+# Tryby:
+# - console: lokalnie pokazuje wiadomość w terminalu
 # - file: zapisuje wiadomości do katalogu sent_emails/
-# - gmail: używa Gmail SMTP z hasłem aplikacji Google
-# - smtp: używa dowolnego SMTP z wartości z Environment Variables
+# - gmail: Gmail SMTP z hasłem aplikacji Google
+# - smtp: dowolny klasyczny SMTP
+# - brevo_api / brevo / anymail: wysyłka przez Brevo API przez HTTPS 443
+#
+# Na darmowym Renderze klasyczne SMTP 25/465/587 może być blokowane.
+# Dlatego produkcyjnie najlepiej ustawić EMAIL_DELIVERY_MODE=brevo_api i BREVO_API_KEY.
 EMAIL_DELIVERY_MODE = os.getenv(
     'EMAIL_DELIVERY_MODE',
-    'console' if DEBUG else 'gmail',
+    'console' if DEBUG else ('brevo_api' if os.getenv('BREVO_API_KEY') else 'gmail'),
 ).strip().lower()
 
-if EMAIL_DELIVERY_MODE == 'gmail':
+BREVO_API_KEY = os.getenv('BREVO_API_KEY', '').strip()
+BREVO_SENDER_EMAIL = os.getenv('BREVO_SENDER_EMAIL', '').strip()
+BREVO_SENDER_NAME = os.getenv('BREVO_SENDER_NAME', 'ARES').strip() or 'ARES'
+
+if EMAIL_DELIVERY_MODE in {'brevo', 'brevo_api', 'anymail'} or (BREVO_API_KEY and EMAIL_DELIVERY_MODE not in {'gmail', 'smtp', 'file', 'console'}):
+    EMAIL_DELIVERY_MODE = 'brevo_api'
+    EMAIL_BACKEND = 'anymail.backends.brevo.EmailBackend'
+    ANYMAIL = {
+        'BREVO_API_KEY': BREVO_API_KEY,
+    }
+    if os.getenv('DEFAULT_FROM_EMAIL'):
+        DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', '').strip()
+    elif BREVO_SENDER_EMAIL:
+        DEFAULT_FROM_EMAIL = f'{BREVO_SENDER_NAME} <{BREVO_SENDER_EMAIL}>'
+    else:
+        DEFAULT_FROM_EMAIL = 'ARES <noreply@ares.local>'
+    EMAIL_HOST = os.getenv('EMAIL_HOST', '')
+    EMAIL_PORT = int(os.getenv('EMAIL_PORT', '587'))
+    EMAIL_USE_TLS = env_bool('EMAIL_USE_TLS', True)
+    EMAIL_USE_SSL = env_bool('EMAIL_USE_SSL', False)
+    EMAIL_TIMEOUT = int(os.getenv('EMAIL_TIMEOUT', '20'))
+    EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER', '')
+    EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD', '')
+elif EMAIL_DELIVERY_MODE == 'gmail':
     EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
     EMAIL_HOST = os.getenv('EMAIL_HOST', 'smtp.gmail.com')
     EMAIL_PORT = int(os.getenv('EMAIL_PORT', '587'))
@@ -154,9 +182,8 @@ else:
 
 SERVER_EMAIL = os.getenv('SERVER_EMAIL', DEFAULT_FROM_EMAIL)
 
-# Tryb awaryjny dla rejestracji, gdy SMTP nie jest jeszcze poprawnie ustawiony.
-# User nadal powstaje dopiero po wpisaniu kodu. W produkcji docelowo ustaw False,
-# a prawdziwe dane SMTP ustaw w Render → Environment Variables.
+# Tryb awaryjny dla rejestracji, gdy dostawca poczty nie jest jeszcze poprawnie ustawiony.
+# User nadal powstaje dopiero po wpisaniu kodu. W produkcji docelowo ustaw False.
 EMAIL_VERIFICATION_CODE_ON_SCREEN = env_bool('EMAIL_VERIFICATION_CODE_ON_SCREEN', True)
 EMAIL_VERIFICATION_LOG_CODE = env_bool('EMAIL_VERIFICATION_LOG_CODE', True)
 
