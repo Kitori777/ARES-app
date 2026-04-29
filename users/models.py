@@ -22,6 +22,45 @@ class EmailVerification(models.Model):
         return f"{self.user.username} - {self.code}"
 
 
+class PendingRegistration(models.Model):
+    """Tymczasowa rejestracja. Konto User powstaje dopiero po poprawnej weryfikacji e-mail."""
+
+    username = models.CharField(max_length=150, unique=True)
+    email = models.EmailField(unique=True)
+    password_hash = models.CharField(max_length=128)
+    verification_code = models.CharField(max_length=6)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    expires_at = models.DateTimeField()
+    last_sent_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['email']),
+            models.Index(fields=['username']),
+            models.Index(fields=['expires_at']),
+        ]
+
+    def save(self, *args, **kwargs):
+        if not self.expires_at:
+            self.expires_at = timezone.now() + timedelta(minutes=30)
+        super().save(*args, **kwargs)
+
+    @property
+    def is_expired(self):
+        return self.expires_at < timezone.now()
+
+    def refresh_code(self, code):
+        self.verification_code = code
+        self.expires_at = timezone.now() + timedelta(minutes=30)
+        self.last_sent_at = timezone.now()
+        self.save(update_fields=['verification_code', 'expires_at', 'last_sent_at', 'updated_at'])
+
+    def __str__(self):
+        return f'Oczekująca rejestracja: {self.username} <{self.email}>'
+
+
 class UserProfile(models.Model):
     """Ustawienia profilu i wyglądu przypisane do zalogowanego użytkownika."""
 

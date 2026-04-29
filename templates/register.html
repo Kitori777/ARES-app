@@ -3,12 +3,32 @@
 {% block title %}ARES | Rejestracja{% endblock %}
 
 {% block guest_content %}
-<section class="hero-app single-auth">
-    <div class="hero-right centered-auth">
-        <div class="auth-card app-card">
-            <h2>Rejestracja do ARES</h2>
+<section class="auth-landing auth-landing-compact">
+    <div class="auth-showcase">
+        <span class="auth-kicker">NOWE KONTO</span>
+        <h1>Załóż konto i potwierdź adres e-mail</h1>
+        <p>
+            Konto zostanie utworzone dopiero po poprawnym wpisaniu kodu
+            weryfikacyjnego wysłanego na podany adres e-mail.
+        </p>
+        <div class="auth-steps">
+            <div><b>1</b><span>Wypełnij formularz</span></div>
+            <div><b>2</b><span>Odbierz kod e-mail</span></div>
+            <div><b>3</b><span>Aktywuj konto</span></div>
+        </div>
+    </div>
 
-            <form method="post" novalidate>
+    <div class="auth-form-panel">
+        <div class="auth-card app-card auth-card-polished">
+            <div class="auth-card-head">
+                <span class="auth-card-icon">＋</span>
+                <div>
+                    <h2>Rejestracja</h2>
+                    <p>Podaj dane do nowego konta.</p>
+                </div>
+            </div>
+
+            <form method="post" class="auth-form" novalidate>
                 {% csrf_token %}
 
                 {% if form.non_field_errors %}
@@ -20,77 +40,32 @@
                 {% endif %}
 
                 <label for="id_username">Login</label>
-                <input
-                    type="text"
-                    name="username"
-                    id="id_username"
-                    class="form-input"
-                    value="{{ form.username.value|default:'' }}"
-                    required
-                >
-                {% if form.username.errors %}
-                    <div class="field-error">
-                        {% for error in form.username.errors %}
-                            <div>{{ error }}</div>
-                        {% endfor %}
-                    </div>
-                {% endif %}
+                <input type="text" name="username" id="id_username" class="form-input" value="{{ form.username.value|default:'' }}" autocomplete="username" required>
+                {% if form.username.errors %}<div class="field-error">{% for error in form.username.errors %}<div>{{ error }}</div>{% endfor %}</div>{% endif %}
 
                 <label for="id_email">E-mail</label>
-                <input
-                    type="email"
-                    name="email"
-                    id="id_email"
-                    class="form-input"
-                    value="{{ form.email.value|default:'' }}"
-                    required
-                >
-                {% if form.email.errors %}
-                    <div class="field-error">
-                        {% for error in form.email.errors %}
-                            <div>{{ error }}</div>
-                        {% endfor %}
-                    </div>
-                {% endif %}
+                <input type="email" name="email" id="id_email" class="form-input" value="{{ form.email.value|default:'' }}" autocomplete="email" required>
+                {% if form.email.errors %}<div class="field-error">{% for error in form.email.errors %}<div>{{ error }}</div>{% endfor %}</div>{% endif %}
 
                 <label for="id_password1">Hasło</label>
-                <input
-                    type="password"
-                    name="password1"
-                    id="id_password1"
-                    class="form-input"
-                    required
-                >
-                {% if form.password1.errors %}
-                    <div class="field-error">
-                        {% for error in form.password1.errors %}
-                            <div>{{ error }}</div>
-                        {% endfor %}
-                    </div>
-                {% endif %}
+                <input type="password" name="password1" id="id_password1" class="form-input" autocomplete="new-password" required>
+                {% if form.password1.errors %}<div class="field-error">{% for error in form.password1.errors %}<div>{{ error }}</div>{% endfor %}</div>{% endif %}
 
                 <label for="id_password2">Powtórz hasło</label>
-                <input
-                    type="password"
-                    name="password2"
-                    id="id_password2"
-                    class="form-input"
-                    required
-                >
-                {% if form.password2.errors %}
-                    <div class="field-error">
-                        {% for error in form.password2.errors %}
-                            <div>{{ error }}</div>
-                        {% endfor %}
-                    </div>
-                {% endif %}
+                <input type="password" name="password2" id="id_password2" class="form-input" autocomplete="new-password" required>
+                {% if form.password2.errors %}<div class="field-error">{% for error in form.password2.errors %}<div>{{ error }}</div>{% endfor %}</div>{% endif %}
 
-                <button type="submit" class="btn btn-primary btn-full">Załóż konto</button>
+                <div class="auth-info-note">
+                    Konto nie zostanie utworzone, dopóki nie potwierdzisz kodu z wiadomości e-mail.
+                </div>
+
+                <button type="submit" class="btn btn-primary btn-full">Wyślij kod weryfikacyjny</button>
             </form>
 
-            <p class="auth-link">
-                Masz już konto? <a href="{% url 'login' %}">Zaloguj się</a>
-            </p>
+            <div class="auth-switch-box">
+                <span>Masz już konto?</span>
+                <a href="{% url 'login' %}">Zaloguj się</a>
+            </div>
         </div>
     </div>
 </section>

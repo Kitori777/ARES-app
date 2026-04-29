@@ -1,13 +1,21 @@
 from django.contrib import admin
 from django.utils.html import format_html
 
-from .models import EmailVerification, UserProfile
+from .models import EmailVerification, PendingRegistration, UserProfile
 
 
 @admin.register(EmailVerification)
 class EmailVerificationAdmin(admin.ModelAdmin):
     list_display = ('user', 'code', 'created_at', 'expires_at')
     search_fields = ('user__username', 'user__email', 'code')
+
+
+@admin.register(PendingRegistration)
+class PendingRegistrationAdmin(admin.ModelAdmin):
+    list_display = ('username', 'email', 'created_at', 'expires_at', 'last_sent_at')
+    search_fields = ('username', 'email')
+    readonly_fields = ('created_at', 'updated_at', 'last_sent_at')
+    ordering = ('-created_at',)
 
 
 @admin.register(UserProfile)
