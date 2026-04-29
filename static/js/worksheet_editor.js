@@ -1015,17 +1015,26 @@ document.addEventListener("DOMContentLoaded", function () {
         if (value.startsWith("=LINK(") && value.endsWith(")")) {
             const inner = value.slice(6, -1);
             const [text, url] = inner.split("|");
-            return `<a class="we-cell-link" href="${escapeHtml(url || "#")}" target="_blank" rel="noopener noreferrer">${escapeHtml(text || url || "Link")}</a>`;
+            const safeUrl = (url || "#").trim();
+            return `<a class="we-cell-link" href="${escapeHtml(safeUrl)}" target="_blank" rel="noopener noreferrer">${escapeHtml((text || safeUrl || "Link").trim())}</a>`;
         }
 
-        if (value.startsWith("=CHECKBOX(") && value.endsWith(")")) {
-            const checked = value.slice(10, -1).trim().toLowerCase() === "true" ? "checked" : "";
-            return `<div class="we-checkbox-wrap"><input class="we-cell-checkbox" type="checkbox" ${checked}></div>`;
+        if (value.startsWith("=CHECKBOX(")) {
+            const match = value.match(/^=CHECKBOX\(([^)]*)\)(.*)$/i);
+            if (match) {
+                const parts = match[1].split("|").map(v => v.trim());
+                const checked = parts[0]?.toLowerCase() === "true" ? "checked" : "";
+                const label = parts.slice(1).join(" ") || (match[2] || "").trim();
+                return `<label class="we-checkbox-wrap"><input class="we-cell-checkbox" type="checkbox" ${checked}>${label ? `<span>${escapeHtml(label)}</span>` : ""}</label>`;
+            }
         }
 
         if (value.startsWith("=DROPDOWN(") && value.endsWith(")")) {
-            const options = value.slice(10, -1).split("|").map(v => v.trim()).filter(Boolean);
-            return `<select class="we-cell-dropdown">${options.map(o => `<option>${escapeHtml(o)}</option>`).join("")}</select>`;
+            const inner = value.slice(10, -1);
+            const [optionsPart, selectedPartRaw] = inner.split(";selected=");
+            const options = optionsPart.split("|").map(v => v.trim()).filter(Boolean);
+            const selected = (selectedPartRaw || options[0] || "").trim();
+            return `<select class="we-cell-dropdown">${options.map(o => `<option ${o === selected ? "selected" : ""}>${escapeHtml(o)}</option>`).join("")}</select>`;
         }
 
         if (value.startsWith("=IMAGE(") && value.endsWith(")")) {
@@ -1041,6 +1050,36 @@ document.addEventListener("DOMContentLoaded", function () {
         }
 
         return null;
+    }
+
+    function parseCheckboxFormula(raw) {
+        const match = String(raw || "").match(/^=CHECKBOX\(([^)]*)\)(.*)$/i);
+        if (!match) return { checked: false, label: "" };
+        const parts = match[1].split("|").map(v => v.trim());
+        return {
+            checked: parts[0]?.toLowerCase() === "true",
+            label: parts.slice(1).join(" ") || (match[2] || "").trim()
+        };
+    }
+
+    function buildCheckboxFormula(checked, label = "") {
+        const safeLabel = String(label || "").trim();
+        return safeLabel ? `=CHECKBOX(${checked ? "true" : "false"}|${safeLabel})` : `=CHECKBOX(${checked ? "true" : "false"})`;
+    }
+
+    function parseDropdownFormula(raw) {
+        const value = String(raw || "");
+        if (!value.startsWith("=DROPDOWN(") || !value.endsWith(")")) return { options: [], selected: "" };
+        const inner = value.slice(10, -1);
+        const [optionsPart, selectedPartRaw] = inner.split(";selected=");
+        const options = optionsPart.split("|").map(v => v.trim()).filter(Boolean);
+        return { options, selected: (selectedPartRaw || options[0] || "").trim() };
+    }
+
+    function buildDropdownFormula(options, selected = "") {
+        const cleaned = (options || []).map(v => String(v || "").trim()).filter(Boolean);
+        const safeSelected = String(selected || cleaned[0] || "").trim();
+        return safeSelected ? `=DROPDOWN(${cleaned.join("|")};selected=${safeSelected})` : `=DROPDOWN(${cleaned.join("|")})`;
     }
 
     function cellDisplayValue(row, col) {
@@ -1285,6 +1324,32 @@ document.addEventListener("DOMContentLoaded", function () {
                 const display = cellDisplayValue(row, col);
 
                 td.innerHTML = display.html;
+                const checkboxInput = td.querySelector(".we-cell-checkbox");
+                if (checkboxInput) {
+                    checkboxInput.addEventListener("click", event => event.stopPropagation());
+                    checkboxInput.addEventListener("mousedown", event => event.stopPropagation());
+                    checkboxInput.addEventListener("change", event => {
+                        event.stopPropagation();
+                        const parsed = parseCheckboxFormula(currentSheet.grid[row][col] || "");
+                        pushHistorySnapshot();
+                        currentSheet.grid[row][col] = buildCheckboxFormula(event.target.checked, parsed.label);
+                        markDirty();
+                        logUserAction("Zmieniono pole wyboru", { type: "checkbox_change", cell: cellAddress(row, col), checked: event.target.checked });
+                    });
+                }
+                const dropdownInput = td.querySelector(".we-cell-dropdown");
+                if (dropdownInput) {
+                    dropdownInput.addEventListener("click", event => event.stopPropagation());
+                    dropdownInput.addEventListener("mousedown", event => event.stopPropagation());
+                    dropdownInput.addEventListener("change", event => {
+                        event.stopPropagation();
+                        const parsed = parseDropdownFormula(currentSheet.grid[row][col] || "");
+                        pushHistorySnapshot();
+                        currentSheet.grid[row][col] = buildDropdownFormula(parsed.options, event.target.value);
+                        markDirty();
+                        logUserAction("Zmieniono menu komórki", { type: "dropdown_change", cell: cellAddress(row, col), value: event.target.value });
+                    });
+                }
                 const tooltipMarker = td.querySelector("[data-tooltip]");
                 if (tooltipMarker) {
                     td.addEventListener("mouseenter", event => showCellTooltip(tooltipMarker.dataset.tooltip || "", event.clientX, event.clientY));
@@ -2462,9 +2527,22 @@ document.addEventListener("DOMContentLoaded", function () {
         smartInsertBody.innerHTML = cfg.body;
         if (mode === "function") {
             const select = document.getElementById("smart-function-select");
+            const argsInput = document.getElementById("smart-function-args");
             const rawCatalog = window.FORMULA_CATALOG || {};
             const catalog = Array.isArray(rawCatalog) ? rawCatalog : Object.values(rawCatalog).flat();
-            select.innerHTML = catalog.map(fn => `<option value="${fn.name}">${fn.name} — ${escapeHtml(fn.description || "")}</option>`).join("");
+            select.innerHTML = catalog.map(fn => `<option value="${fn.name}" data-syntax="${escapeHtml(fn.syntax || "")}" data-example="${escapeHtml(fn.example || "")}">${fn.name} — ${escapeHtml(fn.description || "")}</option>`).join("");
+            const fillArgsFromExample = () => {
+                const opt = select.selectedOptions?.[0];
+                const example = opt?.dataset?.example || opt?.dataset?.syntax || "";
+                const inner = example.match(/^[^()]+\((.*)\)$/)?.[1];
+                if (argsInput && inner && !argsInput.value.trim()) argsInput.value = inner;
+                updateSmartPreview();
+            };
+            select.addEventListener("change", () => {
+                if (argsInput) argsInput.value = "";
+                fillArgsFromExample();
+            });
+            fillArgsFromExample();
         }
         smartInsertBody.querySelectorAll("input,textarea,select").forEach(el => {
             el.addEventListener("input", updateSmartPreview);
@@ -2482,7 +2560,11 @@ document.addEventListener("DOMContentLoaded", function () {
     function buildSmartInsertFormula() {
         if (smartInsertMode === "function") {
             const name = document.getElementById("smart-function-select")?.value || "SUMA";
-            const args = document.getElementById("smart-function-args")?.value?.trim() || "A1:A10";
+            const argsInput = document.getElementById("smart-function-args");
+            const selected = document.getElementById("smart-function-select")?.selectedOptions?.[0];
+            const example = selected?.dataset?.example || selected?.dataset?.syntax || "";
+            const fallbackArgs = example.match(/^[^()]+\((.*)\)$/)?.[1] ?? "A1:A10";
+            const args = (argsInput?.value?.trim() || fallbackArgs).trim();
             return `=${name}(${args})`;
         }
         if (smartInsertMode === "link") {
@@ -2491,13 +2573,13 @@ document.addEventListener("DOMContentLoaded", function () {
             return `=LINK(${text}|${url})`;
         }
         if (smartInsertMode === "checkbox") {
-            const checked = document.getElementById("smart-checkbox-checked")?.checked ? "true" : "false";
+            const checked = document.getElementById("smart-checkbox-checked")?.checked;
             const label = document.getElementById("smart-checkbox-label")?.value?.trim();
-            return label ? `=CHECKBOX(${checked}) ${label}` : `=CHECKBOX(${checked})`;
+            return buildCheckboxFormula(Boolean(checked), label || "");
         }
         if (smartInsertMode === "dropdown") {
             const options = (document.getElementById("smart-dropdown-options")?.value || "Opcja 1\nOpcja 2").split(/\n+/).map(x => x.trim()).filter(Boolean);
-            return `=DROPDOWN(${options.join("|")})`;
+            return buildDropdownFormula(options, options[0] || "");
         }
         return "";
     }
@@ -2506,7 +2588,10 @@ document.addEventListener("DOMContentLoaded", function () {
         const formula = buildSmartInsertFormula();
         if (!formula || !currentSheet) return;
         if (smartInsertMode === "link" && !/^=LINK\(.+\|https?:\/\//i.test(formula)) return alert("Podaj poprawny adres URL zaczynający się od http:// albo https://.");
-        if (smartInsertMode === "dropdown" && !formula.includes("|")) return alert("Dodaj co najmniej dwie opcje menu.");
+        if (smartInsertMode === "dropdown") {
+            const parsed = parseDropdownFormula(formula);
+            if (parsed.options.length < 2) return alert("Dodaj co najmniej dwie opcje menu.");
+        }
         pushHistorySnapshot();
         currentSheet.grid[activeCell.row][activeCell.col] = formula;
         closeModal(smartInsertModal);

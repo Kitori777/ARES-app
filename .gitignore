@@ -46,6 +46,8 @@ logs/
 db.sqlite3
 data.json
 przyklad.txt
+media/
+staticfiles/
 
 # Jupyter
 .ipynb_checkpoints/

@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}ARES{% endblock %}</title>
-    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    <link rel="stylesheet" href="{% static 'css/style.css' %}?v=0.3.4">
     {% block extra_head %}{% endblock %}
 </head>
 <body class="ares-body" data-theme="midnight-blue">
@@ -242,6 +242,107 @@
                 }
             });
         }
+
+        function getCookie(name) {
+            const value = `; ${document.cookie}`;
+            const parts = value.split(`; ${name}=`);
+            if (parts.length === 2) return parts.pop().split(';').shift();
+            return '';
+        }
+
+        function readLocalProfilePayload() {
+            const storedProfile = loadJSON(profileKey, null);
+            const storedPrefs = loadJSON(prefKey, null);
+            const storedShortcuts = loadJSON(shortcutKey, null);
+            const storedTheme = localStorage.getItem(themeKey);
+            if (!storedProfile && !storedPrefs && !storedShortcuts && !storedTheme) return null;
+            return {
+                profile: storedProfile || settings,
+                preferences: storedPrefs || prefs,
+                shortcuts: storedShortcuts || shortcuts,
+                theme: storedTheme || theme,
+            };
+        }
+
+        async function migrateLocalProfileIfNeeded(payload) {
+            if (!payload || payload.isDefaultProfile !== true) return payload;
+            if (localStorage.getItem('ares_profile_db_synced') === '1') return payload;
+            const localPayload = readLocalProfilePayload();
+            if (!localPayload) return payload;
+            try {
+                const response = await fetch('{% url "profile_settings_api" %}', {
+                    method: 'POST',
+                    credentials: 'same-origin',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken'),
+                    },
+                    body: JSON.stringify({ ...localPayload, migratedFromLocalStorage: true }),
+                });
+                if (response.ok) {
+                    const migrated = await response.json();
+                    localStorage.setItem('ares_profile_db_synced', '1');
+                    return migrated;
+                }
+            } catch (error) {
+                console.warn('Nie udało się przenieść lokalnych ustawień profilu do bazy.', error);
+            }
+            return payload;
+        }
+
+        function applyServerProfileSettings(payload) {
+            if (!payload || typeof payload !== 'object') return;
+
+            if (payload.theme) {
+                localStorage.setItem(themeKey, payload.theme);
+                document.body.setAttribute('data-theme', payload.theme);
+            }
+            if (payload.profile) {
+                localStorage.setItem(profileKey, JSON.stringify(payload.profile));
+                const profile = payload.profile;
+                const name = profile.displayName || defaultUsername;
+                if (nameNode) nameNode.textContent = name;
+                if (dropdownDisplay) dropdownDisplay.textContent = name;
+
+                [triggerAvatar, dropdownAvatar].forEach(el => {
+                    if (!el) return;
+                    el.style.background = profile.avatarStyle || 'linear-gradient(135deg, #6ea8ff, #3d62ff)';
+                    el.style.borderRadius = getAvatarRadius(profile.avatarShape || 'rounded');
+                    if (profile.avatarImage) {
+                        el.innerHTML = '<img src="' + profile.avatarImage + '" alt="Avatar">';
+                    } else {
+                        el.textContent = profile.avatarText || 'A';
+                    }
+                });
+            }
+            if (payload.preferences) {
+                localStorage.setItem(prefKey, JSON.stringify(payload.preferences));
+                if (shell) {
+                    const shouldCollapse = payload.preferences.compactSidebar === true || localStorage.getItem(STORAGE_KEY) === '1';
+                    shell.classList.toggle('sidebar-collapsed', shouldCollapse);
+                }
+                if (clock) clock.hidden = payload.preferences.showClock === false;
+                if (dock) dock.hidden = payload.preferences.showQuickDock === false;
+            }
+            if (payload.shortcuts) {
+                localStorage.setItem(shortcutKey, JSON.stringify(payload.shortcuts));
+                if (dock) {
+                    dock.querySelectorAll('[data-dock-shortcut]').forEach(item => {
+                        const key = item.dataset.dockShortcut;
+                        item.hidden = key !== 'start' && key !== 'profile' && payload.shortcuts[key] === false;
+                    });
+                }
+            }
+            if (payload.profile || payload.preferences || payload.shortcuts || payload.theme) {
+                localStorage.setItem('ares_profile_db_synced', '1');
+            }
+        }
+
+        fetch('{% url "profile_settings_api" %}', { credentials: 'same-origin' })
+            .then(response => response.ok ? response.json() : null)
+            .then(migrateLocalProfileIfNeeded)
+            .then(applyServerProfileSettings)
+            .catch(() => {});
     })();
 </script>
 {% endif %}

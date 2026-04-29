@@ -11,8 +11,8 @@
             <h1>Profil użytkownika</h1>
             <p>
                 Dostosuj wygląd ARES do własnej pracy: wybierz motyw, ustaw awatar,
-                skróty i preferencje interfejsu. Zmiany zapisują się lokalnie i są
-                stosowane od razu w całym systemie.
+                skróty i preferencje interfejsu. Zmiany zapisują się na koncie użytkownika
+                i wracają po ponownym zalogowaniu.
             </p>
             <div class="hero-note-grid">
                 <div class="hero-note-tile"><strong>10 motywów</strong><small>jasne, ciemne i kontrastowe warianty</small></div>
@@ -109,6 +109,7 @@
                     <button class="btn btn-primary" id="save-profile-btn" type="button">Zapisz profil</button>
                     <button class="btn btn-secondary" id="clear-avatar-image-btn" type="button">Usuń obrazek</button>
                 </div>
+                <p class="settings-hint">Wgrane zdjęcie profilowe jest zapisywane po stronie serwera w katalogu <code>media/avatars/</code>.</p>
             </div>
             <div class="settings-card profile-live-card">
                 <span class="section-kicker">Podgląd</span>
@@ -166,6 +167,11 @@
                 <span class="theme-swatches"><i style="background:#f2f5f9"></i><i style="background:#dde4ee"></i><i style="background:#2f5d98"></i></span>
             </button>
         </div>
+        <div class="settings-actions dual">
+            <button class="btn btn-primary" id="save-appearance-btn" type="button">Zapisz wygląd</button>
+            <button class="btn btn-secondary" id="revert-theme-btn" type="button">Cofnij podgląd motywu</button>
+        </div>
+        <p class="settings-hint">Kliknięcie motywu pokazuje podgląd od razu, ale zapis na koncie następuje dopiero po użyciu przycisku „Zapisz wygląd”.</p>
     </section>
 
     <section class="profile-section" id="shortcuts">
@@ -246,11 +252,45 @@
             catch (e) { return { ...fallback }; }
         }
         function saveJSON(key, data) { localStorage.setItem(key, JSON.stringify(data)); }
+        function getCookie(name) {
+            const value = `; ${document.cookie}`;
+            const parts = value.split(`; ${name}=`);
+            if (parts.length === 2) return parts.pop().split(';').shift();
+            return '{{ csrf_token }}';
+        }
+        async function saveServerSettings(payload) {
+            try {
+                const response = await fetch('{% url "profile_settings_api" %}', {
+                    method: 'POST',
+                    credentials: 'same-origin',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken'),
+                    },
+                    body: JSON.stringify(payload),
+                });
+                if (!response.ok) throw new Error('Błąd zapisu profilu');
+                const data = await response.json();
+                if (data.profile) saveJSON(profileKey, data.profile);
+                if (data.shortcuts) saveJSON(shortcutsKey, data.shortcuts);
+                if (data.preferences) saveJSON(prefKey, data.preferences);
+                if (data.theme) {
+                    localStorage.setItem(themeKey, data.theme);
+                    savedTheme = data.theme;
+                }
+                localStorage.setItem('ares_profile_db_synced', '1');
+                return data;
+            } catch (error) {
+                console.warn('Nie udało się zapisać ustawień profilu w bazie.', error);
+                return null;
+            }
+        }
 
-        const profile = loadJSON(profileKey, defaultProfile);
-        const shortcuts = loadJSON(shortcutsKey, defaultShortcuts);
-        const prefs = loadJSON(prefKey, defaultPrefs);
+        let profile = loadJSON(profileKey, defaultProfile);
+        let shortcuts = loadJSON(shortcutsKey, defaultShortcuts);
+        let prefs = loadJSON(prefKey, defaultPrefs);
         let currentTheme = localStorage.getItem(themeKey) || 'midnight-blue';
+        let savedTheme = currentTheme;
         let currentThemeLabel = document.querySelector('.theme-card[data-theme="' + currentTheme + '"]')?.dataset.themeLabel || 'Midnight Blue';
 
         const displayNameInput = document.getElementById('profile-display-name');
@@ -263,6 +303,41 @@
         const previewShortcuts = document.getElementById('profile-preview-shortcuts');
         const previewAvatar = document.getElementById('profile-preview-avatar');
         const liveAvatar = document.getElementById('profile-live-avatar');
+
+        function hydrateProfileForm() {
+            displayNameInput.value = profile.displayName || defaultName;
+            avatarTextInput.value = profile.avatarText || defaultProfile.avatarText;
+            avatarImageInput.value = profile.avatarImage || '';
+            document.getElementById('pref-show-clock').checked = !!prefs.showClock;
+            document.getElementById('pref-compact-sidebar').checked = !!prefs.compactSidebar;
+            document.getElementById('pref-confirm-actions').checked = !!prefs.confirmActions;
+            document.getElementById('pref-show-tips').checked = !!prefs.showTips;
+            document.getElementById('pref-show-quick-dock').checked = prefs.showQuickDock !== false;
+
+            document.querySelectorAll('#shortcut-grid input[type="checkbox"]').forEach(el => {
+                el.checked = !!shortcuts[el.dataset.shortcut];
+            });
+
+            document.querySelectorAll('.theme-card').forEach(card => {
+                card.classList.toggle('active', card.dataset.theme === currentTheme);
+            });
+            document.querySelectorAll('.avatar-style-option').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.style === profile.avatarStyle);
+            });
+            if (!document.querySelector('.avatar-style-option.active')) {
+                document.querySelector('.avatar-style-option')?.classList.add('active');
+            }
+            document.querySelectorAll('.avatar-shape-option').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.shape === (profile.avatarShape || defaultProfile.avatarShape));
+            });
+            if (!document.querySelector('.avatar-shape-option.active')) {
+                document.querySelector('.avatar-shape-option')?.classList.add('active');
+            }
+            currentThemeLabel = document.querySelector('.theme-card[data-theme="' + currentTheme + '"]')?.dataset.themeLabel || currentThemeLabel;
+            savedTheme = currentTheme;
+            document.body.setAttribute('data-theme', currentTheme);
+            renderProfilePreview();
+        }
 
         displayNameInput.value = profile.displayName || defaultName;
         avatarTextInput.value = profile.avatarText || defaultProfile.avatarText;
@@ -367,22 +442,39 @@
             input.addEventListener('change', renderProfilePreview);
         });
 
+        function selectTheme(themeName, persistLocal = true) {
+            const card = document.querySelector('.theme-card[data-theme="' + themeName + '"]') || document.querySelector('.theme-card');
+            if (!card) return;
+            document.querySelectorAll('.theme-card').forEach(c => c.classList.remove('active'));
+            card.classList.add('active');
+            currentTheme = card.dataset.theme;
+            currentThemeLabel = card.dataset.themeLabel;
+            if (persistLocal) localStorage.setItem(themeKey, currentTheme);
+            document.body.setAttribute('data-theme', currentTheme);
+            renderProfilePreview();
+        }
+
         document.querySelectorAll('.theme-card').forEach(card => {
             if (card.dataset.theme === currentTheme) card.classList.add('active');
             card.addEventListener('click', () => {
-                document.querySelectorAll('.theme-card').forEach(c => c.classList.remove('active'));
-                card.classList.add('active');
-                currentTheme = card.dataset.theme;
-                currentThemeLabel = card.dataset.themeLabel;
-                localStorage.setItem(themeKey, currentTheme);
-                document.body.setAttribute('data-theme', currentTheme);
-                renderProfilePreview();
+                selectTheme(card.dataset.theme, true);
             });
         });
 
-        document.getElementById('save-profile-btn').addEventListener('click', () => {
+        document.getElementById('save-appearance-btn')?.addEventListener('click', async () => {
+            await saveServerSettings({ theme: currentTheme, profile: renderProfilePreview(), shortcuts, preferences: prefs });
+            alert('Wygląd został zapisany na koncie użytkownika.');
+        });
+
+        document.getElementById('revert-theme-btn')?.addEventListener('click', () => {
+            selectTheme(savedTheme || 'midnight-blue', true);
+        });
+
+        document.getElementById('save-profile-btn').addEventListener('click', async () => {
             const state = renderProfilePreview();
+            profile = state;
             saveJSON(profileKey, state);
+            await saveServerSettings({ profile: state, theme: currentTheme, shortcuts, preferences: prefs });
             window.location.reload();
         });
 
@@ -392,17 +484,19 @@
             renderProfilePreview();
         });
 
-        document.getElementById('save-shortcuts-btn').addEventListener('click', () => {
+        document.getElementById('save-shortcuts-btn').addEventListener('click', async () => {
             const data = {};
             document.querySelectorAll('#shortcut-grid input[type="checkbox"]').forEach(el => {
                 data[el.dataset.shortcut] = el.checked;
             });
+            shortcuts = data;
             saveJSON(shortcutsKey, data);
             renderProfilePreview();
-            alert('Skróty zostały zapisane.');
+            await saveServerSettings({ shortcuts: data, profile: renderProfilePreview(), theme: currentTheme, preferences: prefs });
+            alert('Skróty zostały zapisane na koncie użytkownika.');
         });
 
-        document.getElementById('save-preferences-btn').addEventListener('click', () => {
+        document.getElementById('save-preferences-btn').addEventListener('click', async () => {
             const data = {
                 showClock: document.getElementById('pref-show-clock').checked,
                 compactSidebar: document.getElementById('pref-compact-sidebar').checked,
@@ -410,16 +504,21 @@
                 showTips: document.getElementById('pref-show-tips').checked,
                 showQuickDock: document.getElementById('pref-show-quick-dock').checked,
             };
+            prefs = data;
             saveJSON(prefKey, data);
-            alert('Preferencje zostały zapisane.');
+            await saveServerSettings({ preferences: data, profile: renderProfilePreview(), theme: currentTheme, shortcuts });
+            alert('Preferencje zostały zapisane na koncie użytkownika.');
             window.location.reload();
         });
 
-        document.getElementById('reset-profile-btn').addEventListener('click', () => {
+        document.getElementById('reset-profile-btn').addEventListener('click', async () => {
+            if (!confirm('Przywrócić domyślny profil, motyw, skróty i preferencje?')) return;
             localStorage.removeItem(profileKey);
             localStorage.removeItem(shortcutsKey);
             localStorage.removeItem(prefKey);
             localStorage.removeItem(themeKey);
+            localStorage.removeItem('ares_profile_db_synced');
+            await saveServerSettings({ reset: true });
             window.location.reload();
         });
 
@@ -430,8 +529,52 @@
             tabLinks.forEach(link => link.classList.toggle('active', link.getAttribute('href') === hash));
         }
         window.addEventListener('hashchange', setActiveTab);
+        function readLocalProfilePayload() {
+            const storedProfile = JSON.parse(localStorage.getItem(profileKey) || 'null');
+            const storedShortcuts = JSON.parse(localStorage.getItem(shortcutsKey) || 'null');
+            const storedPrefs = JSON.parse(localStorage.getItem(prefKey) || 'null');
+            const storedTheme = localStorage.getItem(themeKey);
+            if (!storedProfile && !storedShortcuts && !storedPrefs && !storedTheme) return null;
+            return {
+                profile: { ...defaultProfile, ...(storedProfile || {}) },
+                shortcuts: { ...defaultShortcuts, ...(storedShortcuts || {}) },
+                preferences: { ...defaultPrefs, ...(storedPrefs || {}) },
+                theme: storedTheme || currentTheme,
+            };
+        }
+
+        async function loadServerSettings() {
+            try {
+                const response = await fetch('{% url "profile_settings_api" %}', { credentials: 'same-origin' });
+                if (!response.ok) return;
+                let data = await response.json();
+
+                const localPayload = readLocalProfilePayload();
+                const alreadySynced = localStorage.getItem('ares_profile_db_synced') === '1';
+                if (data.isDefaultProfile === true && localPayload && !alreadySynced) {
+                    const migrated = await saveServerSettings({ ...localPayload, migratedFromLocalStorage: true });
+                    if (migrated) data = migrated;
+                }
+
+                profile = { ...defaultProfile, ...(data.profile || {}) };
+                shortcuts = { ...defaultShortcuts, ...(data.shortcuts || {}) };
+                prefs = { ...defaultPrefs, ...(data.preferences || {}) };
+                currentTheme = data.theme || currentTheme;
+                savedTheme = currentTheme;
+                saveJSON(profileKey, profile);
+                saveJSON(shortcutsKey, shortcuts);
+                saveJSON(prefKey, prefs);
+                localStorage.setItem(themeKey, currentTheme);
+                localStorage.setItem('ares_profile_db_synced', '1');
+                hydrateProfileForm();
+            } catch (error) {
+                console.warn('Nie udało się pobrać ustawień profilu z bazy.', error);
+            }
+        }
+
         setActiveTab();
-        renderProfilePreview();
+        hydrateProfileForm();
+        loadServerSettings();
     })();
 </script>
 {% endblock %}
