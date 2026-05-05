@@ -12,8 +12,8 @@ Dodano prosty system zgłoszeń błędów / sugestii.
 
 Migracja `users/migrations/0007_demo_admin.py` tworzy konto:
 
-- login: 
-- hasło: 
+- login: `ares_admin`
+- hasło: `Admin123!`
 
 To konto jest przeznaczone do demonstracji projektu. Przed użyciem produkcyjnym należy zmienić hasło albo usunąć tę migrację i utworzyć administratora ręcznie:
 

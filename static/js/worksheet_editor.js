@@ -370,14 +370,42 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     function inferDimensionsFromGrid(grid) {
-        const rows = Math.max(Array.isArray(grid) ? grid.length : 0, 20);
-        let cols = 10;
+        const rows = Math.max(Array.isArray(grid) ? grid.length : 0, MIN_ROWS || 20);
+        let cols = MIN_COLS || 10;
 
         (grid || []).forEach(row => {
             cols = Math.max(cols, Array.isArray(row) ? row.length : 0);
         });
 
-        return { rows, cols };
+        return {
+            rows: Number.isFinite(rows) && rows > 0 ? rows : (MIN_ROWS || 20),
+            cols: Number.isFinite(cols) && cols > 0 ? cols : (MIN_COLS || 10)
+        };
+    }
+
+    function safeSheetName(value, fallback = "Arkusz 1") {
+        const text = String(value ?? "").trim();
+        if (!text || text === "undefined" || text === "null") return fallback;
+        // Stare/zepsute zapisy potrafiły traktować liczbę wierszy jako nazwę zakładki.
+        if (/^\d+$/.test(text)) return fallback;
+        return text;
+    }
+
+    function syncSheetDimensionsFromGrid() {
+        const dims = inferDimensionsFromGrid(currentSheet?.grid || workbook?.sheets?.[activeWorkbookSheetIndex]?.grid || []);
+        currentRows = Number.isFinite(dims.rows) ? dims.rows : (MIN_ROWS || 20);
+        currentCols = Number.isFinite(dims.cols) ? dims.cols : (MIN_COLS || 10);
+        return { rows: currentRows, cols: currentCols };
+    }
+
+    function updateSheetMeta(extra = "") {
+        if (!sheetMetaEl) return;
+        const dims = syncSheetDimensionsFromGrid();
+        const tabName = safeSheetName(
+            currentSheet?.activeTabName || workbook?.sheets?.[activeWorkbookSheetIndex]?.name,
+            `Arkusz ${activeWorkbookSheetIndex + 1 || 1}`
+        );
+        sheetMetaEl.textContent = `Zakładka: ${tabName} • Wiersze: ${dims.rows} • Kolumny: ${dims.cols}${extra || ""}`;
     }
  
     function makeUniqueSheetName(baseName = "Arkusz", ignoreIndex = null) {
@@ -403,13 +431,13 @@ document.addEventListener("DOMContentLoaded", function () {
 
     function normalizeSheetMeta(sheet, index) {
         return {
-            name: sheet.name || `Arkusz ${index + 1}`,
-            grid: Array.isArray(sheet.grid) ? sheet.grid : emptyGrid(),
-            styles: sheet.styles || {},
-            conditionalRules: Array.isArray(sheet.conditionalRules) ? sheet.conditionalRules : [],
-            color: sheet.color || "",
-            hidden: Boolean(sheet.hidden),
-            protected: Boolean(sheet.protected)
+            name: safeSheetName(sheet?.name, `Arkusz ${index + 1}`),
+            grid: Array.isArray(sheet?.grid) ? sheet.grid : emptyGrid(),
+            styles: sheet?.styles || {},
+            conditionalRules: Array.isArray(sheet?.conditionalRules) ? sheet.conditionalRules : [],
+            color: sheet?.color || "",
+            hidden: Boolean(sheet?.hidden),
+            protected: Boolean(sheet?.protected)
         };
     }
 
@@ -455,7 +483,7 @@ document.addEventListener("DOMContentLoaded", function () {
             : {
                 activeSheetIndex: 0,
                 sheets: [{
-                    name: data.name || "Arkusz1",
+                    name: safeSheetName(data.name, "Arkusz 1"),
                     grid: Array.isArray(rawGrid) ? rawGrid : emptyGrid(),
                     styles: data.styles || {},
                     conditionalRules: Array.isArray(data.conditionalRules) ? data.conditionalRules : [],
@@ -498,7 +526,7 @@ document.addEventListener("DOMContentLoaded", function () {
         ensureDimensions(currentRows, currentCols);
         activeCell = { row: 0, col: 0 };
         clearSelection();
-        if (sheetMetaEl) sheetMetaEl.textContent = `Zakładka: ${selected.name} • Wiersze: ${currentRows} • Kolumny: ${currentCols}`;
+        updateSheetMeta();
         renderWorkbookTabs();
         if (shouldRender) renderGrid();
     }
@@ -673,7 +701,7 @@ document.addEventListener("DOMContentLoaded", function () {
         workbook.sheets[index].name = uniqueName;
         if (index === activeWorkbookSheetIndex && currentSheet) currentSheet.activeTabName = uniqueName;
         renderWorkbookTabs();
-        if (sheetMetaEl) sheetMetaEl.textContent = `Zakładka: ${workbook.sheets[activeWorkbookSheetIndex].name} • Wiersze: ${currentRows} • Kolumny: ${currentCols}`;
+        updateSheetMeta();
         markDirty();
     }
 
@@ -710,7 +738,7 @@ document.addEventListener("DOMContentLoaded", function () {
             styles: active.styles || {},
             conditionalRules: Array.isArray(active.conditionalRules) ? active.conditionalRules : [],
             grid: normalized,
-            activeTabName: active.name || "Arkusz1"
+            activeTabName: safeSheetName(active.name, "Arkusz 1")
         };
     }
 
@@ -812,7 +840,7 @@ document.addEventListener("DOMContentLoaded", function () {
         currentCols = dims.cols;
 
         if (sheetNameEl) sheetNameEl.textContent = currentSheet.name || "Arkusz";
-        if (sheetMetaEl) sheetMetaEl.textContent = `Zakładka: ${currentSheet.activeTabName || workbook?.sheets?.[activeWorkbookSheetIndex]?.name || "Arkusz1"} • Wiersze: ${currentRows} • Kolumny: ${currentCols}`;
+        updateSheetMeta();
     }
 
     function undoLastChange() {
@@ -2539,7 +2567,7 @@ document.addEventListener("DOMContentLoaded", function () {
             redoStack = [];
 
             if (sheetNameEl) sheetNameEl.textContent = currentSheet.name || "Arkusz";
-            if (sheetMetaEl) sheetMetaEl.textContent = `Zakładka: ${currentSheet.activeTabName || "Arkusz1"} • Wiersze: ${currentRows} • Kolumny: ${currentCols}${data.isShared ? " • Udostępniony" : ""}${!currentSheetCanEdit ? " • Tylko odczyt" : ""}`;
+            updateSheetMeta(`${data.isShared ? " • Udostępniony" : ""}${!currentSheetCanEdit ? " • Tylko odczyt" : ""}`);
             if (saveBtn) saveBtn.disabled = !currentSheetCanEdit;
             if (applyFormulaBtn) applyFormulaBtn.disabled = !currentSheetCanEdit;
             if (renameBtn) renameBtn.disabled = !currentSheetCanShare;

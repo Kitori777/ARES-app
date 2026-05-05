@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}ARES{% endblock %}</title>
-    <link rel="stylesheet" href="{% static 'css/style.css' %}?v=0.5.2">
+    <link rel="stylesheet" href="{% static 'css/style.css' %}?v=0.5.3">
     {% block extra_head %}{% endblock %}
 </head>
 <body class="ares-body" data-theme="midnight-blue">
@@ -134,7 +134,7 @@
 {% endif %}
 
 {% if request.user.is_authenticated %}
-<script src="{% static 'js/ares_i18n.js' %}?v=0.5.2"></script>
+<script src="{% static 'js/ares_i18n.js' %}?v=0.5.3"></script>
 <script>
     (function () {
         const shell = document.getElementById('app-shell');
@@ -159,6 +159,28 @@
 
         let prefs = loadJSON(prefKey, { showClock: true, compactSidebar: false, showQuickDock: true, language: localStorage.getItem(languageKey) || 'pl' });
         let shortcuts = loadJSON(shortcutKey, {});
+        const compactShortcutFlag = 'ares_shortcuts_compact_v2';
+        const compactShortcutDefaults = {
+            worksheets: true,
+            import: true,
+            reports: true,
+            history: true,
+            profile: true,
+            charts: false,
+            solver: false,
+            math: false,
+            merge: false,
+            feedback: false,
+            adminReports: false,
+            adminUsers: false
+        };
+        if (localStorage.getItem(compactShortcutFlag) !== '1') {
+            shortcuts = { ...compactShortcutDefaults, ...shortcuts, charts: false, solver: false, math: false, merge: false, feedback: false };
+            localStorage.setItem(shortcutKey, JSON.stringify(shortcuts));
+            localStorage.setItem(compactShortcutFlag, '1');
+        } else {
+            shortcuts = { ...compactShortcutDefaults, ...shortcuts };
+        }
 
         if (shell) {
             const initial = localStorage.getItem(STORAGE_KEY) === '1' || prefs.compactSidebar === true;
@@ -279,7 +301,7 @@
             dock.hidden = prefs.showQuickDock === false;
             dock.querySelectorAll('[data-dock-shortcut]').forEach(item => {
                 const key = item.dataset.dockShortcut;
-                if (key !== 'start' && key !== 'profile' && shortcuts[key] === false) {
+                if (key !== 'start' && key !== 'profile' && shortcuts[key] !== true) {
                     item.hidden = true;
                 }
             });

@@ -28,7 +28,7 @@
             </div>
             <div class="profile-preview-tags">
                 <span id="profile-preview-theme">Midnight Blue</span>
-                <span id="profile-preview-shortcuts">6 skrótów</span>
+                <span id="profile-preview-shortcuts">5 skrótów</span>
             </div>
         </aside>
     </div>
@@ -184,10 +184,11 @@
             <label class="shortcut-card"><input type="checkbox" data-shortcut="import" checked><strong>Import danych</strong><small>CSV, XLSX i czyszczenie zakresów</small></label>
             <label class="shortcut-card"><input type="checkbox" data-shortcut="reports" checked><strong>Raporty</strong><small>Podgląd gotowych zestawień</small></label>
             <label class="shortcut-card"><input type="checkbox" data-shortcut="history" checked><strong>Historia zmian</strong><small>Śledzenie zapisów i operacji</small></label>
-            <label class="shortcut-card"><input type="checkbox" data-shortcut="charts" checked><strong>Wykresy</strong><small>Typy, serie i ustawienia wizualne</small></label>
-            <label class="shortcut-card"><input type="checkbox" data-shortcut="solver" checked><strong>Solver</strong><small>Optymalizacja i ograniczenia</small></label>
-            <label class="shortcut-card"><input type="checkbox" data-shortcut="math" checked><strong>Matematyka akademicka</strong><small>Całki, pochodne, statystyka i BO</small></label>
-            <label class="shortcut-card"><input type="checkbox" data-shortcut="merge" checked><strong>Scalanie arkuszy</strong><small>Łączenie tabel po nagłówkach</small></label>
+            <label class="shortcut-card"><input type="checkbox" data-shortcut="charts"><strong>Wykresy</strong><small>Typy, serie i ustawienia wizualne</small></label>
+            <label class="shortcut-card"><input type="checkbox" data-shortcut="solver"><strong>Solver</strong><small>Optymalizacja i ograniczenia</small></label>
+            <label class="shortcut-card"><input type="checkbox" data-shortcut="math"><strong>Matematyka akademicka</strong><small>Całki, pochodne, statystyka i BO</small></label>
+            <label class="shortcut-card"><input type="checkbox" data-shortcut="merge"><strong>Scalanie arkuszy</strong><small>Łączenie tabel po nagłówkach</small></label>
+            <label class="shortcut-card"><input type="checkbox" data-shortcut="feedback"><strong>Zgłoś problem</strong><small>Formularz zgłaszania błędów i sugestii</small></label>
         </div>
         <div class="settings-actions">
             <button class="btn btn-primary" id="save-shortcuts-btn" type="button">Zapisz skróty</button>
@@ -248,10 +249,13 @@
             import: true,
             reports: true,
             history: true,
-            charts: true,
-            solver: true,
-            math: true,
-            merge: true,
+            charts: false,
+            solver: false,
+            math: false,
+            merge: false,
+            feedback: false,
+            adminReports: false,
+            adminUsers: false,
         };
         const defaultPrefs = {
             showClock: true,
