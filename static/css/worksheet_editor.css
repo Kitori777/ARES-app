@@ -3045,3 +3045,121 @@ html body[data-theme] .we-workbook-tab:not([style*="transparent"]):not([style*="
 html body[data-theme] .we-workbook-tab.active {
     border-color: var(--tab-color, var(--primary)) !important;
 }
+
+
+/* v0.4.8 — stronger contrast for light themes in pivot/chart modals */
+html body[data-theme="sand-light"] .we-pivot-config,
+html body[data-theme="sand-light"] .we-pivot-zones,
+html body[data-theme="arctic-light"] .we-pivot-config,
+html body[data-theme="arctic-light"] .we-pivot-zones,
+html body[data-theme="clean-slate"] .we-pivot-config,
+html body[data-theme="clean-slate"] .we-pivot-zones,
+html body[data-theme="sand-light"] .we-chart-types-panel,
+html body[data-theme="sand-light"] .we-chart-config-panel,
+html body[data-theme="arctic-light"] .we-chart-types-panel,
+html body[data-theme="arctic-light"] .we-chart-config-panel,
+html body[data-theme="clean-slate"] .we-chart-types-panel,
+html body[data-theme="clean-slate"] .we-chart-config-panel {
+    background: linear-gradient(180deg, color-mix(in srgb, var(--panel) 96%, #fff 4%) 0%, color-mix(in srgb, var(--panel-2) 96%, #fff 4%) 100%) !important;
+    border-color: color-mix(in srgb, var(--line) 78%, var(--primary) 22%) !important;
+}
+
+html body[data-theme="sand-light"] .we-pivot-zone-title,
+html body[data-theme="sand-light"] .we-pivot-config label,
+html body[data-theme="sand-light"] .we-pivot-title,
+html body[data-theme="sand-light"] .we-chart-form-grid label,
+html body[data-theme="sand-light"] .we-chart-types-panel strong,
+html body[data-theme="arctic-light"] .we-pivot-zone-title,
+html body[data-theme="arctic-light"] .we-pivot-config label,
+html body[data-theme="arctic-light"] .we-pivot-title,
+html body[data-theme="arctic-light"] .we-chart-form-grid label,
+html body[data-theme="arctic-light"] .we-chart-types-panel strong,
+html body[data-theme="clean-slate"] .we-pivot-zone-title,
+html body[data-theme="clean-slate"] .we-pivot-config label,
+html body[data-theme="clean-slate"] .we-pivot-title,
+html body[data-theme="clean-slate"] .we-chart-form-grid label,
+html body[data-theme="clean-slate"] .we-chart-types-panel strong {
+    color: color-mix(in srgb, var(--text) 92%, #000 8%) !important;
+}
+
+html body[data-theme="sand-light"] .we-pivot-subtitle,
+html body[data-theme="sand-light"] .we-chart-preview-note,
+html body[data-theme="sand-light"] .we-chart-types-panel small,
+html body[data-theme="arctic-light"] .we-pivot-subtitle,
+html body[data-theme="arctic-light"] .we-chart-preview-note,
+html body[data-theme="arctic-light"] .we-chart-types-panel small,
+html body[data-theme="clean-slate"] .we-pivot-subtitle,
+html body[data-theme="clean-slate"] .we-chart-preview-note,
+html body[data-theme="clean-slate"] .we-chart-types-panel small {
+    color: color-mix(in srgb, var(--muted) 82%, var(--text) 18%) !important;
+}
+
+html body[data-theme="sand-light"] .we-pivot-field-item,
+html body[data-theme="sand-light"] .we-pivot-zone,
+html body[data-theme="sand-light"] .we-chart-type-card,
+html body[data-theme="arctic-light"] .we-pivot-field-item,
+html body[data-theme="arctic-light"] .we-pivot-zone,
+html body[data-theme="arctic-light"] .we-chart-type-card,
+html body[data-theme="clean-slate"] .we-pivot-field-item,
+html body[data-theme="clean-slate"] .we-pivot-zone,
+html body[data-theme="clean-slate"] .we-chart-type-card {
+    background: color-mix(in srgb, var(--panel-2) 88%, #fff 12%) !important;
+    border-color: color-mix(in srgb, var(--line) 72%, var(--primary) 28%) !important;
+}
+
+html body[data-theme="sand-light"] .we-pivot-add-btn,
+html body[data-theme="sand-light"] .we-pivot-field-adds button,
+html body[data-theme="sand-light"] #build-pivot-btn,
+html body[data-theme="arctic-light"] .we-pivot-add-btn,
+html body[data-theme="arctic-light"] .we-pivot-field-adds button,
+html body[data-theme="arctic-light"] #build-pivot-btn,
+html body[data-theme="clean-slate"] .we-pivot-add-btn,
+html body[data-theme="clean-slate"] .we-pivot-field-adds button,
+html body[data-theme="clean-slate"] #build-pivot-btn {
+    background: color-mix(in srgb, var(--primary) 14%, #fff 86%) !important;
+    border-color: color-mix(in srgb, var(--primary) 44%, var(--line)) !important;
+    color: color-mix(in srgb, var(--text) 84%, var(--primary) 16%) !important;
+}
+
+html body[data-theme="sand-light"] .we-pivot-add-btn:hover,
+html body[data-theme="sand-light"] .we-pivot-field-adds button:hover,
+html body[data-theme="sand-light"] #build-pivot-btn:hover,
+html body[data-theme="arctic-light"] .we-pivot-add-btn:hover,
+html body[data-theme="arctic-light"] .we-pivot-field-adds button:hover,
+html body[data-theme="arctic-light"] #build-pivot-btn:hover,
+html body[data-theme="clean-slate"] .we-pivot-add-btn:hover,
+html body[data-theme="clean-slate"] .we-pivot-field-adds button:hover,
+html body[data-theme="clean-slate"] #build-pivot-btn:hover {
+    background: color-mix(in srgb, var(--primary) 22%, #fff 78%) !important;
+}
+
+
+/* v0.4.9 solver modal readability */
+.we-solver-box label,
+.we-solver-box .we-solver-section-title,
+.we-solver-box strong {
+    color: var(--text-strong, #21180f);
+}
+.we-solver-box input,
+.we-solver-box textarea,
+.we-solver-box select {
+    color: var(--text-strong, #21180f);
+    background: rgba(255,255,255,.86);
+}
+[data-theme*="midnight"] .we-solver-box label,
+[data-theme*="midnight"] .we-solver-box .we-solver-section-title,
+[data-theme*="midnight"] .we-solver-box strong,
+[data-theme*="blue"] .we-solver-box label,
+[data-theme*="blue"] .we-solver-box .we-solver-section-title,
+[data-theme*="blue"] .we-solver-box strong {
+    color: var(--text-strong, #f8fbff);
+}
+[data-theme*="midnight"] .we-solver-box input,
+[data-theme*="midnight"] .we-solver-box textarea,
+[data-theme*="midnight"] .we-solver-box select,
+[data-theme*="blue"] .we-solver-box input,
+[data-theme*="blue"] .we-solver-box textarea,
+[data-theme*="blue"] .we-solver-box select {
+    color: var(--text-strong, #f8fbff);
+    background: rgba(12, 22, 40, .72);
+}

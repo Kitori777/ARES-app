@@ -229,3 +229,62 @@ class UserProfile(models.Model):
 
     def __str__(self):
         return f'Profil ARES: {self.user.username}'
+
+
+class BugReport(models.Model):
+    """Zgłoszenia błędów i sugestii wysyłane przez użytkowników aplikacji."""
+
+    STATUS_NEW = 'new'
+    STATUS_IN_PROGRESS = 'in_progress'
+    STATUS_DONE = 'done'
+    STATUS_REJECTED = 'rejected'
+
+    STATUS_CHOICES = [
+        (STATUS_NEW, 'Nowe'),
+        (STATUS_IN_PROGRESS, 'W trakcie'),
+        (STATUS_DONE, 'Zamknięte'),
+        (STATUS_REJECTED, 'Odrzucone'),
+    ]
+
+    PRIORITY_LOW = 'low'
+    PRIORITY_NORMAL = 'normal'
+    PRIORITY_HIGH = 'high'
+    PRIORITY_CRITICAL = 'critical'
+
+    PRIORITY_CHOICES = [
+        (PRIORITY_LOW, 'Niska'),
+        (PRIORITY_NORMAL, 'Normalna'),
+        (PRIORITY_HIGH, 'Wysoka'),
+        (PRIORITY_CRITICAL, 'Krytyczna'),
+    ]
+
+    reporter = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='ares_bug_reports')
+    title = models.CharField(max_length=180)
+    description = models.TextField()
+    page_url = models.URLField(max_length=500, blank=True, default='')
+    browser_info = models.CharField(max_length=500, blank=True, default='')
+    screenshot = models.FileField(upload_to='bug_reports/', blank=True, null=True)
+    status = models.CharField(max_length=30, choices=STATUS_CHOICES, default=STATUS_NEW)
+    priority = models.CharField(max_length=30, choices=PRIORITY_CHOICES, default=PRIORITY_NORMAL)
+    admin_note = models.TextField(blank=True, default='')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    resolved_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['status']),
+            models.Index(fields=['priority']),
+            models.Index(fields=['created_at']),
+        ]
+
+    def __str__(self):
+        return f'Zgłoszenie #{self.pk}: {self.title}'
+
+    def mark_resolved_if_needed(self):
+        if self.status in {self.STATUS_DONE, self.STATUS_REJECTED} and not self.resolved_at:
+            self.resolved_at = timezone.now()
+        if self.status not in {self.STATUS_DONE, self.STATUS_REJECTED}:
+            self.resolved_at = None
+

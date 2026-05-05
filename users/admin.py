@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.utils.html import format_html
 
-from .models import EmailVerification, PendingRegistration, UserProfile
+from .models import EmailVerification, PendingRegistration, UserProfile, BugReport
 
 
 @admin.register(EmailVerification)
@@ -73,3 +73,22 @@ class UserProfileAdmin(admin.ModelAdmin):
             style,
             text,
         )
+
+
+@admin.register(BugReport)
+class BugReportAdmin(admin.ModelAdmin):
+    list_display = ('id', 'title', 'reporter', 'status', 'priority', 'created_at', 'updated_at')
+    list_filter = ('status', 'priority', 'created_at')
+    search_fields = ('title', 'description', 'reporter__username', 'reporter__email', 'page_url')
+    readonly_fields = ('created_at', 'updated_at', 'browser_info')
+    fieldsets = (
+        ('Zgłoszenie', {
+            'fields': ('title', 'description', 'reporter', 'page_url', 'screenshot')
+        }),
+        ('Obsługa', {
+            'fields': ('status', 'priority', 'admin_note', 'resolved_at')
+        }),
+        ('Informacje techniczne', {
+            'fields': ('browser_info', 'created_at', 'updated_at')
+        }),
+    )

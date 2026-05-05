@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}ARES{% endblock %}</title>
-    <link rel="stylesheet" href="{% static 'css/style.css' %}?v=0.4.5">
+    <link rel="stylesheet" href="{% static 'css/style.css' %}?v=0.5.2">
     {% block extra_head %}{% endblock %}
 </head>
 <body class="ares-body" data-theme="midnight-blue">
@@ -31,6 +31,9 @@
             <a href="{% url 'history' %}" class="app-menu-link">Historia zmian</a>
             <a href="{% url 'reports' %}" class="app-menu-link">Raporty</a>
             <a href="{% url 'profile' %}" class="app-menu-link">Profil użytkownika</a>
+            <a href="{% url 'bug_report' %}" class="app-menu-link">Zgłoś problem</a>
+            {% if request.user.is_superuser %}<a href="{% url 'admin_bug_reports' %}" class="app-menu-link">Panel zgłoszeń</a>
+            <a href="{% url 'admin_users_panel' %}" class="app-menu-link">Panel użytkowników</a>{% endif %}
         </nav>
     </aside>
 
@@ -67,6 +70,9 @@
                             <a href="{% url 'profile' %}#appearance">Wygląd i motywy</a>
                             <a href="{% url 'profile' %}#shortcuts">Skróty</a>
                             <a href="{% url 'profile' %}#preferences">Preferencje</a>
+                            <a href="{% url 'bug_report' %}">Zgłoś problem</a>
+                            {% if request.user.is_superuser %}<a href="{% url 'admin_bug_reports' %}">Panel zgłoszeń</a>
+                            <a href="{% url 'admin_users_panel' %}">Panel użytkowników</a>{% endif %}
                         </div>
                         <div class="profile-dropdown-footer">
                             <a href="{% url 'logout' %}" class="btn btn-ghost btn-full">Wyloguj</a>
@@ -103,6 +109,9 @@
             <a href="{% url 'worksheet_editor' %}?open=math" data-dock-shortcut="math" title="Matematyka akademicka"><span>∫</span><small>Matematyka</small></a>
             <a href="{% url 'worksheet_editor' %}?open=merge" data-dock-shortcut="merge" title="Scalanie arkuszy"><span>⇄</span><small>Scalanie</small></a>
             <a href="{% url 'profile' %}" data-dock-shortcut="profile" title="Profil"><span>⚙</span><small>Profil</small></a>
+            <a href="{% url 'bug_report' %}" data-dock-shortcut="feedback" title="Zgłoś problem"><span>!</span><small>Problem</small></a>
+            {% if request.user.is_superuser %}<a href="{% url 'admin_bug_reports' %}" data-dock-shortcut="adminReports" title="Panel zgłoszeń"><span>⚑</span><small>Zgłoszenia</small></a>
+            <a href="{% url 'admin_users_panel' %}" data-dock-shortcut="adminUsers" title="Panel użytkowników"><span>♛</span><small>Użytkownicy</small></a>{% endif %}
         </nav>
     </div>
 </div>
@@ -125,7 +134,7 @@
 {% endif %}
 
 {% if request.user.is_authenticated %}
-<script src="{% static 'js/ares_i18n.js' %}?v=0.4.5"></script>
+<script src="{% static 'js/ares_i18n.js' %}?v=0.5.2"></script>
 <script>
     (function () {
         const shell = document.getElementById('app-shell');

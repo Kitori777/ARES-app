@@ -3917,3 +3917,200 @@ body[data-theme="clean-slate"] .profile-dropdown {
     background: linear-gradient(180deg, #fffdf8, #f8efe0) !important;
     color: var(--text) !important;
 }
+
+
+/* v0.4.9 — user bug reports and admin reports */
+.report-list {
+    display: grid;
+    gap: 1rem;
+}
+.report-card {
+    border: 1px solid var(--border, rgba(127, 127, 127, .22));
+    border-radius: 1.25rem;
+    padding: 1rem;
+    background: var(--surface, rgba(255,255,255,.06));
+    box-shadow: 0 12px 30px rgba(0,0,0,.08);
+}
+.report-card p {
+    margin: .45rem 0;
+}
+.report-card small {
+    color: var(--muted, #6b7280);
+}
+.admin-report-card {
+    display: grid;
+    grid-template-columns: minmax(0, 1.2fr) minmax(280px, .8fr);
+    gap: 1rem;
+}
+.admin-report-form {
+    display: grid;
+    gap: .55rem;
+    padding: .85rem;
+    border-radius: 1rem;
+    background: rgba(255,255,255,.04);
+}
+.bug-filter-card {
+    display: flex;
+    gap: .75rem;
+    align-items: end;
+    flex-wrap: wrap;
+}
+@media (max-width: 900px) {
+    .admin-report-card {
+        grid-template-columns: 1fr;
+    }
+}
+
+
+/* v0.5.0 — superadmin users panel */
+.admin-user-card {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(320px, .8fr);
+    gap: 1rem;
+    align-items: start;
+}
+.admin-user-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .5rem;
+    justify-content: flex-end;
+}
+.btn-danger {
+    background: #b42318;
+    color: #fff;
+    border-color: #b42318;
+}
+.btn-danger:hover {
+    filter: brightness(.95);
+}
+@media (max-width: 900px) {
+    .admin-user-card {
+        grid-template-columns: 1fr;
+    }
+    .admin-user-actions {
+        justify-content: flex-start;
+    }
+}
+
+
+/* v0.5.1 — sheet sharing modal */
+.ares-modal[hidden] {
+    display: none !important;
+}
+.ares-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+}
+.ares-modal-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(20, 17, 12, .42);
+    backdrop-filter: blur(3px);
+}
+.ares-modal-dialog {
+    position: relative;
+    width: min(680px, calc(100vw - 2rem));
+    max-height: min(86vh, 760px);
+    overflow: auto;
+    margin: 7vh auto;
+    padding: 1.35rem;
+    border-radius: 1.5rem;
+    background: var(--surface, #fffaf1);
+    border: 1px solid var(--border, rgba(132, 92, 34, .22));
+    box-shadow: 0 30px 80px rgba(0,0,0,.22);
+}
+.ares-modal-head {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    align-items: flex-start;
+    margin-bottom: 1rem;
+}
+.share-form {
+    display: grid;
+    gap: .65rem;
+    padding: 1rem;
+    border: 1px solid var(--border, rgba(132, 92, 34, .18));
+    border-radius: 1.15rem;
+    background: rgba(255,255,255,.36);
+}
+.share-modal-actions {
+    display: flex;
+    gap: .75rem;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    margin-top: .4rem;
+}
+.share-general-access {
+    margin: 1rem 0;
+    padding: 1rem;
+    border: 1px solid var(--border, rgba(132, 92, 34, .18));
+    border-radius: 1rem;
+    background: rgba(255,255,255,.28);
+}
+.share-general-access p {
+    margin: .35rem 0 0;
+    color: var(--muted, #7b6547);
+}
+.share-list {
+    display: grid;
+    gap: .65rem;
+}
+.share-empty {
+    padding: .85rem;
+    border-radius: 1rem;
+    background: rgba(255,255,255,.32);
+    color: var(--muted, #7b6547);
+}
+.share-person-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: .85rem;
+    border: 1px solid var(--border, rgba(132, 92, 34, .18));
+    border-radius: 1rem;
+    background: rgba(255,255,255,.34);
+}
+.share-person-main {
+    display: flex;
+    align-items: center;
+    gap: .75rem;
+    min-width: 0;
+}
+.share-person-main small {
+    display: block;
+    color: var(--muted, #7b6547);
+}
+.share-avatar {
+    width: 38px;
+    height: 38px;
+    border-radius: 999px;
+    display: grid;
+    place-items: center;
+    background: var(--accent-soft, #f3dfbd);
+    border: 1px solid var(--border, rgba(132, 92, 34, .18));
+    font-weight: 800;
+}
+.share-person-actions {
+    display: flex;
+    gap: .5rem;
+    align-items: center;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+}
+.sheet-share-note {
+    color: var(--muted, #7b6547);
+    font-size: .92rem;
+}
+@media (max-width: 760px) {
+    .share-person-row {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+    .share-person-actions {
+        justify-content: flex-start;
+        width: 100%;
+    }
+}

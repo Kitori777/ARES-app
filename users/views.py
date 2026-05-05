@@ -5,7 +5,7 @@ import random
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout
-from django.contrib.auth.decorators import login_required
+from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib.auth.hashers import check_password, make_password
 from django.contrib.auth.models import User
 from django.core.mail import EmailMultiAlternatives
@@ -17,8 +17,8 @@ from django.template.loader import render_to_string
 from django.utils import timezone
 from django.views.decorators.http import require_http_methods, require_POST
 
-from .forms import RegisterForm
-from .models import EmailVerification, PendingRegistration, UserProfile
+from .forms import RegisterForm, BugReportForm
+from .models import EmailVerification, PendingRegistration, UserProfile, BugReport
 
 logger = logging.getLogger(__name__)
 
@@ -465,6 +465,153 @@ def profile_settings_api(request):
     response['ok'] = True
     return JsonResponse(response)
 
+
+
+def is_ares_admin(user):
+    return user.is_authenticated and user.is_superuser
+
+
+@login_required
+@require_http_methods(['GET', 'POST'])
+def bug_report_view(request):
+    """Formularz zgłoszenia błędu / sugestii przez użytkownika."""
+    if request.method == 'POST':
+        form = BugReportForm(request.POST, request.FILES)
+        if form.is_valid():
+            report = form.save(commit=False)
+            report.reporter = request.user
+            report.browser_info = request.META.get('HTTP_USER_AGENT', '')[:500]
+            report.save()
+            messages.success(request, 'Zgłoszenie zostało zapisane. Administrator może je teraz odczytać w panelu zgłoszeń.')
+            return redirect('bug_report')
+    else:
+        initial = {
+            'page_url': request.GET.get('page', '') or request.META.get('HTTP_REFERER', ''),
+        }
+        form = BugReportForm(initial=initial)
+
+    user_reports = BugReport.objects.filter(reporter=request.user)[:20]
+    return render(request, 'bug_report.html', {
+        'form': form,
+        'user_reports': user_reports,
+    })
+
+
+@login_required
+@user_passes_test(is_ares_admin)
+@require_http_methods(['GET', 'POST'])
+def admin_bug_reports_view(request):
+    """Prosty panel administracyjny do odczytu i obsługi zgłoszeń."""
+    if request.method == 'POST':
+        report_id = request.POST.get('report_id')
+        status = request.POST.get('status')
+        priority = request.POST.get('priority')
+        admin_note = request.POST.get('admin_note', '')
+
+        report = BugReport.objects.filter(id=report_id).first()
+        if report:
+            if status in dict(BugReport.STATUS_CHOICES):
+                report.status = status
+            if priority in dict(BugReport.PRIORITY_CHOICES):
+                report.priority = priority
+            report.admin_note = admin_note
+            report.mark_resolved_if_needed()
+            report.save()
+            messages.success(request, f'Zaktualizowano zgłoszenie #{report.id}.')
+        return redirect('admin_bug_reports')
+
+    status_filter = request.GET.get('status', '')
+    reports = BugReport.objects.select_related('reporter').all()
+    if status_filter:
+        reports = reports.filter(status=status_filter)
+
+    stats = {
+        'all': BugReport.objects.count(),
+        'new': BugReport.objects.filter(status=BugReport.STATUS_NEW).count(),
+        'in_progress': BugReport.objects.filter(status=BugReport.STATUS_IN_PROGRESS).count(),
+        'done': BugReport.objects.filter(status=BugReport.STATUS_DONE).count(),
+    }
+
+    return render(request, 'admin_bug_reports.html', {
+        'reports': reports[:200],
+        'stats': stats,
+        'status_filter': status_filter,
+        'status_choices': BugReport.STATUS_CHOICES,
+        'priority_choices': BugReport.PRIORITY_CHOICES,
+        'demo_admin_login': 'ares_admin',
+        'demo_admin_password': 'Admin123!',
+    })
+
+
+@login_required
+@user_passes_test(is_ares_admin)
+@require_http_methods(['GET', 'POST'])
+def admin_users_panel_view(request):
+    """Panel superadministratora do podglądu i zarządzania kontami użytkowników."""
+    if request.method == 'POST':
+        user_id = request.POST.get('user_id')
+        action = request.POST.get('action')
+        target = User.objects.filter(id=user_id).first()
+
+        if not target:
+            messages.error(request, 'Nie znaleziono użytkownika.')
+            return redirect('admin_users_panel')
+
+        if target.id == request.user.id and action in {'delete', 'deactivate', 'remove_staff', 'remove_superuser'}:
+            messages.error(request, 'Nie możesz odebrać uprawnień lub usunąć konta, na którym jesteś aktualnie zalogowany.')
+            return redirect('admin_users_panel')
+
+        if action == 'activate':
+            target.is_active = True
+            target.save(update_fields=['is_active'])
+            messages.success(request, f'Aktywowano użytkownika {target.username}.')
+        elif action == 'deactivate':
+            target.is_active = False
+            target.save(update_fields=['is_active'])
+            messages.success(request, f'Dezaktywowano użytkownika {target.username}.')
+        elif action == 'make_staff':
+            target.is_staff = True
+            target.save(update_fields=['is_staff'])
+            messages.success(request, f'Nadano uprawnienie staff użytkownikowi {target.username}.')
+        elif action == 'remove_staff':
+            target.is_staff = False
+            target.save(update_fields=['is_staff'])
+            messages.success(request, f'Odebrano uprawnienie staff użytkownikowi {target.username}.')
+        elif action == 'make_superuser':
+            target.is_staff = True
+            target.is_superuser = True
+            target.save(update_fields=['is_staff', 'is_superuser'])
+            messages.success(request, f'Nadano uprawnienia superadmina użytkownikowi {target.username}.')
+        elif action == 'remove_superuser':
+            target.is_superuser = False
+            target.save(update_fields=['is_superuser'])
+            messages.success(request, f'Odebrano uprawnienia superadmina użytkownikowi {target.username}.')
+        elif action == 'delete':
+            username = target.username
+            target.delete()
+            messages.success(request, f'Usunięto użytkownika {username}.')
+        else:
+            messages.error(request, 'Nieznana akcja.')
+
+        return redirect('admin_users_panel')
+
+    query = request.GET.get('q', '').strip()
+    users = User.objects.all().order_by('-is_superuser', '-is_staff', 'username')
+    if query:
+        users = users.filter(username__icontains=query) | User.objects.filter(email__icontains=query)
+
+    stats = {
+        'all': User.objects.count(),
+        'active': User.objects.filter(is_active=True).count(),
+        'staff': User.objects.filter(is_staff=True).count(),
+        'superusers': User.objects.filter(is_superuser=True).count(),
+    }
+
+    return render(request, 'admin_users_panel.html', {
+        'users_list': users[:300],
+        'stats': stats,
+        'query': query,
+    })
 
 def logout_view(request):
     logout(request)

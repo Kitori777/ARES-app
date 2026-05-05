@@ -1,0 +1,103 @@
+{% extends 'base.html' %}
+
+{% block title %}ARES | Panel zgłoszeń{% endblock %}
+{% block topbar_title %}Panel zgłoszeń{% endblock %}
+
+{% block content %}
+<section class="profile-page">
+    <div class="profile-hero-card">
+        <div class="profile-hero-main">
+            <span class="hero-badge">ADMIN</span>
+            <h1>Zgłoszenia użytkowników</h1>
+            <p>
+                Panel administratora do odczytu błędów, sugestii i problemów zgłoszonych przez użytkowników.
+            </p>
+            <div class="hero-note-grid">
+                <div class="hero-note-tile"><strong>{{ stats.all }}</strong><small>wszystkie zgłoszenia</small></div>
+                <div class="hero-note-tile"><strong>{{ stats.new }}</strong><small>nowe</small></div>
+                <div class="hero-note-tile"><strong>{{ stats.in_progress }}</strong><small>w trakcie</small></div>
+                <div class="hero-note-tile"><strong>{{ stats.done }}</strong><small>zamknięte</small></div>
+            </div>
+        </div>
+        <aside class="profile-preview-card">
+            <strong>Panel tylko dla superadmina</strong>
+            <span>Ten widok jest dostępny wyłącznie dla kont z uprawnieniem <b>is_superuser</b>.</span>
+            <small>Dane logowania testowego admina trzymaj wyłącznie lokalnie / w dokumentacji technicznej.</small>
+        </aside>
+    </div>
+
+    <section class="profile-section">
+        <div class="profile-section-head">
+            <span class="section-kicker">Filtry</span>
+            <h2>Lista zgłoszeń</h2>
+        </div>
+        <form method="get" class="settings-card bug-filter-card">
+            <label class="field-label">Status</label>
+            <select name="status" class="settings-input">
+                <option value="">Wszystkie</option>
+                {% for value, label in status_choices %}
+                    <option value="{{ value }}" {% if status_filter == value %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+            </select>
+            <button class="btn btn-secondary" type="submit">Filtruj</button>
+            <a class="btn btn-secondary" href="{% url 'admin_bug_reports' %}">Wyczyść</a>
+        </form>
+
+        {% if reports %}
+            <div class="report-list">
+                {% for report in reports %}
+                    <article class="report-card admin-report-card">
+                        <div class="report-card-head">
+                            <div>
+                                <strong>#{{ report.id }} — {{ report.title }}</strong>
+                                <p>{{ report.description|linebreaksbr }}</p>
+                                <small>
+                                    Autor:
+                                    {% if report.reporter %}{{ report.reporter.username }}{% else %}brak{% endif %}
+                                    • {{ report.created_at|date:"d.m.Y H:i" }}
+                                    • Status: {{ report.get_status_display }}
+                                    • Priorytet: {{ report.get_priority_display }}
+                                </small>
+                                {% if report.page_url %}
+                                    <p><a href="{{ report.page_url }}" target="_blank" rel="noopener">Otwórz wskazaną stronę</a></p>
+                                {% endif %}
+                                {% if report.screenshot %}
+                                    <p><a href="{{ report.screenshot.url }}" target="_blank" rel="noopener">Otwórz załączony zrzut ekranu</a></p>
+                                {% endif %}
+                                {% if report.browser_info %}
+                                    <small>Przeglądarka: {{ report.browser_info }}</small>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <form method="post" class="admin-report-form">
+                            {% csrf_token %}
+                            <input type="hidden" name="report_id" value="{{ report.id }}">
+                            <label class="field-label">Status</label>
+                            <select name="status" class="settings-input">
+                                {% for value, label in status_choices %}
+                                    <option value="{{ value }}" {% if report.status == value %}selected{% endif %}>{{ label }}</option>
+                                {% endfor %}
+                            </select>
+
+                            <label class="field-label">Priorytet</label>
+                            <select name="priority" class="settings-input">
+                                {% for value, label in priority_choices %}
+                                    <option value="{{ value }}" {% if report.priority == value %}selected{% endif %}>{{ label }}</option>
+                                {% endfor %}
+                            </select>
+
+                            <label class="field-label">Notatka administratora</label>
+                            <textarea class="settings-input" name="admin_note" rows="3">{{ report.admin_note }}</textarea>
+
+                            <button class="btn btn-primary" type="submit">Zapisz obsługę zgłoszenia</button>
+                        </form>
+                    </article>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="settings-card">Brak zgłoszeń dla wybranego filtra.</div>
+        {% endif %}
+    </section>
+</section>
+{% endblock %}

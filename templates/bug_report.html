@@ -1,0 +1,78 @@
+{% extends 'base.html' %}
+
+{% block title %}ARES | Zgłoś problem{% endblock %}
+{% block topbar_title %}Zgłoś problem{% endblock %}
+
+{% block content %}
+<section class="profile-page">
+    <div class="profile-hero-card">
+        <div class="profile-hero-main">
+            <span class="hero-badge">POMOC I ZGŁOSZENIA</span>
+            <h1>Zgłoś błąd lub sugestię</h1>
+            <p>
+                Wypełnij formularz, jeżeli coś nie działa, tekst nie tłumaczy się poprawnie,
+                moduł zachowuje się inaczej niż oczekujesz albo chcesz zaproponować zmianę.
+            </p>
+            <div class="hero-note-grid">
+                <div class="hero-note-tile"><strong>1</strong><small>Opisz problem</small></div>
+                <div class="hero-note-tile"><strong>2</strong><small>Dodaj link lub screen</small></div>
+                <div class="hero-note-tile"><strong>3</strong><small>Administrator odczyta zgłoszenie</small></div>
+            </div>
+        </div>
+    </div>
+
+    <section class="profile-section">
+        <div class="profile-section-head">
+            <span class="section-kicker">Formularz</span>
+            <h2>Nowe zgłoszenie</h2>
+        </div>
+        <form method="post" enctype="multipart/form-data" class="settings-card">
+            {% csrf_token %}
+            <label class="field-label" for="{{ form.title.id_for_label }}">Tytuł zgłoszenia</label>
+            {{ form.title }}
+
+            <label class="field-label" for="{{ form.description.id_for_label }}">Opis problemu</label>
+            {{ form.description }}
+
+            <label class="field-label" for="{{ form.page_url.id_for_label }}">Adres strony / modułu</label>
+            {{ form.page_url }}
+
+            <label class="field-label" for="{{ form.screenshot.id_for_label }}">Zrzut ekranu, opcjonalnie</label>
+            {{ form.screenshot }}
+
+            {% if form.errors %}
+                <div class="alert alert-error">
+                    Sprawdź formularz — część pól wymaga poprawienia.
+                </div>
+            {% endif %}
+
+            <div class="profile-actions">
+                <button type="submit" class="btn btn-primary">Wyślij zgłoszenie</button>
+                <a href="{% url 'dashboard' %}" class="btn btn-secondary">Wróć do panelu</a>
+            </div>
+        </form>
+    </section>
+
+    <section class="profile-section">
+        <div class="profile-section-head">
+            <span class="section-kicker">Historia</span>
+            <h2>Moje ostatnie zgłoszenia</h2>
+        </div>
+        {% if user_reports %}
+            <div class="report-list">
+                {% for report in user_reports %}
+                    <article class="report-card">
+                        <div>
+                            <strong>#{{ report.id }} — {{ report.title }}</strong>
+                            <p>{{ report.description|truncatechars:180 }}</p>
+                            <small>Status: {{ report.get_status_display }} • Priorytet: {{ report.get_priority_display }} • {{ report.created_at|date:"d.m.Y H:i" }}</small>
+                        </div>
+                    </article>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="settings-card">Nie masz jeszcze żadnych zgłoszeń.</div>
+        {% endif %}
+    </section>
+</section>
+{% endblock %}

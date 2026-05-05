@@ -1,5 +1,93 @@
 # Changelog
 
+## [v0.5.0] - 2026-05-05
+
+### Dodano
+
+- Dodano mechanizm zgłaszania błędów i sugestii przez użytkowników.
+- Dodano formularz zgłoszenia problemu dostępny pod adresem `/feedback/`.
+- Dodano model `BugReport` do zapisywania zgłoszeń użytkowników w bazie danych.
+- Dodano możliwość dołączenia zrzutu ekranu do zgłoszenia problemu.
+- Dodano panel obsługi zgłoszeń dostępny pod adresem `/admin-reports/`.
+- Dodano ograniczenie panelu zgłoszeń wyłącznie do kont z uprawnieniem superadmina.
+- Dodano panel zarządzania użytkownikami dostępny pod adresem `/admin-users/`.
+- Dodano możliwość podglądu użytkowników przez superadmina.
+- Dodano możliwość aktywowania i dezaktywowania kont użytkowników przez superadmina.
+- Dodano możliwość nadawania i odbierania uprawnień `staff` oraz `superuser`.
+- Dodano możliwość usuwania kont użytkowników z poziomu panelu superadmina.
+- Dodano rejestrację modelu `BugReport` w standardowym panelu Django Admin.
+- Dodano rejestrację modeli `Sheet`, `SheetShare` i `HistoryEntry` w panelu Django Admin.
+- Dodano mechanizm udostępniania arkuszy innym użytkownikom po e-mailu albo loginie.
+- Dodano model `SheetShare` przechowujący informacje o udostępnieniach arkuszy.
+- Dodano poziomy dostępu do arkusza:
+  - `Tylko podgląd`,
+  - `Może edytować`.
+- Dodano przycisk `Udostępnij` przy arkuszach należących do aktualnego użytkownika.
+- Dodano modal udostępniania arkusza podobny do rozwiązania znanego z Google Drive / Google Sheets.
+- Dodano listę osób z dostępem do arkusza.
+- Dodano możliwość zmiany poziomu dostępu udostępnionego arkusza.
+- Dodano możliwość usunięcia dostępu wybranemu użytkownikowi.
+- Dodano wyświetlanie arkuszy udostępnionych na liście arkuszy użytkownika.
+- Dodano informację, czy arkusz jest własny, udostępniony, tylko do odczytu albo możliwy do edycji.
+- Dodano blokadę zapisu dla arkuszy udostępnionych w trybie tylko do odczytu.
+- Dodano historię operacji udostępnienia arkusza.
+- Dodano dokumentację techniczną do folderu `docs/`.
+- Dodano plik `docs/README.md` jako główny indeks dokumentacji technicznej.
+- Dodano plik dokumentacji dla systemu zgłoszeń administratora.
+- Dodano plik dokumentacji dla mechanizmu udostępniania arkuszy.
+- Dodano dodatkowe tłumaczenia interfejsu dla paneli administracyjnych, zgłoszeń i udostępniania arkuszy.
+
+### Zmieniono
+
+- Zmieniono dostęp do panelu zgłoszeń z `/admin/reports/` na `/admin-reports/`, aby nie kolidował ze standardowym panelem Django Admin.
+- Zmieniono logikę widoczności linku `Panel zgłoszeń`, aby był widoczny tylko dla superadmina.
+- Zmieniono logikę widoczności linku `Panel użytkowników`, aby był widoczny tylko dla superadmina.
+- Zmieniono obsługę uprawnień administratora — dostęp do paneli technicznych wymaga teraz `is_superuser=True`.
+- Zmieniono sposób prezentowania konta przykładowego administratora, aby nie pokazywać danych logowania zwykłym użytkownikom.
+- Zmieniono listę arkuszy tak, aby obsługiwała zarówno arkusze własne, jak i arkusze udostępnione.
+- Zmieniono API arkuszy tak, aby zwracało informacje o właścicielu, poziomie dostępu i możliwościach edycji.
+- Zmieniono zapisywanie arkusza tak, aby użytkownik bez prawa edycji nie mógł zapisać zmian.
+- Zmieniono usuwanie arkusza tak, aby tylko właściciel mógł usunąć arkusz.
+- Zmieniono zmianę nazwy arkusza tak, aby była dostępna tylko dla właściciela.
+- Zmieniono metadane wyświetlane w edytorze arkusza, dodając informację o trybie udostępnienia i trybie tylko do odczytu.
+- Zmieniono strukturę plików tekstowych projektu — dokumentacja techniczna została przeniesiona do folderu `docs/`.
+- Zmieniono cache statycznych plików, aby przeglądarka ładowała aktualne wersje JavaScript i CSS po wdrożeniu.
+
+### Naprawiono
+
+- Naprawiono problem, przez który panel zgłoszeń był dostępny także dla zwykłego użytkownika.
+- Naprawiono problem, przez który zwykły użytkownik widział link do panelu zgłoszeń.
+- Naprawiono kolizję adresu `/admin/reports/` ze standardowym panelem Django Admin.
+- Naprawiono migrację tworzącą konto demonstracyjne administratora — zastąpiono `set_password()` użyciem `make_password()`, ponieważ historyczny model użytkownika w migracji nie posiada tej metody.
+- Naprawiono problem z brakiem przycisku `Udostępnij` przy arkuszach właściciela.
+- Naprawiono problem z cache przeglądarki dla pliku `worksheets_page.js`.
+- Naprawiono obsługę dostępu do arkusza, aby użytkownik z dostępem tylko do podglądu nie mógł zapisywać zmian.
+- Naprawiono zabezpieczenie endpointów API arkuszy przed dostępem osób bez uprawnień.
+- Naprawiono widoczność opcji zarządzania arkuszem dla użytkowników, którzy nie są właścicielami.
+- Naprawiono część tłumaczeń solvera, zgłoszeń i paneli administracyjnych.
+- Naprawiono rejestrację nowych modeli w panelu Django Admin.
+
+### Techniczne
+
+- Dodano migrację `users.0006_bugreport`.
+- Dodano migrację `users.0007_demo_admin`.
+- Dodano migrację `ares.0002_sheetshare`.
+- Dodano endpointy API dla udostępniania arkuszy:
+  - `GET /ares/api/sheets/<sheet_id>/shares/`,
+  - `POST /ares/api/sheets/<sheet_id>/shares/add/`,
+  - `POST /ares/api/sheets/<sheet_id>/shares/<share_id>/update/`,
+  - `POST /ares/api/sheets/<sheet_id>/shares/<share_id>/delete/`.
+- Dodano widoki administracyjne:
+  - `/admin-reports/`,
+  - `/admin-users/`.
+- Dodano widok użytkownika:
+  - `/feedback/`.
+- Dodano obsługę `SheetShare` w Django Admin.
+- Dodano obsługę `BugReport` w Django Admin.
+- Dodano dokumentację wdrożeniową dla systemu zgłoszeń i udostępniania arkuszy.
+- Przygotowano zmiany do działania lokalnie oraz po wdrożeniu na Render z bazą PostgreSQL.
+
+
 ## [v0.4.0] - 2026-04-29
 
 ### Dodano

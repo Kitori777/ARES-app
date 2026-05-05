@@ -28,3 +28,39 @@ class RegisterForm(UserCreationForm):
         if PendingRegistration.objects.filter(email__iexact=email, expires_at__gte=timezone.now()).exists():
             raise forms.ValidationError('Ten adres e-mail oczekuje już na potwierdzenie. Sprawdź skrzynkę albo wyślij kod ponownie.')
         return email
+
+
+from .models import BugReport
+
+
+class BugReportForm(forms.ModelForm):
+    """Formularz zgłoszenia błędu lub sugestii przez użytkownika."""
+
+    class Meta:
+        model = BugReport
+        fields = ['title', 'description', 'page_url', 'screenshot']
+        labels = {
+            'title': 'Tytuł zgłoszenia',
+            'description': 'Opis problemu',
+            'page_url': 'Adres strony / modułu',
+            'screenshot': 'Zrzut ekranu',
+        }
+        widgets = {
+            'title': forms.TextInput(attrs={
+                'class': 'settings-input',
+                'placeholder': 'Np. Solver nie tłumaczy się po zmianie języka',
+            }),
+            'description': forms.Textarea(attrs={
+                'class': 'settings-input',
+                'rows': 7,
+                'placeholder': 'Opisz, co się stało, jakie były kroki i czego oczekiwałeś.',
+            }),
+            'page_url': forms.URLInput(attrs={
+                'class': 'settings-input',
+                'placeholder': 'Np. https://ares-1-fa2u.onrender.com/worksheets/editor/',
+            }),
+            'screenshot': forms.ClearableFileInput(attrs={
+                'class': 'settings-input',
+                'accept': 'image/png,image/jpeg,image/webp,image/gif',
+            }),
+        }

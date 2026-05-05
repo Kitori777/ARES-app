@@ -325,6 +325,215 @@
   });
 
 
+  // Extra global dictionary used by the bidirectional translator.
+  // It fixes mixed-language screens: Polish UI can recover from English/German fragments,
+  // English UI can translate Polish/German fragments, and German UI can translate Polish/English fragments.
+  Object.assign(dict.en, {
+    'Panel główny':'Dashboard',
+    'System aktywny':'System active',
+    'Tryb':'Mode',
+    'Moduł':'Module',
+    'Użytkownik':'User',
+    'analiza':'analysis',
+    'Changelog':'Changelog',
+    'Ostatnie zmiany':'Latest changes',
+    'Dzisiaj':'Today',
+    'DZIŚ':'TODAY',
+    'Ostatnio':'Recently',
+    'OSTATNIO':'RECENTLY',
+    'Poprawiony pulpit startowy':'Improved dashboard',
+    'Czytelniejszy układ, mniej chaosu i lepszy podział na najważniejsze akcje.':'Clearer layout, less clutter and better separation of the most important actions.',
+    'Osobny obszar pod całki, pochodne, statystykę, optymalizację i badania operacyjne.':'A separate area for integrals, derivatives, statistics, optimization and operations research.',
+    'Podpowiedź':'Tip',
+    'Importuj dane, twórz arkusze, buduj tabele, wykresy i modele obliczeniowe w jednym miejscu. Zacznij od szybkiej akcji albo przejdź do ostatnich zmian w systemie.':'Import data, create sheets, build tables, charts and calculation models in one place. Start with a quick action or go to the latest system changes.',
+    'zakładki, formuły, F4':'tabs, formulas, F4',
+    'podsumowania i eksport':'summaries and export',
+    'operacje i zapisy':'operations and saves',
+    'Twoje arkusze':'Your sheets',
+    'Twórz, otwieraj i organizuj zapisane arkusze.':'Create, open and organize saved sheets.',
+    '3 arkuszy łącznie':'3 sheets total',
+    'Edycja arkusza':'Sheet editing',
+    'Arkusz':'Sheet',
+    'SHEET':'SHEET',
+    'Wpisz wartość lub formułę, np. =SUMA(A1:A10)':'Enter a value or formula, e.g. =SUM(A1:A10)',
+    'Tabela':'Table',
+    'Ready tables':'Ready tables',
+    'Rata kredytu':'Loan installment',
+    'PMT: kwota, oprocentowanie, liczba rat i rata miesięczna.':'PMT: amount, interest rate, number of installments and monthly installment.',
+    'NPV projektu':'Project NPV',
+    'Stopa dyskontowa, nakład początkowy i przepływy.':'Discount rate, initial investment and cash flows.',
+    'IRR inwestycji':'Investment IRR',
+    'Wewnętrzna stopa zwrotu z serii przepływów.':'Internal rate of return from a series of cash flows.',
+    'Budżet miesięczny':'Monthly budget',
+    'Przychody, koszty, saldo i udział kosztów.':'Income, costs, balance and cost share.',
+    'Solver: produkcja':'Solver: production',
+    'Maksymalizacja zysku przy ograniczeniach zasobów.':'Profit maximization with resource constraints.',
+    'Układ równań':'System of equations',
+    'Dane do testowania równań i Solver.':'Data for testing equations and Solver.',
+    'Statystyka opisowa':'Descriptive statistics',
+    'Suma, średnia, min, max, mediana, odchylenie.':'Sum, average, min, max, median, deviation.',
+    'Procenty i marża':'Percentages and margin',
+    'Cena netto, VAT, marża i cena końcowa.':'Net price, VAT, margin and final price.',
+    'Analiza pogody':'Weather analysis',
+    'Średnia temperatura, suma deszczu, maksimum zachmurzenia.':'Average temperature, total rain, maximum cloud cover.',
+    'Oceny / punkty':'Grades / points',
+    'Suma punktów, procent i status zaliczenia.':'Point total, percentage and pass status.',
+    'matematyka':'math',
+    'finanse':'finance',
+    'statystyka':'statistics',
+    'dane':'data',
+    'Wstawia od aktywnej komórki, a formuły przesuwają się automatycznie.':'Inserts from the active cell and formulas shift automatically.',
+    'Arkusz akademicki':'Academic sheet',
+    'Całkowanie numeryczne':'Numerical integration',
+    'Całka oznaczona metodą trapezów dla funkcji f(x).':'Definite integral by the trapezoidal rule for function f(x).',
+    'Pochodne i styczna':'Derivatives and tangent',
+    'Pochodna w punkcie i wartość funkcji.':'Derivative at a point and function value.',
+    'Równanie różniczkowe — Euler':'Differential equation — Euler',
+    'Przybliżenie y’ = f(x,y), y(x0)=y0.':'Approximation y’ = f(x,y), y(x0)=y0.',
+    'Miejsce zerowe funkcji':'Root of a function',
+    'Bisekcja i Newton do szukania pierwiastków równań.':'Bisection and Newton methods for finding equation roots.',
+    'Kombinatoryka':'Combinatorics',
+    'Permutacje, wariacje i kombinacje.':'Permutations, variations and combinations.',
+    'Statystyka — rozkłady':'Statistics — distributions',
+    'Normalny, dwumianowy i Poisson.':'Normal, binomial and Poisson.',
+    'Ekonometria — regresja liniowa':'Econometrics — linear regression',
+    'Nachylenie, wyraz wolny, R² i prognoza.':'Slope, intercept, R² and forecast.',
+    'Badania operacyjne — LP':'Operations research — LP',
+    'Tabela pod Solver: funkcja celu, zmienne i ograniczenia.':'Solver table: objective function, variables and constraints.',
+    'Proces Markowa':'Markov process',
+    'Mnożenie macierzy stanu przez macierz przejścia.':'Multiplying a state matrix by a transition matrix.',
+    'Teoria kolejek M/M/1':'Queueing theory M/M/1',
+    'Wskaźniki kolejki dla lambda i mi.':'Queue indicators for lambda and mu.',
+    'Wstaw wykres':'Insert chart',
+    'Choose chart type, range and appearance. The range can come from the sheet selection.':'Choose chart type, range and appearance. The range can come from the sheet selection.',
+    'Data range':'Data range',
+    'Tytuł wykresu':'Chart title',
+    'Tytuł osi X':'X-axis title',
+    'Tytuł osi Y':'Y-axis title',
+    'Kolor serii':'Series color',
+    'Tło wykresu':'Chart background',
+    'Szerokość':'Width',
+    'Wysokość':'Height',
+    'Grubość linii':'Line width',
+    'Rozmiar punktów':'Point size',
+    'Liniowy':'Line',
+    'Liniowy wygładzony':'Smooth line',
+    'Warstwowy':'Area',
+    'Schodkowy':'Step',
+    'Kolumnowy':'Column',
+    'Kolumnowy skumulowany':'Stacked column',
+    'Słupkowy poziomy':'Horizontal bar',
+    'Słupkowy skumulowany':'Stacked bar',
+    'trend w czasie':'trend over time',
+    'miękki trend':'smooth trend',
+    'wartość + obszar':'value + area',
+    'zmiany skokowe':'step changes',
+    'porównanie kategorii':'category comparison',
+    'wiele serii':'many series',
+    'ranking':'ranking',
+    'udziały w kategorii':'category shares'
+  });
+  Object.assign(dict.de, {
+    'Panel główny':'Dashboard',
+    'System aktywny':'System aktiv',
+    'Tryb':'Modus',
+    'Moduł':'Modul',
+    'Użytkownik':'Benutzer',
+    'analiza':'Analyse',
+    'Changelog':'Änderungsprotokoll',
+    'Ostatnie zmiany':'Letzte Änderungen',
+    'Dzisiaj':'Heute',
+    'DZIŚ':'HEUTE',
+    'Ostatnio':'Kürzlich',
+    'OSTATNIO':'KÜRZLICH',
+    'Poprawiony pulpit startowy':'Verbessertes Dashboard',
+    'Czytelniejszy układ, mniej chaosu i lepszy podział na najważniejsze akcje.':'Klareres Layout, weniger Chaos und bessere Trennung der wichtigsten Aktionen.',
+    'Osobny obszar pod całki, pochodne, statystykę, optymalizację i badania operacyjne.':'Separater Bereich für Integrale, Ableitungen, Statistik, Optimierung und Operations Research.',
+    'Podpowiedź':'Hinweis',
+    'Importuj dane, twórz arkusze, buduj tabele, wykresy i modele obliczeniowe w jednym miejscu. Zacznij od szybkiej akcji albo przejdź do ostatnich zmian w systemie.':'Importieren Sie Daten, erstellen Sie Tabellen, bauen Sie Tabellen, Diagramme und Berechnungsmodelle an einem Ort. Beginnen Sie mit einer Schnellaktion oder gehen Sie zu den letzten Systemänderungen.',
+    'zakładki, formuły, F4':'Registerkarten, Formeln, F4',
+    'podsumowania i eksport':'Zusammenfassungen und Export',
+    'operacje i zapisy':'Operationen und Speicherungen',
+    'Edycja arkusza':'Tabellenbearbeitung',
+    'SHEET':'TABELLE',
+    'Wpisz wartość lub formułę, np. =SUMA(A1:A10)':'Wert oder Formel eingeben, z. B. =SUMME(A1:A10)',
+    'Tabela':'Tabelle',
+    'Ready tables':'Fertige Tabellen',
+    'Rata kredytu':'Kreditrate',
+    'PMT: kwota, oprocentowanie, liczba rat i rata miesięczna.':'PMT: Betrag, Zinssatz, Anzahl der Raten und monatliche Rate.',
+    'NPV projektu':'Projekt-NPV',
+    'Stopa dyskontowa, nakład początkowy i przepływy.':'Abzinsungssatz, Anfangsinvestition und Cashflows.',
+    'IRR inwestycji':'Investitions-IRR',
+    'Wewnętrzna stopa zwrotu z serii przepływów.':'Interner Zinsfuß aus einer Reihe von Cashflows.',
+    'Budżet miesięczny':'Monatsbudget',
+    'Przychody, koszty, saldo i udział kosztów.':'Einnahmen, Kosten, Saldo und Kostenanteil.',
+    'Solver: produkcja':'Solver: Produktion',
+    'Maksymalizacja zysku przy ograniczeniach zasobów.':'Gewinnmaximierung bei Ressourcenbeschränkungen.',
+    'Układ równań':'Gleichungssystem',
+    'Dane do testowania równań i Solver.':'Daten zum Testen von Gleichungen und Solver.',
+    'Statystyka opisowa':'Deskriptive Statistik',
+    'Suma, średnia, min, max, mediana, odchylenie.':'Summe, Durchschnitt, Min, Max, Median, Abweichung.',
+    'Procenty i marża':'Prozente und Marge',
+    'Cena netto, VAT, marża i cena końcowa.':'Nettopreis, MwSt., Marge und Endpreis.',
+    'Analiza pogody':'Wetteranalyse',
+    'Średnia temperatura, suma deszczu, maksimum zachmurzenia.':'Durchschnittstemperatur, Regensumme, maximale Bewölkung.',
+    'Oceny / punkty':'Noten / Punkte',
+    'Suma punktów, procent i status zaliczenia.':'Punktesumme, Prozentsatz und Bestehensstatus.',
+    'matematyka':'Mathematik',
+    'finanse':'Finanzen',
+    'statystyka':'Statistik',
+    'dane':'Daten',
+    'Wstawia od aktywnej komórki, a formuły przesuwają się automatycznie.':'Wird ab der aktiven Zelle eingefügt, Formeln verschieben sich automatisch.',
+    'Całkowanie numeryczne':'Numerische Integration',
+    'Całka oznaczona metodą trapezów dla funkcji f(x).':'Bestimmtes Integral mit der Trapezregel für f(x).',
+    'Pochodne i styczna':'Ableitungen und Tangente',
+    'Pochodna w punkcie i wartość funkcji.':'Ableitung an einem Punkt und Funktionswert.',
+    'Równanie różniczkowe — Euler':'Differentialgleichung — Euler',
+    'Przybliżenie y’ = f(x,y), y(x0)=y0.':'Näherung y’ = f(x,y), y(x0)=y0.',
+    'Miejsce zerowe funkcji':'Nullstelle einer Funktion',
+    'Bisekcja i Newton do szukania pierwiastków równań.':'Bisektion und Newton zur Suche nach Gleichungswurzeln.',
+    'Kombinatoryka':'Kombinatorik',
+    'Permutacje, wariacje i kombinacje.':'Permutationen, Variationen und Kombinationen.',
+    'Statystyka — rozkłady':'Statistik — Verteilungen',
+    'Normalny, dwumianowy i Poisson.':'Normal-, Binomial- und Poisson-Verteilung.',
+    'Ekonometria — regresja liniowa':'Ökonometrie — lineare Regression',
+    'Nachylenie, wyraz wolny, R² i prognoza.':'Steigung, Achsenabschnitt, R² und Prognose.',
+    'Badania operacyjne — LP':'Operations Research — LP',
+    'Tabela pod Solver: funkcja celu, zmienne i ograniczenia.':'Solver-Tabelle: Zielfunktion, Variablen und Nebenbedingungen.',
+    'Proces Markowa':'Markov-Prozess',
+    'Mnożenie macierzy stanu przez macierz przejścia.':'Multiplikation der Zustandsmatrix mit der Übergangsmatrix.',
+    'Teoria kolejek M/M/1':'Warteschlangentheorie M/M/1',
+    'Wskaźniki kolejki dla lambda i mi.':'Warteschlangenkennzahlen für Lambda und My.',
+    'Wstaw wykres':'Diagramm einfügen',
+    'Data range':'Datenbereich',
+    'Tytuł wykresu':'Diagrammtitel',
+    'Tytuł osi X':'Titel der X-Achse',
+    'Tytuł osi Y':'Titel der Y-Achse',
+    'Kolor serii':'Serienfarbe',
+    'Tło wykresu':'Diagrammhintergrund',
+    'Szerokość':'Breite',
+    'Wysokość':'Höhe',
+    'Grubość linii':'Linienstärke',
+    'Rozmiar punktów':'Punktgröße',
+    'Liniowy':'Linie',
+    'Liniowy wygładzony':'Geglättete Linie',
+    'Warstwowy':'Fläche',
+    'Schodkowy':'Stufe',
+    'Kolumnowy':'Säule',
+    'Kolumnowy skumulowany':'Gestapelte Säule',
+    'Słupkowy poziomy':'Horizontaler Balken',
+    'Słupkowy skumulowany':'Gestapelter Balken',
+    'trend w czasie':'Trend über Zeit',
+    'miękki trend':'weicher Trend',
+    'wartość + obszar':'Wert + Fläche',
+    'zmiany skokowe':'Sprungänderungen',
+    'porównanie kategorii':'Kategorievergleich',
+    'wiele serii':'viele Reihen',
+    'ranking':'Ranking',
+    'udziały w kategorii':'Kategorieanteile'
+  });
+
+
   const partialPhrases = {
     en: {
       'Najczęściej używany arkusz:':'Most used sheet:',
@@ -386,21 +595,694 @@
     }
   };
 
-  function translateWithPartials(text, lang) {
-    if (lang === 'pl') return text;
-    const clean = norm(text);
-    const exact = dict[lang]?.[clean];
-    if (exact) return exact;
+  let reverseCache = null;
+
+  function reverseMaps() {
+    if (reverseCache) return reverseCache;
+    const maps = { en: {}, de: {} };
+    ['en', 'de'].forEach(sourceLang => {
+      Object.entries(dict[sourceLang] || {}).forEach(([pl, translated]) => {
+        maps[sourceLang][norm(translated)] = pl;
+      });
+      Object.entries(partialPhrases[sourceLang] || {}).forEach(([pl, translated]) => {
+        maps[sourceLang][norm(translated)] = pl;
+      });
+    });
+    reverseCache = maps;
+    return maps;
+  }
+
+  function toPolishKey(clean) {
+    if (!clean) return '';
+    if (dict.en?.[clean] || dict.de?.[clean] || partialPhrases.en?.[clean] || partialPhrases.de?.[clean]) return clean;
+    const maps = reverseMaps();
+    return maps.en[clean] || maps.de[clean] || clean;
+  }
+
+  function fromPolishKey(plKey, lang) {
+    if (lang === 'pl') return plKey;
+    return dict[lang]?.[plKey] || partialPhrases[lang]?.[plKey] || plKey;
+  }
+
+  function phraseVariants() {
+    const variants = [];
+    const keys = new Set();
+    ['en', 'de'].forEach(langKey => {
+      Object.keys(dict[langKey] || {}).forEach(key => keys.add(key));
+      Object.keys(partialPhrases[langKey] || {}).forEach(key => keys.add(key));
+    });
+    keys.forEach(pl => {
+      const item = { pl, en: dict.en?.[pl] || partialPhrases.en?.[pl] || pl, de: dict.de?.[pl] || partialPhrases.de?.[pl] || pl };
+      variants.push(item);
+    });
+    return variants.sort((a, b) => Math.max(b.pl.length, b.en.length, b.de.length) - Math.max(a.pl.length, a.en.length, a.de.length));
+  }
+
+  function escapeRegExp(str) {
+    return String(str || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  }
+
+  function replacePhraseSafely(text, source, target) {
+    const src = String(source || '');
+    if (!src || src === target || src.length < 3) return String(text || '');
+    const startsWord = /[\p{L}\p{N}]/u.test(src[0] || '');
+    const endsWord = /[\p{L}\p{N}]/u.test(src[src.length - 1] || '');
+    const escaped = escapeRegExp(src);
+    const pattern = `${startsWord ? '(^|[^\\p{L}\\p{N}])' : ''}${escaped}${endsWord ? '(?=$|[^\\p{L}\\p{N}])' : ''}`;
+    const re = new RegExp(pattern, 'gu');
+    return String(text || '').replace(re, (...args) => {
+      const prefix = startsWord ? (args[1] || '') : '';
+      return `${prefix}${target}`;
+    });
+  }
+
+  function replaceAnyKnownPhrase(text, lang) {
     let output = String(text || '');
-    const phrases = partialPhrases[lang] || {};
-    Object.keys(phrases).sort((a,b)=>b.length-a.length).forEach(key => { output = output.split(key).join(phrases[key]); });
-    Object.keys(dict[lang] || {}).filter(key => key.length >= 8 && output.includes(key)).sort((a,b)=>b.length-a.length).forEach(key => { output = output.split(key).join(dict[lang][key]); });
+    phraseVariants().forEach(item => {
+      const target = item[lang] || item.pl;
+      [item.pl, item.en, item.de].forEach(source => {
+        output = replacePhraseSafely(output, source, target);
+      });
+    });
     return output;
   }
 
+  function translateDynamicPatterns(text, lang) {
+    let output = String(text || '');
+    const patterns = [
+      {
+        re: /(\d+)\s+arkusz(?:y|e)?\s+łącznie|(\d+)\s+sheets\s+total|(\d+)\s+Tabellen\s+insgesamt/gi,
+        out: n => lang === 'pl' ? `${n} arkuszy łącznie` : lang === 'de' ? `${n} Tabellen insgesamt` : `${n} sheets total`
+      },
+      {
+        re: /Zakładka:\s*([^•]+)\s*•\s*Wiersze:\s*([^•]+)\s*•\s*Kolumny:\s*([^•]+)|Tab:\s*([^•]+)\s*•\s*Rows:\s*([^•]+)\s*•\s*Columns:\s*([^•]+)|Registerkarte:\s*([^•]+)\s*•\s*Zeilen:\s*([^•]+)\s*•\s*Spalten:\s*([^•]+)/gi,
+        out: (...m) => {
+          const tab = m[1] || m[4] || m[7];
+          const rows = m[2] || m[5] || m[8];
+          const cols = m[3] || m[6] || m[9];
+          if (lang === 'pl') return `Zakładka: ${tab.trim()} • Wiersze: ${rows} • Kolumny: ${cols}`;
+          if (lang === 'de') return `Registerkarte: ${tab.trim()} • Zeilen: ${rows} • Spalten: ${cols}`;
+          return `Tab: ${tab.trim()} • Rows: ${rows} • Columns: ${cols}`;
+        }
+      }
+    ];
+    patterns.forEach(({re, out}) => {
+      output = output.replace(re, (...args) => {
+        const groups = args.slice(1, -2);
+        const n = groups.find(Boolean);
+        return typeof out === 'function' ? out(...groups) : out;
+      });
+    });
+    return output;
+  }
+
+  function translateWithPartials(text, lang) {
+    const raw = String(text || '');
+    const clean = norm(raw);
+    if (!clean) return raw;
+    const plKey = toPolishKey(clean);
+    const exact = fromPolishKey(plKey, lang);
+    if (exact && exact !== plKey || lang === 'pl' && plKey !== clean) return preserveWhitespace(raw, exact);
+    let output = translateDynamicPatterns(raw, lang);
+    output = replaceAnyKnownPhrase(output, lang);
+    return output;
+  }
+
+
+
+  // v0.4.8 — extended modal/dynamic translations.
+  // Covers text generated from worksheet_editor.js after page load: smart insert,
+  // conditional formatting, chart builder, templates, menus and mixed-language labels.
+  Object.assign(dict.en, {
+    'Formatowanie warunkowe':'Conditional formatting',
+    'Gotowe reguły jak w Arkuszach Google: zaznacz zakres, wybierz warunek i kolor. Reguła działa automatycznie po zmianie danych.':'Ready-made rules like in Google Sheets: select a range, choose a condition and color. The rule works automatically when data changes.',
+    'Zakres':'Range',
+    'Range':'Range',
+    'Przykład':'Example',
+    'Wartość':'Value',
+    'Druga wartość':'Second value',
+    'Kolor reguły':'Rule color',
+    'Aktywne reguły':'Active rules',
+    'PODGLĄD KOMÓRKI':'CELL PREVIEW',
+    'CELL PREVIEW':'CELL PREVIEW',
+    'Brak reguł. Wybierz przykład i kliknij „Apply”.':'No rules. Choose an example and click “Apply”.',
+    'Brak reguł. Wybierz przykład i kliknij „Zastosuj”.':'No rules. Choose an example and click “Apply”.',
+    'Tekst zawiera…':'Text contains…',
+    'Tekst to dokładnie…':'Text equals exactly…',
+    'Liczba większa niż…':'Number greater than…',
+    'Liczba mniejsza niż…':'Number less than…',
+    'Liczba między…':'Number between…',
+    'Puste komórki':'Empty cells',
+    'Niepuste komórki':'Non-empty cells',
+    'zielony — dobrze / OK':'green — good / OK',
+    'czerwony — błąd / źle':'red — error / wrong',
+    'żółty — uwaga':'yellow — warning',
+    'niebieski — informacja':'blue — information',
+    'fioletowy — wyróżnienie':'purple — highlight',
+    'Przykłady: tekst zawiera ✅, tekst zawiera ❌, liczba większa niż 100, liczba mniejsza niż 0, komórka jest pusta. Reguły zapisują się w arkuszu.':'Examples: text contains ✅, text contains ❌, number greater than 100, number less than 0, cell is empty. Rules are saved in the sheet.',
+    'Reguła':'Rule',
+    'text-contains':'text contains',
+    'text-eq':'text equals',
+    'number-gt':'number greater than',
+    'number-lt':'number less than',
+    'number-between':'number between',
+    'empty':'empty',
+    'not-empty':'not empty',
+    'Wstaw funkcję':'Insert function',
+    'Wybierz funkcję z katalogu albo zacznij pisać w pasku formuły. Podpowiedzi pokażą wymagane argumenty.':'Choose a function from the catalog or start typing in the formula bar. Hints will show the required arguments.',
+    'Funkcja':'Function',
+    'Zakres / argumenty':'Range / arguments',
+    'Przykład: SUMA z argumentem A1:A10 utworzy =SUMA(A1:A10). F4 w pasku formuły przełącza blokady $.':'Example: SUM with A1:A10 will create =SUM(A1:A10). F4 in the formula bar toggles $ locks.',
+    'Wstaw link':'Insert link',
+    'Podaj tekst i adres. Link będzie klikalny w komórce.':'Enter text and URL. The link will be clickable in the cell.',
+    'Tekst wyświetlany':'Display text',
+    'Adres URL':'URL address',
+    'Wstaw pole wyboru':'Insert checkbox',
+    'Ustaw początkowy stan pola wyboru i opcjonalny opis.':'Set the initial checkbox state and an optional description.',
+    'Zaznaczone na start':'Checked by default',
+    'Opis obok pola':'Label next to the field',
+    'Reguła sprawdzania poprawności danych':'Data validation rule',
+    'Utwórz menu rozwijane podobne do Arkuszy Google. Każda linia to jedna opcja.':'Create a dropdown like in Google Sheets. Each line is one option.',
+    'Zastosuj do komórki':'Apply to cell',
+    'Kryteria':'Criteria',
+    'Menu rozwijane':'Dropdown menu',
+    'Menu z zakresu':'Dropdown from range',
+    'Opcje':'Options',
+    'Opcja 1':'Option 1',
+    'Opcja 2':'Option 2',
+    'Gotowe':'Ready',
+    'Zezwalaj na wybieranie wielu opcji':'Allow selecting multiple options',
+    'Wypełnij pola i zobacz podgląd przed wstawieniem.':'Fill in the fields and preview before inserting.',
+    'Wstaw element':'Insert element',
+    'Podgląd w komórce':'Cell preview',
+    'Wstaw':'Insert',
+    'Insert':'Insert',
+    'Cancel':'Cancel',
+    'Apply':'Apply',
+    'Chart':'Chart',
+    'Pivot table':'Pivot table',
+    'Checkbox':'Checkbox',
+    'Menu':'Menu',
+    'Emojis':'Emojis',
+    'Ready tables':'Ready tables',
+    'Insert a sample layout into the current sheet and immediately test functions, financial math or Solver.':'Insert a sample layout into the current sheet and immediately test functions, financial math or Solver.',
+    'Clear sheet before inserting':'Clear sheet before inserting',
+    'Choose chart type, range and appearance. The range can come from the sheet selection.':'Choose chart type, range and appearance. The range can come from the sheet selection.',
+    'Chart type':'Chart type',
+    'Data and appearance':'Data and appearance',
+    'Chart title':'Chart title',
+    'X-axis title':'X-axis title',
+    'Y-axis title':'Y-axis title',
+    'Series color':'Series color',
+    'Chart background':'Chart background',
+    'Line width':'Line width',
+    'Point size':'Point size',
+    'Choose file':'Choose file',
+    'No file chosen':'No file chosen',
+    'Nie wybrano pliku':'No file chosen',
+    'undefined':'undefined',
+    'No changes':'No changes',
+    'Brak zmian':'No changes',
+    'Arkusz 1':'Sheet 1',
+    'Arkusz 2':'Sheet 2',
+    'Arkusz 3':'Sheet 3',
+    'Arkusz 4':'Sheet 4'
+  });
+
+  Object.assign(dict.de, {
+    'Formatowanie warunkowe':'Bedingte Formatierung',
+    'Gotowe reguły jak w Arkuszach Google: zaznacz zakres, wybierz warunek i kolor. Reguła działa automatycznie po zmianie danych.':'Fertige Regeln wie in Google Tabellen: Bereich markieren, Bedingung und Farbe wählen. Die Regel wirkt automatisch nach Datenänderungen.',
+    'Zakres':'Bereich',
+    'Range':'Bereich',
+    'Przykład':'Beispiel',
+    'Wartość':'Wert',
+    'Druga wartość':'Zweiter Wert',
+    'Kolor reguły':'Regelfarbe',
+    'Aktywne reguły':'Aktive Regeln',
+    'PODGLĄD KOMÓRKI':'ZELLENVORSCHAU',
+    'CELL PREVIEW':'ZELLENVORSCHAU',
+    'Brak reguł. Wybierz przykład i kliknij „Apply”.':'Keine Regeln. Wählen Sie ein Beispiel und klicken Sie auf „Anwenden“.',
+    'Brak reguł. Wybierz przykład i kliknij „Zastosuj”.':'Keine Regeln. Wählen Sie ein Beispiel und klicken Sie auf „Anwenden“.',
+    'Tekst zawiera…':'Text enthält…',
+    'Tekst to dokładnie…':'Text ist genau…',
+    'Liczba większa niż…':'Zahl größer als…',
+    'Liczba mniejsza niż…':'Zahl kleiner als…',
+    'Liczba między…':'Zahl zwischen…',
+    'Puste komórki':'Leere Zellen',
+    'Niepuste komórki':'Nicht leere Zellen',
+    'zielony — dobrze / OK':'grün — gut / OK',
+    'czerwony — błąd / źle':'rot — Fehler / falsch',
+    'żółty — uwaga':'gelb — Warnung',
+    'niebieski — informacja':'blau — Information',
+    'fioletowy — wyróżnienie':'violett — Hervorhebung',
+    'Przykłady: tekst zawiera ✅, tekst zawiera ❌, liczba większa niż 100, liczba mniejsza niż 0, komórka jest pusta. Reguły zapisują się w arkuszu.':'Beispiele: Text enthält ✅, Text enthält ❌, Zahl größer als 100, Zahl kleiner als 0, Zelle ist leer. Regeln werden in der Tabelle gespeichert.',
+    'Reguła':'Regel',
+    'text-contains':'Text enthält',
+    'text-eq':'Text ist gleich',
+    'number-gt':'Zahl größer als',
+    'number-lt':'Zahl kleiner als',
+    'number-between':'Zahl zwischen',
+    'empty':'leer',
+    'not-empty':'nicht leer',
+    'Wstaw funkcję':'Funktion einfügen',
+    'Wybierz funkcję z katalogu albo zacznij pisać w pasku formuły. Podpowiedzi pokażą wymagane argumenty.':'Wählen Sie eine Funktion aus dem Katalog oder beginnen Sie in der Formelleiste zu schreiben. Hinweise zeigen die erforderlichen Argumente.',
+    'Funkcja':'Funktion',
+    'Zakres / argumenty':'Bereich / Argumente',
+    'Przykład: SUMA z argumentem A1:A10 utworzy =SUMA(A1:A10). F4 w pasku formuły przełącza blokady $.':'Beispiel: SUMME mit A1:A10 erstellt =SUMME(A1:A10). F4 in der Formelleiste schaltet $-Sperren um.',
+    'Wstaw link':'Link einfügen',
+    'Podaj tekst i adres. Link będzie klikalny w komórce.':'Text und Adresse eingeben. Der Link wird in der Zelle anklickbar sein.',
+    'Tekst wyświetlany':'Anzeigetext',
+    'Adres URL':'URL-Adresse',
+    'Wstaw pole wyboru':'Kontrollkästchen einfügen',
+    'Ustaw początkowy stan pola wyboru i opcjonalny opis.':'Anfangszustand des Kontrollkästchens und optionale Beschreibung festlegen.',
+    'Zaznaczone na start':'Standardmäßig markiert',
+    'Opis obok pola':'Beschreibung neben dem Feld',
+    'Reguła sprawdzania poprawności danych':'Datenvalidierungsregel',
+    'Utwórz menu rozwijane podobne do Arkuszy Google. Każda linia to jedna opcja.':'Erstellen Sie ein Dropdown wie in Google Tabellen. Jede Zeile ist eine Option.',
+    'Zastosuj do komórki':'Auf Zelle anwenden',
+    'Kryteria':'Kriterien',
+    'Menu rozwijane':'Dropdown-Menü',
+    'Menu z zakresu':'Dropdown aus Bereich',
+    'Opcje':'Optionen',
+    'Opcja 1':'Option 1',
+    'Opcja 2':'Option 2',
+    'Gotowe':'Fertig',
+    'Zezwalaj na wybieranie wielu opcji':'Mehrfachauswahl erlauben',
+    'Wypełnij pola i zobacz podgląd przed wstawieniem.':'Felder ausfüllen und Vorschau vor dem Einfügen ansehen.',
+    'Wstaw element':'Element einfügen',
+    'Podgląd w komórce':'Zellenvorschau',
+    'Wstaw':'Einfügen',
+    'Insert':'Einfügen',
+    'Cancel':'Abbrechen',
+    'Apply':'Anwenden',
+    'Chart':'Diagramm',
+    'Pivot table':'Pivot-Tabelle',
+    'Checkbox':'Kontrollkästchen',
+    'Menu':'Menü',
+    'Emojis':'Emojis',
+    'Ready tables':'Fertige Tabellen',
+    'Insert a sample layout into the current sheet and immediately test functions, financial math or Solver.':'Beispiel-Layout in die aktuelle Tabelle einfügen und sofort Funktionen, Finanzmathematik oder Solver testen.',
+    'Clear sheet before inserting':'Tabelle vor dem Einfügen leeren',
+    'Choose chart type, range and appearance. The range can come from the sheet selection.':'Diagrammtyp, Bereich und Darstellung wählen. Der Bereich kann aus der Tabellenauswahl stammen.',
+    'Chart type':'Diagrammtyp',
+    'Data and appearance':'Daten und Darstellung',
+    'Chart title':'Diagrammtitel',
+    'X-axis title':'Titel der X-Achse',
+    'Y-axis title':'Titel der Y-Achse',
+    'Series color':'Serienfarbe',
+    'Chart background':'Diagrammhintergrund',
+    'Line width':'Linienstärke',
+    'Point size':'Punktgröße',
+    'Choose file':'Datei auswählen',
+    'No file chosen':'Keine Datei ausgewählt',
+    'Nie wybrano pliku':'Keine Datei ausgewählt',
+    'undefined':'nicht definiert',
+    'No changes':'Keine Änderungen',
+    'Brak zmian':'Keine Änderungen',
+    'Arkusz 1':'Tabelle 1',
+    'Arkusz 2':'Tabelle 2',
+    'Arkusz 3':'Tabelle 3',
+    'Arkusz 4':'Tabelle 4'
+  });
+
+
+
+  Object.assign(dict.en, {
+    'Dodaje wartości z zakresu lub argumentów.':'Adds values from a range or from arguments.',
+    'Wartość bezwzględna.':'Absolute value.',
+    'Zaokrągla liczbę do wskazanej liczby miejsc.':'Rounds a number to the specified number of decimal places.',
+    'Pierwiastek kwadratowy.':'Square root.',
+    'Podnosi liczbę do potęgi.':'Raises a number to a power.',
+    'Logarytm naturalny.':'Natural logarithm.',
+    'Wybierz typ, zakres i wygląd wykresu. Zakres może pochodzić z zaznaczenia w arkuszu.':'Choose the chart type, range and appearance. The range can come from the selected cells in the sheet.',
+    'Brak pól dla wybranego zakresu.':'No fields for the selected range.',
+    'Składnia':'Syntax',
+    'Opis':'Description',
+    'SUMA':'SUM',
+    'PIERWIASTEK':'SQRT',
+    'SILNIA':'FACTORIAL',
+    'ŚREDNIA':'AVERAGE',
+    'MEDIANA':'MEDIAN',
+    'MINIMUM':'MIN',
+    'MAXIMUM':'MAX',
+    'ZLICZ':'COUNT',
+    'Suma':'Sum',
+    'Liczba':'Count',
+    'Średnia':'Average',
+    'Maksimum':'Maximum',
+    'Kołowy':'Pie',
+    'Pierścieniowy':'Doughnut',
+    'Punktowy XY':'XY scatter',
+    'Bąbelkowy':'Bubble',
+    'Histogram':'Histogram',
+    'Pareto':'Pareto',
+    'Wodospadowy':'Waterfall',
+    'Radarowy':'Radar',
+    'Kombinowany':'Combo',
+    'Miniwykres':'Sparkline',
+    'Liniowy':'Line',
+    'Liniowy wygładzony':'Smoothed line',
+    'Warstwowy':'Area',
+    'Schodkowy':'Step',
+    'Kolumnowy':'Column',
+    'Kolumnowy skumulowany':'Stacked column',
+    'Słupkowy poziomy':'Bar',
+    'Słupkowy skumulowany':'Stacked bar',
+    'trend w czasie':'trend over time',
+    'miękki trend':'smooth trend',
+    'wartość + obszar':'value + area',
+    'zmiany skokowe':'step changes',
+    'porównanie kategorii':'category comparison',
+    'wiele serii':'multiple series',
+    'ranking':'ranking',
+    'udziały w kategorii':'shares by category',
+    'udziały procentowe':'percentage shares',
+    'udziały z pustym środkiem':'shares with a hollow center',
+    'zależność dwóch zmiennych':'relationship between two variables',
+    'X, Y i rozmiar':'X, Y and size',
+    'rozkład wartości':'value distribution',
+    'ranking + kumulacja':'ranking + cumulative total',
+    'przyrosty i spadki':'increases and decreases',
+    'profil wielowymiarowy':'multi-dimensional profile',
+    'kolumny + linia':'columns + line',
+    'prosty trend':'simple trend'
+  });
+
+  Object.assign(dict.de, {
+    'Dodaje wartości z zakresu lub argumentów.':'Addiert Werte aus einem Bereich oder aus Argumenten.',
+    'Wartość bezwzględna.':'Absolutwert.',
+    'Zaokrągla liczbę do wskazanej liczby miejsc.':'Rundet eine Zahl auf die angegebene Anzahl von Dezimalstellen.',
+    'Pierwiastek kwadratowy.':'Quadratwurzel.',
+    'Podnosi liczbę do potęgi.':'Hebt eine Zahl auf eine Potenz.',
+    'Logarytm naturalny.':'Natürlicher Logarithmus.',
+    'Wybierz typ, zakres i wygląd wykresu. Zakres może pochodzić z zaznaczenia w arkuszu.':'Wählen Sie Diagrammtyp, Bereich und Darstellung. Der Bereich kann aus der Markierung im Blatt stammen.',
+    'Brak pól dla wybranego zakresu.':'Keine Felder für den gewählten Bereich.',
+    'Składnia':'Syntax',
+    'Opis':'Beschreibung',
+    'SUMA':'SUMME',
+    'PIERWIASTEK':'WURZEL',
+    'SILNIA':'FAKULTÄT',
+    'ŚREDNIA':'MITTELWERT',
+    'MEDIANA':'MEDIAN',
+    'MINIMUM':'MIN',
+    'MAXIMUM':'MAX',
+    'ZLICZ':'ANZAHL',
+    'Suma':'Summe',
+    'Liczba':'Anzahl',
+    'Średnia':'Mittelwert',
+    'Maksimum':'Maximum',
+    'Kołowy':'Kreisdiagramm',
+    'Pierścieniowy':'Ringdiagramm',
+    'Punktowy XY':'XY-Streudiagramm',
+    'Bąbelkowy':'Blasendiagramm',
+    'Histogram':'Histogramm',
+    'Pareto':'Pareto',
+    'Wodospadowy':'Wasserfall',
+    'Radarowy':'Radar',
+    'Kombinowany':'Kombinationsdiagramm',
+    'Miniwykres':'Sparkline',
+    'Liniowy':'Liniendiagramm',
+    'Liniowy wygładzony':'Geglättete Linie',
+    'Warstwowy':'Flächendiagramm',
+    'Schodkowy':'Stufendiagramm',
+    'Kolumnowy':'Säulendiagramm',
+    'Kolumnowy skumulowany':'Gestapeltes Säulendiagramm',
+    'Słupkowy poziomy':'Balkendiagramm',
+    'Słupkowy skumulowany':'Gestapeltes Balkendiagramm',
+    'trend w czasie':'Trend im Zeitverlauf',
+    'miękki trend':'geglätteter Trend',
+    'wartość + obszar':'Wert + Fläche',
+    'zmiany skokowe':'sprunghafte Änderungen',
+    'porównanie kategorii':'Kategorienvergleich',
+    'wiele serii':'mehrere Reihen',
+    'ranking':'Ranking',
+    'udziały w kategorii':'Anteile je Kategorie',
+    'udziały procentowe':'prozentuale Anteile',
+    'udziały z pustym środkiem':'Anteile mit leerer Mitte',
+    'zależność dwóch zmiennych':'Zusammenhang zweier Variablen',
+    'X, Y i rozmiar':'X, Y und Größe',
+    'rozkład wartości':'Werteverteilung',
+    'ranking + kumulacja':'Ranking + Kumulation',
+    'przyrosty i spadki':'Anstiege und Rückgänge',
+    'profil wielowymiarowy':'mehrdimensionales Profil',
+    'kolumny + linia':'Säulen + Linie',
+    'prosty trend':'einfacher Trend'
+  });
+
+
+
+  // v0.4.9 — solver, bug reports and admin panel translations.
+  Object.assign(dict.en, {
+    'Zgłoś problem':'Report issue',
+    'Panel zgłoszeń':'Reports panel',
+    'Problem':'Issue',
+    'Zgłoszenia':'Issues',
+    'POMOC I ZGŁOSZENIA':'HELP AND REPORTS',
+    'Zgłoś błąd lub sugestię':'Report a bug or suggestion',
+    'Wypełnij formularz, jeżeli coś nie działa, tekst nie tłumaczy się poprawnie, moduł zachowuje się inaczej niż oczekujesz albo chcesz zaproponować zmianę.':'Fill in the form if something does not work, text is not translated correctly, a module behaves differently than expected, or you want to suggest a change.',
+    'Opisz problem':'Describe the problem',
+    'Dodaj link lub screen':'Add a link or screenshot',
+    'Administrator odczyta zgłoszenie':'An administrator will read the report',
+    'Formularz':'Form',
+    'Nowe zgłoszenie':'New report',
+    'Tytuł zgłoszenia':'Report title',
+    'Opis problemu':'Problem description',
+    'Adres strony / modułu':'Page / module URL',
+    'Zrzut ekranu, opcjonalnie':'Screenshot, optional',
+    'Wyślij zgłoszenie':'Send report',
+    'Wróć do panelu':'Back to dashboard',
+    'Moje ostatnie zgłoszenia':'My recent reports',
+    'Nie masz jeszcze żadnych zgłoszeń.':'You have not submitted any reports yet.',
+    'ADMIN':'ADMIN',
+    'Zgłoszenia użytkowników':'User reports',
+    'Panel administratora do odczytu błędów, sugestii i problemów zgłoszonych przez użytkowników.':'Admin panel for reading bugs, suggestions and problems reported by users.',
+    'wszystkie zgłoszenia':'all reports',
+    'nowe':'new',
+    'w trakcie':'in progress',
+    'zamknięte':'closed',
+    'Konto przykładowe':'Example account',
+    'Login':'Login',
+    'Hasło':'Password',
+    'W produkcji zmień hasło po pierwszym wdrożeniu.':'In production, change the password after the first deployment.',
+    'Filtry':'Filters',
+    'Lista zgłoszeń':'Report list',
+    'Status':'Status',
+    'Wszystkie':'All',
+    'Filtruj':'Filter',
+    'Wyczyść':'Clear',
+    'Autor':'Author',
+    'brak':'none',
+    'Priorytet':'Priority',
+    'Otwórz wskazaną stronę':'Open indicated page',
+    'Otwórz załączony zrzut ekranu':'Open attached screenshot',
+    'Przeglądarka':'Browser',
+    'Notatka administratora':'Admin note',
+    'Zapisz obsługę zgłoszenia':'Save report handling',
+    'Brak zgłoszeń dla wybranego filtra.':'No reports for the selected filter.',
+    'Solver':'Solver',
+    'Arkusz:':'Sheet:',
+    'Bieżący arkusz':'Current sheet',
+    'Komórka celu:':'Objective cell:',
+    'Aktualizuj':'Update',
+    'Wyczyść':'Clear',
+    'Kierunek optymalizacji:':'Optimization direction:',
+    'minimalizuj':'minimize',
+    'maksymalizuj':'maximize',
+    'wartość docelowa:':'target value:',
+    'Komórki zmienne:':'Variable cells:',
+    'Zmienne bez ograniczeń są nieujemne':'Unconstrained variables are non-negative',
+    'Ograniczenia:':'Constraints:',
+    'Krok przeszukiwania':'Search step',
+    'Rozwiąż':'Solve',
+    'Objective Cell:':'Objective cell:',
+    'Variable Cells:':'Variable cells:',
+    'Objective Sense:':'Objective sense:',
+    'Best values:':'Best values:',
+    'Objective value:':'Objective value:',
+    'Constraints:':'Constraints:',
+    'target value':'target value',
+    'maximise':'maximize',
+    'minimise':'minimize',
+    'Nie znaleziono rozwiązania spełniającego ograniczenia.':'No solution satisfying the constraints was found.'
+  });
+
+  Object.assign(dict.de, {
+    'Zgłoś problem':'Problem melden',
+    'Panel zgłoszeń':'Meldungsbereich',
+    'Problem':'Problem',
+    'Zgłoszenia':'Meldungen',
+    'POMOC I ZGŁOSZENIA':'HILFE UND MELDUNGEN',
+    'Zgłoś błąd lub sugestię':'Fehler oder Vorschlag melden',
+    'Wypełnij formularz, jeżeli coś nie działa, tekst nie tłumaczy się poprawnie, moduł zachowuje się inaczej niż oczekujesz albo chcesz zaproponować zmianę.':'Füllen Sie das Formular aus, wenn etwas nicht funktioniert, ein Text nicht korrekt übersetzt wird, ein Modul sich anders verhält als erwartet oder Sie eine Änderung vorschlagen möchten.',
+    'Opisz problem':'Problem beschreiben',
+    'Dodaj link lub screen':'Link oder Screenshot hinzufügen',
+    'Administrator odczyta zgłoszenie':'Ein Administrator liest die Meldung',
+    'Formularz':'Formular',
+    'Nowe zgłoszenie':'Neue Meldung',
+    'Tytuł zgłoszenia':'Titel der Meldung',
+    'Opis problemu':'Problembeschreibung',
+    'Adres strony / modułu':'Seiten- / Moduladresse',
+    'Zrzut ekranu, opcjonalnie':'Screenshot, optional',
+    'Wyślij zgłoszenie':'Meldung senden',
+    'Wróć do panelu':'Zurück zum Dashboard',
+    'Moje ostatnie zgłoszenia':'Meine letzten Meldungen',
+    'Nie masz jeszcze żadnych zgłoszeń.':'Sie haben noch keine Meldungen gesendet.',
+    'ADMIN':'ADMIN',
+    'Zgłoszenia użytkowników':'Benutzermeldungen',
+    'Panel administratora do odczytu błędów, sugestii i problemów zgłoszonych przez użytkowników.':'Administrationsbereich zum Lesen von Fehlern, Vorschlägen und Problemen, die von Benutzern gemeldet wurden.',
+    'wszystkie zgłoszenia':'alle Meldungen',
+    'nowe':'neu',
+    'w trakcie':'in Bearbeitung',
+    'zamknięte':'geschlossen',
+    'Konto przykładowe':'Beispielkonto',
+    'Login':'Login',
+    'Hasło':'Passwort',
+    'W produkcji zmień hasło po pierwszym wdrożeniu.':'In Produktion das Passwort nach der ersten Bereitstellung ändern.',
+    'Filtry':'Filter',
+    'Lista zgłoszeń':'Meldungsliste',
+    'Status':'Status',
+    'Wszystkie':'Alle',
+    'Filtruj':'Filtern',
+    'Wyczyść':'Zurücksetzen',
+    'Autor':'Autor',
+    'brak':'keine',
+    'Priorytet':'Priorität',
+    'Otwórz wskazaną stronę':'Angegebene Seite öffnen',
+    'Otwórz załączony zrzut ekranu':'Angehängten Screenshot öffnen',
+    'Przeglądarka':'Browser',
+    'Notatka administratora':'Administratornotiz',
+    'Zapisz obsługę zgłoszenia':'Bearbeitung speichern',
+    'Brak zgłoszeń dla wybranego filtra.':'Keine Meldungen für den ausgewählten Filter.',
+    'Solver':'Solver',
+    'Arkusz:':'Tabelle:',
+    'Bieżący arkusz':'Aktuelle Tabelle',
+    'Komórka celu:':'Zielzelle:',
+    'Aktualizuj':'Aktualisieren',
+    'Wyczyść':'Leeren',
+    'Kierunek optymalizacji:':'Optimierungsrichtung:',
+    'minimalizuj':'minimieren',
+    'maksymalizuj':'maximieren',
+    'wartość docelowa:':'Zielwert:',
+    'Komórki zmienne:':'Variable Zellen:',
+    'Zmienne bez ograniczeń są nieujemne':'Nicht beschränkte Variablen sind nicht negativ',
+    'Ograniczenia:':'Nebenbedingungen:',
+    'Krok przeszukiwania':'Suchschritt',
+    'Rozwiąż':'Lösen',
+    'Objective Cell:':'Zielzelle:',
+    'Variable Cells:':'Variable Zellen:',
+    'Objective Sense:':'Optimierungsrichtung:',
+    'Best values:':'Beste Werte:',
+    'Objective value:':'Zielfunktionswert:',
+    'Constraints:':'Nebenbedingungen:',
+    'target value':'Zielwert',
+    'maximise':'maximieren',
+    'minimise':'minimieren',
+    'Nie znaleziono rozwiązania spełniającego ograniczenia.':'Keine Lösung gefunden, die die Nebenbedingungen erfüllt.'
+  });
+
+  // Global fallback: lets Polish mode fix older English labels that were rendered before i18n.
+  if (!dict.pl) dict.pl = {};
+  Object.assign(dict.pl, {
+    'Sheet:':'Arkusz:',
+    'Current Sheet':'Bieżący arkusz',
+    'Objective Cell:':'Komórka celu:',
+    'Update':'Aktualizuj',
+    'Clear':'Wyczyść',
+    'Objective Sense:':'Kierunek optymalizacji:',
+    'minimise':'minimalizuj',
+    'maximise':'maksymalizuj',
+    'target value:':'wartość docelowa:',
+    'Variable Cells:':'Komórki zmienne:',
+    'Add':'Dodaj',
+    'Delete':'Usuń',
+    'Unconstrained variables non-negative':'Zmienne bez ograniczeń są nieujemne',
+    'Constraints:':'Ograniczenia:',
+    'Search step':'Krok przeszukiwania',
+    'Close':'Zamknij',
+    'Solve':'Rozwiąż',
+    'Objective Cell':'Komórka celu',
+    'Variable Cells':'Komórki zmienne',
+    'Objective Sense':'Kierunek optymalizacji',
+    'Best values':'Najlepsze wartości',
+    'Objective value':'Wartość funkcji celu',
+    'target value':'wartość docelowa',
+    'No solution satisfying the constraints was found.':'Nie znaleziono rozwiązania spełniającego ograniczenia.'
+  });
+
+
+
+  Object.assign(dict.en, {
+    'Panel użytkowników':'Users panel',
+    'Użytkownicy':'Users',
+    'Użytkownicy i uprawnienia':'Users and permissions',
+    'Baza użytkowników':'User database',
+    'Lista kont':'Account list',
+    'Szukaj':'Search',
+    'Wyczyść':'Clear',
+    'Aktywuj':'Activate',
+    'Dezaktywuj':'Deactivate',
+    'Usuń konto':'Delete account',
+    'Nadaj staff':'Grant staff',
+    'Odbierz staff':'Remove staff',
+    'Nadaj superadmin':'Grant superadmin',
+    'Odbierz superadmin':'Remove superadmin'
+  });
+  Object.assign(dict.de, {
+    'Panel użytkowników':'Benutzerbereich',
+    'Użytkownicy':'Benutzer',
+    'Użytkownicy i uprawnienia':'Benutzer und Berechtigungen',
+    'Baza użytkowników':'Benutzerdatenbank',
+    'Lista kont':'Kontoliste',
+    'Szukaj':'Suchen',
+    'Wyczyść':'Zurücksetzen',
+    'Aktywuj':'Aktivieren',
+    'Dezaktywuj':'Deaktivieren',
+    'Usuń konto':'Konto löschen',
+    'Nadaj staff':'Staff geben',
+    'Odbierz staff':'Staff entfernen',
+    'Nadaj superadmin':'Superadmin geben',
+    'Odbierz superadmin':'Superadmin entfernen'
+  });
+
+
+  Object.assign(dict.en, {
+    'Udostępnij':'Share',
+    'Udostępnij arkusz':'Share sheet',
+    'Osoby z dostępem':'People with access',
+    'Dostęp ogólny':'General access',
+    'Dostęp ograniczony':'Restricted access',
+    'Tylko podgląd':'View only',
+    'Może edytować':'Can edit',
+    'E-mail lub login użytkownika':'User e-mail or login',
+    'Poziom dostępu':'Access level',
+    'Anuluj':'Cancel',
+    'Usuń':'Remove',
+    'Właściciel':'Owner',
+    'Udostępnione przez':'Shared by',
+    'Tylko odczyt':'Read only',
+    'Możesz edytować':'Can edit'
+  });
+  Object.assign(dict.de, {
+    'Udostępnij':'Teilen',
+    'Udostępnij arkusz':'Tabelle teilen',
+    'Osoby z dostępem':'Personen mit Zugriff',
+    'Dostęp ogólny':'Allgemeiner Zugriff',
+    'Dostęp ograniczony':'Eingeschränkter Zugriff',
+    'Tylko podgląd':'Nur ansehen',
+    'Może edytować':'Kann bearbeiten',
+    'E-mail lub login użytkownika':'E-Mail oder Login des Benutzers',
+    'Poziom dostępu':'Zugriffsebene',
+    'Anuluj':'Abbrechen',
+    'Usuń':'Entfernen',
+    'Właściciel':'Eigentümer',
+    'Udostępnione przez':'Geteilt von',
+    'Tylko odczyt':'Nur lesen',
+    'Możesz edytować':'Kann bearbeiten'
+  });
+
   const placeholders = {
-    en: {'Wpisz wartość lub formułę, np. =SUMA(A1:A10)':'Enter a value or formula, e.g. =SUM(A1:A10)','Wpisz komentarz lub notatkę widoczną po najechaniu na komórkę':'Enter a comment or note shown when hovering over the cell','Szukaj, np. ok, błąd, wykres, uwaga':'Search, e.g. ok, error, chart, note','Adres URL obrazka lub zostaw puste':'Image URL or leave empty','Twoja nazwa robocza':'Your working name','np. S':'e.g. S','Opcjonalnie: https://.../avatar.png':'Optional: https://.../avatar.png','Np. Budżet 2026':'e.g. Budget 2026','Np. Finanse, Raport, Analiza':'e.g. Finance, Report, Analysis','A1:K500 albo zaznaczony zakres':'A1:K500 or selected range','Szukaj pola':'Search field'},
-    de: {'Wpisz wartość lub formułę, np. =SUMA(A1:A10)':'Wert oder Formel eingeben, z. B. =SUMME(A1:A10)','Wpisz komentarz lub notatkę widoczną po najechaniu na komórkę':'Kommentar oder Notiz eingeben, die beim Überfahren der Zelle angezeigt wird','Szukaj, np. ok, błąd, wykres, uwaga':'Suchen, z. B. ok, Fehler, Diagramm, Notiz','Adres URL obrazka lub zostaw puste':'Bild-URL oder leer lassen','Twoja nazwa robocza':'Ihr Arbeitsname','np. S':'z. B. S','Opcjonalnie: https://.../avatar.png':'Optional: https://.../avatar.png','Np. Budżet 2026':'z. B. Budget 2026','Np. Finanse, Raport, Analiza':'z. B. Finanzen, Bericht, Analyse','A1:K500 albo zaznaczony zakres':'A1:K500 oder ausgewählter Bereich','Szukaj pola':'Feld suchen'}
+    en: {'Wpisz wartość lub formułę, np. =SUMA(A1:A10)':'Enter a value or formula, e.g. =SUM(A1:A10)','Wpisz komentarz lub notatkę widoczną po najechaniu na komórkę':'Enter a comment or note shown when hovering over the cell','Szukaj, np. ok, błąd, wykres, uwaga':'Search, e.g. ok, error, chart, note','Adres URL obrazka lub zostaw puste':'Image URL or leave empty','Twoja nazwa robocza':'Your working name','np. S':'e.g. S','Opcjonalnie: https://.../avatar.png':'Optional: https://.../avatar.png','Np. Budżet 2026':'e.g. Budget 2026','Np. Finanse, Raport, Analiza':'e.g. Finance, Report, Analysis','A1:K500 albo zaznaczony zakres':'A1:K500 or selected range','Szukaj pola':'Search field','np. A1:C10':'e.g. A1:C10','tylko dla zakresu między':'only for between range','np. OK, 100, ❌':'e.g. OK, 100, ❌','A1:B10 albo zaznacz zakres':'A1:B10 or select a range','Np. Sprzedaż miesięczna':'e.g. Monthly sales','Np. Miesiąc':'e.g. Month','Np. Wartość':'e.g. Value','opcjonalnie':'optional'},
+    de: {'Wpisz wartość lub formułę, np. =SUMA(A1:A10)':'Wert oder Formel eingeben, z. B. =SUMME(A1:A10)','Wpisz komentarz lub notatkę widoczną po najechaniu na komórkę':'Kommentar oder Notiz eingeben, die beim Überfahren der Zelle angezeigt wird','Szukaj, np. ok, błąd, wykres, uwaga':'Suchen, z. B. ok, Fehler, Diagramm, Notiz','Adres URL obrazka lub zostaw puste':'Bild-URL oder leer lassen','Twoja nazwa robocza':'Ihr Arbeitsname','np. S':'z. B. S','Opcjonalnie: https://.../avatar.png':'Optional: https://.../avatar.png','Np. Budżet 2026':'z. B. Budget 2026','Np. Finanse, Raport, Analiza':'z. B. Finanzen, Bericht, Analyse','A1:K500 albo zaznaczony zakres':'A1:K500 oder ausgewählter Bereich','Szukaj pola':'Feld suchen','np. A1:C10':'z. B. A1:C10','tylko dla zakresu między':'nur für Bereich zwischen','np. OK, 100, ❌':'z. B. OK, 100, ❌','A1:B10 albo zaznacz zakres':'A1:B10 oder Bereich auswählen','Np. Sprzedaż miesięczna':'z. B. Monatsverkauf','Np. Miesiąc':'z. B. Monat','Np. Wartość':'z. B. Wert','opcjonalnie':'optional'}
   };
 
   function currentLang(){ const raw=localStorage.getItem(STORAGE_KEY)||'pl'; return SUPPORTED.has(raw)?raw:'pl'; }

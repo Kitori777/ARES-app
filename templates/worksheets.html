@@ -33,10 +33,53 @@
 </section>
 
 <section class="sheet-list-grid" id="sheet-list"></section>
+
+<div class="ares-modal" id="share-sheet-modal" hidden>
+    <div class="ares-modal-backdrop" data-close-share-modal></div>
+    <div class="ares-modal-dialog share-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="share-modal-title">
+        <div class="ares-modal-head">
+            <div>
+                <span class="section-kicker">UDOSTĘPNIANIE</span>
+                <h2 id="share-modal-title">Udostępnij arkusz</h2>
+                <p id="share-modal-subtitle">Dodaj osobę, która ma otrzymać dostęp do wybranego arkusza.</p>
+            </div>
+            <button class="btn btn-secondary" type="button" data-close-share-modal>×</button>
+        </div>
+
+        <form id="share-sheet-form" class="share-form">
+            <label class="field-label" for="share-email-input">E-mail lub login użytkownika</label>
+            <input id="share-email-input" class="settings-input" type="text" placeholder="np. user@example.com" required>
+
+            <label class="field-label" for="share-permission-select">Poziom dostępu</label>
+            <select id="share-permission-select" class="settings-input">
+                <option value="view">Tylko podgląd</option>
+                <option value="edit">Może edytować</option>
+            </select>
+
+            <div class="share-modal-actions">
+                <button class="btn btn-primary" type="submit">Udostępnij</button>
+                <button class="btn btn-secondary" type="button" data-close-share-modal>Anuluj</button>
+            </div>
+        </form>
+
+        <div class="share-general-access">
+            <strong>Dostęp ogólny</strong>
+            <p>Dostęp ograniczony — tylko właściciel i osoby dodane na liście mogą otworzyć arkusz.</p>
+        </div>
+
+        <div>
+            <h3>Osoby z dostępem</h3>
+            <div id="share-list" class="share-list">
+                <div class="share-empty">Brak dodanych osób.</div>
+            </div>
+        </div>
+    </div>
+</div>
+
 {% endblock %}
 
 {% block extra_js %}
-<script src="{% static 'js/ares_api.js' %}"></script>
-<script src="{% static 'js/worksheets_page.js' %}"></script>
+<script src="{% static 'js/ares_api.js' %}?v=0.5.2"></script>
+<script src="{% static 'js/worksheets_page.js' %}?v=0.5.2"></script>
 {% endblock %}
 

@@ -63,3 +63,47 @@ class HistoryEntry(models.Model):
 
     def set_details(self, details):
         self.details_data = json.dumps(details)
+
+
+
+class SheetShare(models.Model):
+    """Udostępnienie arkusza innemu użytkownikowi po adresie e-mail/loginie."""
+
+    PERMISSION_VIEW = 'view'
+    PERMISSION_EDIT = 'edit'
+
+    PERMISSION_CHOICES = [
+        (PERMISSION_VIEW, 'Tylko podgląd'),
+        (PERMISSION_EDIT, 'Edycja'),
+    ]
+
+    sheet = models.ForeignKey(Sheet, on_delete=models.CASCADE, related_name='shares')
+    owner = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='owned_sheet_shares'
+    )
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='shared_sheet_access'
+    )
+    permission = models.CharField(max_length=20, choices=PERMISSION_CHOICES, default=PERMISSION_VIEW)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        unique_together = ('sheet', 'user')
+        indexes = [
+            models.Index(fields=['sheet']),
+            models.Index(fields=['user']),
+            models.Index(fields=['permission']),
+        ]
+
+    def __str__(self):
+        return f'{self.sheet.name} -> {self.user.email or self.user.username} ({self.permission})'
+
+    @property
+    def can_edit(self):
+        return self.permission == self.PERMISSION_EDIT

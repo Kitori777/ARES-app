@@ -5,7 +5,7 @@
 {% block topbar_title %}Edytor arkusza{% endblock %}
 
 {% block extra_head %}
-<link rel="stylesheet" href="{% static 'css/worksheet_editor.css' %}?v=0.4.5">
+<link rel="stylesheet" href="{% static 'css/worksheet_editor.css' %}?v=0.5.2">
 {% endblock %}
 
 {% block content %}
@@ -466,23 +466,23 @@
 <div class="we-modal" id="solver-modal">
     <div class="we-modal-box we-solver-box">
         <div class="we-modal-top we-solver-top">
-            <strong>OpenSolver</strong>
+            <strong>Solver</strong>
             <button type="button" class="we-modal-close" data-close-modal="solver-modal">✕</button>
         </div>
-        <div class="we-solver-row we-solver-sheet-row"><label>Sheet:</label><select id="solver-sheet-select"><option>Arkusz1</option></select><button type="button" class="btn btn-secondary we-solver-small">Current Sheet</button></div>
-        <div class="we-solver-section"><label for="solver-target-input">Objective Cell:</label><div class="we-solver-inline"><input id="solver-target-input" type="text" placeholder="E2"><button type="button" class="btn btn-secondary we-solver-small" id="solver-target-update-btn">Update</button><button type="button" class="btn btn-secondary we-solver-small" id="solver-target-clear-btn">Clear</button></div></div>
-        <div class="we-solver-section"><div class="we-solver-section-title">Objective Sense:</div><label class="we-solver-radio"><input type="radio" name="solver-objective-sense" value="min"> minimise</label><label class="we-solver-radio"><input type="radio" name="solver-objective-sense" value="max" checked> maximise</label><label class="we-solver-radio we-solver-target-value"><input type="radio" name="solver-objective-sense" value="target"> target value:<input id="solver-target-value-input" type="number" step="any" value="0"></label></div>
-        <div class="we-solver-section"><label for="solver-variable-input">Variable Cells:</label><div class="we-solver-list-line"><textarea id="solver-variable-input" rows="5" placeholder="A2:B2"></textarea><div class="we-solver-list-actions"><button type="button" class="btn btn-secondary we-solver-small" id="solver-variable-add-btn">Add</button><button type="button" class="btn btn-secondary we-solver-small" id="solver-variable-update-btn">Update</button><button type="button" class="btn btn-secondary we-solver-small" id="solver-variable-delete-btn">Delete</button></div></div><label class="we-solver-check"><input id="solver-nonnegative-input" type="checkbox" checked> Unconstrained variables non-negative</label></div>
-        <div class="we-solver-section"><label for="solver-constraints-input">Constraints:</label><textarea id="solver-constraints-input" rows="5" placeholder="G7:G10 <= E7:E10"></textarea></div>
-        <div class="we-solver-advanced"><div><label for="solver-step-input">Search step</label><input id="solver-step-input" type="number" step="any" value="1"></div><div><label for="solver-min-input">Min</label><input id="solver-min-input" type="number" step="any" value="0"></div><div><label for="solver-max-input">Max</label><input id="solver-max-input" type="number" step="any" value="100"></div></div>
-        <div class="we-modal-actions we-solver-actions"><button type="button" class="btn btn-secondary" data-close-modal="solver-modal">Close</button><button id="run-solver-btn" class="btn btn-primary" type="button">Solve</button></div>
+        <div class="we-solver-row we-solver-sheet-row"><label>Arkusz:</label><select id="solver-sheet-select"><option>Arkusz1</option></select><button type="button" class="btn btn-secondary we-solver-small">Bieżący arkusz</button></div>
+        <div class="we-solver-section"><label for="solver-target-input">Komórka celu:</label><div class="we-solver-inline"><input id="solver-target-input" type="text" placeholder="E2"><button type="button" class="btn btn-secondary we-solver-small" id="solver-target-update-btn">Aktualizuj</button><button type="button" class="btn btn-secondary we-solver-small" id="solver-target-clear-btn">Wyczyść</button></div></div>
+        <div class="we-solver-section"><div class="we-solver-section-title">Kierunek optymalizacji:</div><label class="we-solver-radio"><input type="radio" name="solver-objective-sense" value="min"> minimalizuj</label><label class="we-solver-radio"><input type="radio" name="solver-objective-sense" value="max" checked> maksymalizuj</label><label class="we-solver-radio we-solver-target-value"><input type="radio" name="solver-objective-sense" value="target"> wartość docelowa:<input id="solver-target-value-input" type="number" step="any" value="0"></label></div>
+        <div class="we-solver-section"><label for="solver-variable-input">Komórki zmienne:</label><div class="we-solver-list-line"><textarea id="solver-variable-input" rows="5" placeholder="A2:B2"></textarea><div class="we-solver-list-actions"><button type="button" class="btn btn-secondary we-solver-small" id="solver-variable-add-btn">Dodaj</button><button type="button" class="btn btn-secondary we-solver-small" id="solver-variable-update-btn">Aktualizuj</button><button type="button" class="btn btn-secondary we-solver-small" id="solver-variable-delete-btn">Usuń</button></div></div><label class="we-solver-check"><input id="solver-nonnegative-input" type="checkbox" checked> Zmienne bez ograniczeń są nieujemne</label></div>
+        <div class="we-solver-section"><label for="solver-constraints-input">Ograniczenia:</label><textarea id="solver-constraints-input" rows="5" placeholder="G7:G10 <= E7:E10"></textarea></div>
+        <div class="we-solver-advanced"><div><label for="solver-step-input">Krok przeszukiwania</label><input id="solver-step-input" type="number" step="any" value="1"></div><div><label for="solver-min-input">Min</label><input id="solver-min-input" type="number" step="any" value="0"></div><div><label for="solver-max-input">Max</label><input id="solver-max-input" type="number" step="any" value="100"></div></div>
+        <div class="we-modal-actions we-solver-actions"><button type="button" class="btn btn-secondary" data-close-modal="solver-modal">Zamknij</button><button id="run-solver-btn" class="btn btn-primary" type="button">Rozwiąż</button></div>
     </div>
 </div>
 {% endblock %}
 
 {% block extra_js %}
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-<script src="{% static 'js/formula_catalog.js' %}?v=0.3.8"></script>
-<script src="{% static 'js/formula_engine.js' %}?v=0.3.8"></script>
-<script src="{% static 'js/worksheet_editor.js' %}?v=0.4.5"></script>
+<script src="{% static 'js/formula_catalog.js' %}?v=0.3.9"></script>
+<script src="{% static 'js/formula_engine.js' %}?v=0.3.9"></script>
+<script src="{% static 'js/worksheet_editor.js' %}?v=0.4.9"></script>
 {% endblock %}

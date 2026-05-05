@@ -1,6 +1,8 @@
 document.addEventListener("DOMContentLoaded", function () {
     const params = new URLSearchParams(window.location.search);
     let sheetId = params.get("sheet");
+    let currentSheetCanEdit = true;
+    let currentSheetCanShare = false;
     const initialOpenPanel = params.get("open");
 
     const head = document.getElementById("sheet-head");
@@ -164,6 +166,12 @@ document.addEventListener("DOMContentLoaded", function () {
     let activeEmojiCategory = "popularne";
     let selectedEmoji = "📌";
     let smartInsertMode = null;
+    function refreshI18nAfterDynamicRender() {
+        if (window.ARES_I18N && typeof window.ARES_I18N.refresh === "function") {
+            window.ARES_I18N.refresh();
+        }
+    }
+
     let pendingSheetTabIndex = null;
     let cellClipboard = { text: "", matrix: null, cut: false, sourceRange: null };
     const EMOJI_CATEGORIES = {
@@ -575,6 +583,9 @@ document.addEventListener("DOMContentLoaded", function () {
         if (action && action.startsWith("tab-color:")) {
             const color = action.slice("tab-color:".length);
             workbook.sheets[index].color = color === "#ffffff" ? "" : color;
+            if (saveBtn) saveBtn.disabled = !currentSheetCanEdit;
+            if (applyFormulaBtn) applyFormulaBtn.disabled = !currentSheetCanEdit;
+            if (renameBtn) renameBtn.disabled = !currentSheetCanShare;
             renderWorkbookTabs();
             return markDirty();
         }
@@ -622,6 +633,9 @@ document.addEventListener("DOMContentLoaded", function () {
         if (action === "color") {
             const color = prompt("Kolor zakładki, np. #4f8cff:", workbook.sheets[index].color || "#4f8cff");
             if (color) workbook.sheets[index].color = color;
+            if (saveBtn) saveBtn.disabled = !currentSheetCanEdit;
+            if (applyFormulaBtn) applyFormulaBtn.disabled = !currentSheetCanEdit;
+            if (renameBtn) renameBtn.disabled = !currentSheetCanShare;
             renderWorkbookTabs();
             return markDirty();
         }
@@ -632,6 +646,9 @@ document.addEventListener("DOMContentLoaded", function () {
         }
         if (action === "hide") {
             workbook.sheets[index].hidden = !workbook.sheets[index].hidden;
+            if (saveBtn) saveBtn.disabled = !currentSheetCanEdit;
+            if (applyFormulaBtn) applyFormulaBtn.disabled = !currentSheetCanEdit;
+            if (renameBtn) renameBtn.disabled = !currentSheetCanShare;
             renderWorkbookTabs();
             return markDirty();
         }
@@ -758,7 +775,7 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     function markDirty() {
-        if (!currentSheet || isRestoringHistory) return;
+        if (!currentSheet || isRestoringHistory || !currentSheetCanEdit) return;
         setAutosaveState("saving", "Niezapisane zmiany");
         scheduleAutosave();
         rerenderGeneratedObjects();
@@ -2453,7 +2470,10 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     async function saveSheet() {
-        if (!currentSheet) return;
+        if (!currentSheet || !currentSheetCanEdit) {
+            setAutosaveState("", "Tylko do odczytu");
+            return;
+        }
 
         setAutosaveState("saving", "Zapisywanie...");
         try {
@@ -2512,18 +2532,23 @@ document.addEventListener("DOMContentLoaded", function () {
                 ...data,
                 category: data.category || "Bez kategorii"
             });
+            currentSheetCanEdit = data.canEdit !== false;
+            currentSheetCanShare = !!data.canShare;
 
             historyStack = [];
             redoStack = [];
 
             if (sheetNameEl) sheetNameEl.textContent = currentSheet.name || "Arkusz";
-            if (sheetMetaEl) sheetMetaEl.textContent = `Zakładka: ${currentSheet.activeTabName || "Arkusz1"} • Wiersze: ${currentRows} • Kolumny: ${currentCols}`;
+            if (sheetMetaEl) sheetMetaEl.textContent = `Zakładka: ${currentSheet.activeTabName || "Arkusz1"} • Wiersze: ${currentRows} • Kolumny: ${currentCols}${data.isShared ? " • Udostępniony" : ""}${!currentSheetCanEdit ? " • Tylko odczyt" : ""}`;
+            if (saveBtn) saveBtn.disabled = !currentSheetCanEdit;
+            if (applyFormulaBtn) applyFormulaBtn.disabled = !currentSheetCanEdit;
+            if (renameBtn) renameBtn.disabled = !currentSheetCanShare;
             renderWorkbookTabs();
 
             initializeFormulaBrowser();
             renderGrid();
             activateStartRibbon();
-            setAutosaveState("", "Brak zmian");
+            setAutosaveState("", currentSheetCanEdit ? "Brak zmian" : "Tylko do odczytu");
             openInitialQuickPanel();
             window.ARES_I18N?.refresh?.();
         } catch (error) {
@@ -2866,6 +2891,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 <em>Wstawia od aktywnej komórki, a formuły przesuwają się automatycznie.</em>
             </button>
         `).join("");
+        refreshI18nAfterDynamicRender();
     }
 
     function applyTableTemplate(id) {
@@ -2907,6 +2933,7 @@ document.addEventListener("DOMContentLoaded", function () {
         menuPopover.style.left = `${rect.left}px`;
         menuPopover.style.top = `${rect.bottom + 4}px`;
         menuPopover.hidden = false;
+        refreshI18nAfterDynamicRender();
     }
 
     function handleMenuAction(action) {
@@ -2965,6 +2992,7 @@ document.addEventListener("DOMContentLoaded", function () {
         updateSmartPreview();
         renderConditionalRulesSummary();
         openModal(smartInsertModal);
+        refreshI18nAfterDynamicRender();
     }
 
     function updateSmartPreview() {
@@ -3237,7 +3265,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 const ref = variableRefs[idx];
                 currentSheet.grid[ref.row][ref.col] = value;
             });
-            alert("Solver nie znalazł rozwiązania spełniającego ograniczenia.");
+            alert(window.ARES_I18N ? window.ARES_I18N.t("Nie znaleziono rozwiązania spełniającego ograniczenia.") : "Nie znaleziono rozwiązania spełniającego ograniczenia.");
             return;
         }
 
@@ -3248,14 +3276,14 @@ document.addEventListener("DOMContentLoaded", function () {
         const card = document.createElement("div");
         card.className = "we-object-card";
         card.innerHTML = `
-            <div class="we-chart-object-title">OpenSolver</div>
+            <div class="we-chart-object-title">Solver</div>
             <div class="we-object-body">
-                <div><strong>Objective Cell:</strong> ${escapeHtml(targetRef)}</div>
-                <div><strong>Variable Cells:</strong> ${escapeHtml(variablesRaw)}</div>
-                <div><strong>Objective Sense:</strong> ${mode === "max" ? "maximise" : mode === "min" ? "minimise" : `target value ${targetValue}`}</div>
-                <div><strong>Best values:</strong> ${escapeHtml(bestCombination.join(", "))}</div>
-                <div><strong>Objective value:</strong> ${escapeHtml(displayFormulaValue(bestValue))}</div>
-                <div><strong>Constraints:</strong> ${constraints.length ? escapeHtml(solverConstraintsInput.value.replace(/\n/g, " | ")) : "brak"}</div>
+                <div><strong>${window.ARES_I18N ? window.ARES_I18N.t("Komórka celu") : "Komórka celu"}:</strong> ${escapeHtml(targetRef)}</div>
+                <div><strong>${window.ARES_I18N ? window.ARES_I18N.t("Komórki zmienne") : "Komórki zmienne"}:</strong> ${escapeHtml(variablesRaw)}</div>
+                <div><strong>${window.ARES_I18N ? window.ARES_I18N.t("Kierunek optymalizacji") : "Kierunek optymalizacji"}:</strong> ${mode === "max" ? (window.ARES_I18N ? window.ARES_I18N.t("maksymalizuj") : "maksymalizuj") : mode === "min" ? (window.ARES_I18N ? window.ARES_I18N.t("minimalizuj") : "minimalizuj") : `${window.ARES_I18N ? window.ARES_I18N.t("wartość docelowa") : "wartość docelowa"} ${targetValue}`}</div>
+                <div><strong>${window.ARES_I18N ? window.ARES_I18N.t("Najlepsze wartości") : "Najlepsze wartości"}:</strong> ${escapeHtml(bestCombination.join(", "))}</div>
+                <div><strong>${window.ARES_I18N ? window.ARES_I18N.t("Wartość funkcji celu") : "Wartość funkcji celu"}:</strong> ${escapeHtml(displayFormulaValue(bestValue))}</div>
+                <div><strong>${window.ARES_I18N ? window.ARES_I18N.t("Ograniczenia") : "Ograniczenia"}:</strong> ${constraints.length ? escapeHtml(solverConstraintsInput.value.replace(/\n/g, " | ")) : (window.ARES_I18N ? window.ARES_I18N.t("brak") : "brak")}</div>
             </div>
         `;
         generatedObjectsCard.hidden = false;

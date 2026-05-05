@@ -1,0 +1,98 @@
+{% extends 'base.html' %}
+
+{% block title %}ARES | Panel użytkowników{% endblock %}
+{% block topbar_title %}Panel użytkowników{% endblock %}
+
+{% block content %}
+<section class="profile-page">
+    <div class="profile-hero-card">
+        <div class="profile-hero-main">
+            <span class="hero-badge">SUPERADMIN</span>
+            <h1>Użytkownicy i uprawnienia</h1>
+            <p>
+                Panel tylko dla superadministratora. Tutaj można podejrzeć konta, aktywować lub dezaktywować użytkowników,
+                nadać uprawnienia staff/superadmin oraz usunąć konto testowe.
+            </p>
+            <div class="hero-note-grid">
+                <div class="hero-note-tile"><strong>{{ stats.all }}</strong><small>wszystkie konta</small></div>
+                <div class="hero-note-tile"><strong>{{ stats.active }}</strong><small>aktywne</small></div>
+                <div class="hero-note-tile"><strong>{{ stats.staff }}</strong><small>staff</small></div>
+                <div class="hero-note-tile"><strong>{{ stats.superusers }}</strong><small>superadmini</small></div>
+            </div>
+        </div>
+        <aside class="profile-preview-card">
+            <strong>Dostęp do bazy</strong>
+            <span>Pełniejszy dostęp techniczny masz też w standardowym Django Admin:</span>
+            <a class="btn btn-secondary" href="/admin/">Otwórz Django Admin</a>
+            <small>W Django Admin możesz zarządzać tabelami: Users, BugReports, Profile itd.</small>
+        </aside>
+    </div>
+
+    <section class="profile-section">
+        <div class="profile-section-head">
+            <span class="section-kicker">Baza użytkowników</span>
+            <h2>Lista kont</h2>
+        </div>
+
+        <form method="get" class="settings-card bug-filter-card">
+            <label class="field-label">Szukaj po loginie lub e-mailu</label>
+            <input class="settings-input" type="text" name="q" value="{{ query }}" placeholder="np. stasi, Kitori9, gmail">
+            <button class="btn btn-secondary" type="submit">Szukaj</button>
+            <a class="btn btn-secondary" href="{% url 'admin_users_panel' %}">Wyczyść</a>
+        </form>
+
+        <div class="report-list">
+            {% for u in users_list %}
+                <article class="report-card admin-user-card">
+                    <div>
+                        <strong>{{ u.username }}</strong>
+                        <p>
+                            E-mail: {% if u.email %}{{ u.email }}{% else %}brak{% endif %}<br>
+                            Aktywny: <b>{% if u.is_active %}tak{% else %}nie{% endif %}</b> |
+                            Staff: <b>{% if u.is_staff %}tak{% else %}nie{% endif %}</b> |
+                            Superadmin: <b>{% if u.is_superuser %}tak{% else %}nie{% endif %}</b>
+                        </p>
+                        <small>
+                            ID: {{ u.id }} |
+                            Ostatnie logowanie: {% if u.last_login %}{{ u.last_login|date:"d.m.Y H:i" }}{% else %}brak{% endif %} |
+                            Utworzono: {{ u.date_joined|date:"d.m.Y H:i" }}
+                        </small>
+                    </div>
+
+                    <form method="post" class="admin-user-actions">
+                        {% csrf_token %}
+                        <input type="hidden" name="user_id" value="{{ u.id }}">
+
+                        {% if u.is_active %}
+                            <button class="btn btn-secondary" name="action" value="deactivate" type="submit">Dezaktywuj</button>
+                        {% else %}
+                            <button class="btn btn-primary" name="action" value="activate" type="submit">Aktywuj</button>
+                        {% endif %}
+
+                        {% if u.is_staff %}
+                            <button class="btn btn-secondary" name="action" value="remove_staff" type="submit">Odbierz staff</button>
+                        {% else %}
+                            <button class="btn btn-secondary" name="action" value="make_staff" type="submit">Nadaj staff</button>
+                        {% endif %}
+
+                        {% if u.is_superuser %}
+                            <button class="btn btn-secondary" name="action" value="remove_superuser" type="submit">Odbierz superadmin</button>
+                        {% else %}
+                            <button class="btn btn-secondary" name="action" value="make_superuser" type="submit">Nadaj superadmin</button>
+                        {% endif %}
+
+                        {% if u.id != request.user.id %}
+                            <button class="btn btn-danger" name="action" value="delete" type="submit"
+                                    onclick="return confirm('Na pewno usunąć użytkownika {{ u.username }}?');">
+                                Usuń konto
+                            </button>
+                        {% endif %}
+                    </form>
+                </article>
+            {% empty %}
+                <div class="settings-card">Brak użytkowników dla wybranego filtra.</div>
+            {% endfor %}
+        </div>
+    </section>
+</section>
+{% endblock %}

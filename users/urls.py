@@ -13,6 +13,9 @@ from .views import (
     reports_view,
     profile_view,
     profile_settings_api,
+    bug_report_view,
+    admin_bug_reports_view,
+    admin_users_panel_view,
 )
 
 urlpatterns = [
@@ -28,5 +31,8 @@ urlpatterns = [
     path('reports/', reports_view, name='reports'),
     path('profile/', profile_view, name='profile'),
     path('api/profile/settings/', profile_settings_api, name='profile_settings_api'),
+    path('feedback/', bug_report_view, name='bug_report'),
+    path('admin-reports/', admin_bug_reports_view, name='admin_bug_reports'),
+    path('admin-users/', admin_users_panel_view, name='admin_users_panel'),
     path('logout/', logout_view, name='logout'),
 ]
