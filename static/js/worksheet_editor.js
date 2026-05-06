@@ -67,6 +67,8 @@ document.addEventListener("DOMContentLoaded", function () {
     const chartSortSelect = document.getElementById("chart-sort-select");
     const chartLegendPositionSelect = document.getElementById("chart-legend-position-select");
     const buildChartBtn = document.getElementById("build-chart-btn");
+    const chartLivePreview = document.getElementById("chart-live-preview");
+    const chartUseSelectionBtn = document.getElementById("chart-use-selection-btn");
 
     const pivotModal = document.getElementById("pivot-modal");
     const pivotRangeInput = document.getElementById("pivot-range-input");
@@ -159,6 +161,18 @@ document.addEventListener("DOMContentLoaded", function () {
 
     let chartObjects = [];
     let pivotObjects = [];
+    let editingChartIndex = null;
+    let chartPreviewTimer = null;
+    let activeColumnResize = null;
+    let draggedColumnIndex = null;
+    let draggedRowIndex = null;
+    let highlightedCells = [];
+    let highlightedHeaders = [];
+    let highlightedFillCells = [];
+    let activeCellElement = null;
+    let cellElements = [];
+    let rowHeaderElements = [];
+    let colHeaderElements = [];
     let workbook = null;
     let activeWorkbookSheetIndex = 0;
     let pivotConfig = { rows: [], columns: [], values: [], filters: [] };
@@ -166,6 +180,7 @@ document.addEventListener("DOMContentLoaded", function () {
     let activeEmojiCategory = "popularne";
     let selectedEmoji = "📌";
     let smartInsertMode = null;
+    let editingConditionalRuleIndex = null;
     function refreshI18nAfterDynamicRender() {
         if (window.ARES_I18N && typeof window.ARES_I18N.refresh === "function") {
             window.ARES_I18N.refresh();
@@ -437,7 +452,9 @@ document.addEventListener("DOMContentLoaded", function () {
             conditionalRules: Array.isArray(sheet?.conditionalRules) ? sheet.conditionalRules : [],
             color: sheet?.color || "",
             hidden: Boolean(sheet?.hidden),
-            protected: Boolean(sheet?.protected)
+            protected: Boolean(sheet?.protected),
+            columnWidths: sheet?.columnWidths || {},
+            rowHeights: sheet?.rowHeights || {}
         };
     }
 
@@ -489,7 +506,9 @@ document.addEventListener("DOMContentLoaded", function () {
                     conditionalRules: Array.isArray(data.conditionalRules) ? data.conditionalRules : [],
                     color: "",
                     hidden: false,
-                    protected: false
+                    protected: false,
+                    columnWidths: data.columnWidths || {},
+                    rowHeights: data.rowHeights || {}
                 }]
             };
 
@@ -506,7 +525,9 @@ document.addEventListener("DOMContentLoaded", function () {
             name: previous.name || currentSheet.activeTabName || currentSheet.name || `Arkusz ${activeWorkbookSheetIndex + 1}`,
             grid: currentSheet.grid,
             styles: currentSheet.styles || {},
-            conditionalRules: currentSheet.conditionalRules || []
+            conditionalRules: currentSheet.conditionalRules || [],
+            columnWidths: currentSheet.columnWidths || {},
+            rowHeights: currentSheet.rowHeights || {}
         };
     }
 
@@ -519,6 +540,8 @@ document.addEventListener("DOMContentLoaded", function () {
         currentSheet.grid = selected.grid;
         currentSheet.styles = selected.styles || {};
         currentSheet.conditionalRules = Array.isArray(selected.conditionalRules) ? selected.conditionalRules : [];
+        currentSheet.columnWidths = selected.columnWidths || {};
+        currentSheet.rowHeights = selected.rowHeights || {};
         currentSheet.activeTabName = selected.name;
         const dims = inferDimensionsFromGrid(currentSheet.grid);
         currentRows = dims.rows;
@@ -737,6 +760,8 @@ document.addEventListener("DOMContentLoaded", function () {
             category: data.category || "Bez kategorii",
             styles: active.styles || {},
             conditionalRules: Array.isArray(active.conditionalRules) ? active.conditionalRules : [],
+            columnWidths: active.columnWidths || {},
+            rowHeights: active.rowHeights || {},
             grid: normalized,
             activeTabName: safeSheetName(active.name, "Arkusz 1")
         };
@@ -799,14 +824,14 @@ document.addEventListener("DOMContentLoaded", function () {
         if (autosaveTimer) clearTimeout(autosaveTimer);
         autosaveTimer = setTimeout(() => {
             saveSheet();
-        }, 1200);
+        }, 300000);
     }
 
-    function markDirty() {
+    function markDirty(options = {}) {
         if (!currentSheet || isRestoringHistory || !currentSheetCanEdit) return;
-        setAutosaveState("saving", "Niezapisane zmiany");
+        setAutosaveState("saving", "Niezapisane zmiany — autozapis co 5 min");
         scheduleAutosave();
-        rerenderGeneratedObjects();
+        if (options.rerenderObjects) rerenderGeneratedObjects();
     }
 
     function cloneSheetState() {
@@ -960,45 +985,81 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     function updateSelectionHighlight() {
-        document.querySelectorAll(".we-sheet-table th").forEach(th => th.classList.remove("selected-header", "active-header"));
-        document.querySelectorAll(".we-sheet-table td").forEach(td => {
-            td.classList.remove("active-cell", "selected-range", "fill-preview");
+        highlightedHeaders.forEach(el => el?.classList?.remove("selected-header", "active-header"));
+        highlightedCells.forEach(el => el?.classList?.remove("selected-range"));
+        highlightedFillCells.forEach(el => el?.classList?.remove("fill-preview"));
+        activeCellElement?.classList?.remove("active-cell");
 
-            const row = parseInt(td.dataset.row, 10);
-            const col = parseInt(td.dataset.col, 10);
+        highlightedHeaders = [];
+        highlightedCells = [];
+        highlightedFillCells = [];
+        activeCellElement = null;
 
-            if (isCellInSelection(row, col)) {
+        const bounds = getSelectionBounds();
+        const rowStart = bounds ? bounds.rowStart : activeCell.row;
+        const rowEnd = bounds ? bounds.rowEnd : activeCell.row;
+        const colStart = bounds ? bounds.colStart : activeCell.col;
+        const colEnd = bounds ? bounds.colEnd : activeCell.col;
+
+        for (let row = rowStart; row <= rowEnd; row += 1) {
+            const rowCells = cellElements[row];
+            if (!rowCells) continue;
+            for (let col = colStart; col <= colEnd; col += 1) {
+                const td = rowCells[col];
+                if (!td) continue;
                 td.classList.add("selected-range");
+                highlightedCells.push(td);
             }
+        }
 
-            if (isFillDragging && fillDragStart && fillDragEnd) {
-                const rowStart = Math.min(fillDragStart.row, fillDragEnd.row);
-                const rowEnd = Math.max(fillDragStart.row, fillDragEnd.row);
-                const colStart = Math.min(fillDragStart.col, fillDragEnd.col);
-                const colEnd = Math.max(fillDragStart.col, fillDragEnd.col);
-                if (row >= rowStart && row <= rowEnd && col >= colStart && col <= colEnd) {
+        activeCellElement = cellElements[activeCell.row]?.[activeCell.col] || null;
+        activeCellElement?.classList.add("active-cell");
+
+        if (isFillDragging && fillDragStart && fillDragEnd) {
+            const fRowStart = Math.min(fillDragStart.row, fillDragEnd.row);
+            const fRowEnd = Math.max(fillDragStart.row, fillDragEnd.row);
+            const fColStart = Math.min(fillDragStart.col, fillDragEnd.col);
+            const fColEnd = Math.max(fillDragStart.col, fillDragEnd.col);
+            for (let row = fRowStart; row <= fRowEnd; row += 1) {
+                const rowCells = cellElements[row];
+                if (!rowCells) continue;
+                for (let col = fColStart; col <= fColEnd; col += 1) {
+                    const td = rowCells[col];
+                    if (!td) continue;
                     td.classList.add("fill-preview");
+                    highlightedFillCells.push(td);
                 }
             }
+        }
 
-            if (row === activeCell.row && col === activeCell.col) {
-                td.classList.add("active-cell");
-            }
-        });
-        const bounds = getSelectionBounds();
+        const activeColHeader = colHeaderElements[activeCell.col];
+        if (activeColHeader) {
+            activeColHeader.classList.add("active-header");
+            highlightedHeaders.push(activeColHeader);
+        }
+        const activeRowHeader = rowHeaderElements[activeCell.row];
+        if (activeRowHeader) {
+            activeRowHeader.classList.add("active-header");
+            highlightedHeaders.push(activeRowHeader);
+        }
+
         if (bounds) {
-            document.querySelectorAll(".we-sheet-table thead th").forEach((th, index) => {
-                if (index > 0 && index - 1 >= bounds.colStart && index - 1 <= bounds.colEnd) th.classList.add("selected-header");
-                if (index > 0 && index - 1 === activeCell.col) th.classList.add("active-header");
-            });
-            document.querySelectorAll(".we-sheet-table tbody tr").forEach((tr, index) => {
-                const th = tr.querySelector("th.row-header");
-                if (th && index >= bounds.rowStart && index <= bounds.rowEnd) th.classList.add("selected-header");
-                if (th && index === activeCell.row) th.classList.add("active-header");
-            });
+            for (let col = bounds.colStart; col <= bounds.colEnd; col += 1) {
+                const th = colHeaderElements[col];
+                if (th && !highlightedHeaders.includes(th)) {
+                    th.classList.add("selected-header");
+                    highlightedHeaders.push(th);
+                }
+            }
+            for (let row = bounds.rowStart; row <= bounds.rowEnd; row += 1) {
+                const th = rowHeaderElements[row];
+                if (th && !highlightedHeaders.includes(th)) {
+                    th.classList.add("selected-header");
+                    highlightedHeaders.push(th);
+                }
+            }
         }
     }
-
 
     function ensureConditionalRules() {
         if (!currentSheet) return [];
@@ -1031,8 +1092,16 @@ document.addEventListener("DOMContentLoaded", function () {
         return styles[preset] || styles.yellow;
     }
 
+    function prepareConditionalRulesCache() {
+        ensureConditionalRules().forEach(rule => {
+            rule._bounds = parseRangeBounds(rule.range);
+            rule.priority = Number.isFinite(Number(rule.priority)) ? Number(rule.priority) : 2;
+        });
+    }
+
     function conditionalRuleMatches(rule, row, col) {
-        if (!rule || !isCellInsideRuleRange(row, col, rule.range)) return false;
+        const bounds = rule?._bounds || parseRangeBounds(rule?.range);
+        if (!rule || !bounds || row < bounds.rowStart || row > bounds.rowEnd || col < bounds.colStart || col > bounds.colEnd) return false;
         const value = getCellComputedValue(row, col);
         const text = String(value ?? "");
         const needle = String(rule.value ?? "");
@@ -1054,7 +1123,48 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     function getConditionalStyleForCell(row, col) {
-        return ensureConditionalRules().reduce((style, rule) => conditionalRuleMatches(rule, row, col) ? { ...style, ...(rule.style || buildConditionalStyle(rule.preset)) } : style, {});
+        return ensureConditionalRules()
+            .slice()
+            .sort((a, b) => (Number(a.priority || 2) - Number(b.priority || 2)))
+            .reduce((style, rule) => conditionalRuleMatches(rule, row, col) ? { ...style, ...(rule.style || buildConditionalStyle(rule.preset)) } : style, {});
+    }
+
+    function conditionalPriorityLabel(priority) {
+        const value = Number(priority || 2);
+        if (value >= 3) return "wysoka";
+        if (value <= 1) return "niska";
+        return "normalna";
+    }
+
+    function fillConditionalForm(rule, index = null) {
+        editingConditionalRuleIndex = index;
+        const rangeInput = document.getElementById("conditional-range");
+        const typeInput = document.getElementById("conditional-template");
+        const valueInput = document.getElementById("conditional-value");
+        const value2Input = document.getElementById("conditional-value2");
+        const presetInput = document.getElementById("conditional-preset");
+        const priorityInput = document.getElementById("conditional-priority");
+        const applyBtn = smartInsertApplyBtn;
+
+        if (rangeInput) rangeInput.value = rule?.range || getCurrentSelectionRangeText();
+        if (typeInput) typeInput.value = rule?.type || "text-contains";
+        if (valueInput) valueInput.value = rule?.value ?? "OK";
+        if (value2Input) value2Input.value = rule?.value2 ?? "";
+        if (presetInput) presetInput.value = rule?.preset || "green";
+        if (priorityInput) priorityInput.value = String(rule?.priority || 2);
+        if (applyBtn) applyBtn.textContent = index === null ? "Dodaj regułę" : "Zapisz regułę";
+        updateSmartPreview();
+    }
+
+    function moveConditionalRule(index, direction) {
+        const rules = ensureConditionalRules();
+        const target = index + direction;
+        if (target < 0 || target >= rules.length) return;
+        pushHistorySnapshot();
+        [rules[index], rules[target]] = [rules[target], rules[index]];
+        renderConditionalRulesSummary();
+        renderGrid();
+        markDirty();
     }
 
     function renderConditionalRulesSummary() {
@@ -1063,14 +1173,39 @@ document.addEventListener("DOMContentLoaded", function () {
         if (!list) return;
         const rules = ensureConditionalRules();
         if (!rules.length) {
-            list.innerHTML = '<div class="we-conditional-empty">Brak reguł. Wybierz przykład i kliknij „Zastosuj”.</div>';
+            list.innerHTML = '<div class="we-conditional-empty">Brak reguł. Dodaj pierwszą regułę po prawej stronie.</div>';
             return;
         }
-        list.innerHTML = rules.map((rule, index) => '<div class="we-conditional-rule-line"><span class="we-conditional-swatch" style="background:' + escapeHtml((rule.style && rule.style.fillColor) || '#fef3c7') + '"></span><strong>' + escapeHtml(rule.label || rule.type) + '</strong><small>' + escapeHtml(rule.range || '') + '</small><button type="button" data-delete-conditional="' + index + '">Usuń</button></div>').join('');
+        list.innerHTML = rules.map((rule, index) => `
+            <div class="we-conditional-rule-line">
+                <span class="we-conditional-swatch" style="background:${escapeHtml((rule.style && rule.style.fillColor) || "#fef3c7")}"></span>
+                <div class="we-conditional-rule-main">
+                    <strong>${escapeHtml(rule.label || rule.type)}</strong>
+                    <small>${escapeHtml(rule.range || "")} • priorytet: ${escapeHtml(conditionalPriorityLabel(rule.priority))}</small>
+                </div>
+                <div class="we-conditional-rule-actions">
+                    <button type="button" data-edit-conditional="${index}">Edytuj</button>
+                    <button type="button" data-move-conditional-up="${index}" ${index === 0 ? "disabled" : ""}>↑</button>
+                    <button type="button" data-move-conditional-down="${index}" ${index === rules.length - 1 ? "disabled" : ""}>↓</button>
+                    <button type="button" data-delete-conditional="${index}">Usuń</button>
+                </div>
+            </div>
+        `).join('');
+        list.querySelectorAll('[data-edit-conditional]').forEach(btn => btn.addEventListener('click', () => {
+            const idx = parseInt(btn.dataset.editConditional || '0', 10);
+            fillConditionalForm(ensureConditionalRules()[idx], idx);
+        }));
+        list.querySelectorAll('[data-move-conditional-up]').forEach(btn => btn.addEventListener('click', () => {
+            moveConditionalRule(parseInt(btn.dataset.moveConditionalUp || '0', 10), -1);
+        }));
+        list.querySelectorAll('[data-move-conditional-down]').forEach(btn => btn.addEventListener('click', () => {
+            moveConditionalRule(parseInt(btn.dataset.moveConditionalDown || '0', 10), 1);
+        }));
         list.querySelectorAll('[data-delete-conditional]').forEach(btn => btn.addEventListener('click', () => {
             const idx = parseInt(btn.dataset.deleteConditional || '0', 10);
             pushHistorySnapshot();
             ensureConditionalRules().splice(idx, 1);
+            if (editingConditionalRuleIndex === idx) editingConditionalRuleIndex = null;
             renderConditionalRulesSummary();
             renderGrid();
             markDirty();
@@ -1158,6 +1293,12 @@ document.addEventListener("DOMContentLoaded", function () {
         alignLeftBtn?.classList.toggle("active", (style.align || "left") === "left");
         alignCenterBtn?.classList.toggle("active", style.align === "center");
         alignRightBtn?.classList.toggle("active", style.align === "right");
+    }
+
+    let refreshControlsTimer = null;
+    function scheduleRefreshStartControls() {
+        clearTimeout(refreshControlsTimer);
+        refreshControlsTimer = setTimeout(refreshStartControlsFromCell, 180);
     }
 
     function buildFormulaContext() {
@@ -1551,24 +1692,311 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     function setActiveCell(row, col, focus = false) {
+        const sameCell = activeCell.row === row && activeCell.col === col;
         activeCell = { row, col };
-        updateFormulaBar();
-        updateSelectionHighlight();
-        refreshStartControlsFromCell();
+        if (!sameCell) {
+            updateFormulaBar();
+            updateSelectionHighlight();
+            scheduleRefreshStartControls();
+        }
 
         if (focus) {
-            const cell = body.querySelector(`td[data-row="${row}"][data-col="${col}"]`);
-            if (cell) cell.focus();
+            const cell = cellElements[row]?.[col];
+            if (cell) cell?.focus?.({ preventScroll: true });
         }
+    }
+
+    function getStoredColumnWidth(col) {
+        const width = currentSheet?.columnWidths?.[col];
+        return Number.isFinite(Number(width)) ? Number(width) : null;
+    }
+
+    function getStoredRowHeight(row) {
+        const height = currentSheet?.rowHeights?.[row];
+        return Number.isFinite(Number(height)) ? Number(height) : null;
+    }
+
+    function setStoredColumnWidth(col, width) {
+        if (!currentSheet) return;
+        if (!currentSheet.columnWidths) currentSheet.columnWidths = {};
+        currentSheet.columnWidths[col] = Math.max(64, Math.min(520, Math.round(width)));
+        commitActiveSheetToWorkbook();
+    }
+
+    function setStoredRowHeight(row, height) {
+        if (!currentSheet) return;
+        if (!currentSheet.rowHeights) currentSheet.rowHeights = {};
+        currentSheet.rowHeights[row] = Math.max(28, Math.min(120, Math.round(height)));
+        commitActiveSheetToWorkbook();
+    }
+
+    function getAutoColumnWidths(scanContent = false) {
+        const colWidths = Array.from({ length: currentCols }, () => 108);
+        for (let col = 0; col < currentCols; col += 1) {
+            colWidths[col] = Math.max(colWidths[col], (colToLabel(col).length * 12) + 42);
+            if (scanContent) {
+                const rowsToScan = Math.min(currentRows, 80);
+                for (let row = 0; row < rowsToScan; row += 1) {
+                    const raw = currentSheet?.grid?.[row]?.[col] ?? "";
+                    const text = String(
+                        typeof raw === "string" && raw.trim().startsWith("=")
+                            ? displayFormulaValue(getCellComputedValue(row, col))
+                            : raw
+                    );
+                    colWidths[col] = Math.min(360, Math.max(colWidths[col], (text.length * 8) + 30));
+                }
+            }
+            const manual = getStoredColumnWidth(col);
+            if (manual) colWidths[col] = manual;
+        }
+        return colWidths;
+    }
+
+    function applyColumnWidths(colWidths) {
+        const headerCells = head.querySelectorAll("th[data-col]");
+        headerCells.forEach((cell) => {
+            const col = parseInt(cell.dataset.col || "-1", 10);
+            const width = colWidths[col] || 120;
+            cell.style.width = `${width}px`;
+            cell.style.minWidth = `${width}px`;
+            cell.style.maxWidth = `${width}px`;
+        });
+
+        body.querySelectorAll("tr").forEach(tr => {
+            tr.querySelectorAll("td").forEach((td, index) => {
+                const width = colWidths[index] || 120;
+                td.style.width = `${width}px`;
+                td.style.minWidth = `${width}px`;
+                td.style.maxWidth = `${width}px`;
+            });
+        });
+    }
+
+    function autoFitSingleColumn(col) {
+        if (!currentSheet) return;
+        const widths = getAutoColumnWidths(true);
+        const autoWidth = widths[col] || 108;
+        setStoredColumnWidth(col, autoWidth);
+        applyColumnWidths(getAutoColumnWidths(false));
+        markDirty();
+    }
+
+    function moveColumn(sourceIndex, targetIndex) {
+        if (!currentSheet || sourceIndex === targetIndex || sourceIndex < 0 || targetIndex < 0) return;
+        pushHistorySnapshot();
+        currentSheet.grid = currentSheet.grid.map(row => {
+            const clone = [...row];
+            const [moved] = clone.splice(sourceIndex, 1);
+            clone.splice(targetIndex, 0, moved ?? "");
+            return clone;
+        });
+
+        const newStyles = {};
+        Object.entries(currentSheet.styles || {}).forEach(([key, value]) => {
+            const [r, c] = key.split(":").map(Number);
+            let nextCol = c;
+            if (c === sourceIndex) nextCol = targetIndex;
+            else if (sourceIndex < targetIndex && c > sourceIndex && c <= targetIndex) nextCol = c - 1;
+            else if (sourceIndex > targetIndex && c >= targetIndex && c < sourceIndex) nextCol = c + 1;
+            newStyles[`${r}:${nextCol}`] = value;
+        });
+        currentSheet.styles = newStyles;
+
+        const orderedWidths = Array.from({ length: currentCols }, (_, idx) => getStoredColumnWidth(idx) || null);
+        const [movedWidth] = orderedWidths.splice(sourceIndex, 1);
+        orderedWidths.splice(targetIndex, 0, movedWidth);
+        currentSheet.columnWidths = {};
+        orderedWidths.forEach((width, idx) => { if (width) currentSheet.columnWidths[idx] = width; });
+
+        if (activeCell.col === sourceIndex) activeCell.col = targetIndex;
+        else if (sourceIndex < targetIndex && activeCell.col > sourceIndex && activeCell.col <= targetIndex) activeCell.col -= 1;
+        else if (sourceIndex > targetIndex && activeCell.col >= targetIndex && activeCell.col < sourceIndex) activeCell.col += 1;
+
+        if (selectionStart && selectionEnd) {
+            const remapCol = (c) => {
+                if (c === sourceIndex) return targetIndex;
+                if (sourceIndex < targetIndex && c > sourceIndex && c <= targetIndex) return c - 1;
+                if (sourceIndex > targetIndex && c >= targetIndex && c < sourceIndex) return c + 1;
+                return c;
+            };
+            selectionStart.col = remapCol(selectionStart.col);
+            selectionEnd.col = remapCol(selectionEnd.col);
+        }
+
+        commitActiveSheetToWorkbook();
+        renderGrid();
+        markDirty();
+    }
+
+    function moveRow(sourceIndex, targetIndex) {
+        if (!currentSheet || sourceIndex === targetIndex || sourceIndex < 0 || targetIndex < 0) return;
+        pushHistorySnapshot();
+        const [movedRow] = currentSheet.grid.splice(sourceIndex, 1);
+        currentSheet.grid.splice(targetIndex, 0, movedRow || Array.from({ length: currentCols }, () => ""));
+
+        const newStyles = {};
+        Object.entries(currentSheet.styles || {}).forEach(([key, value]) => {
+            const [r, c] = key.split(":").map(Number);
+            let nextRow = r;
+            if (r === sourceIndex) nextRow = targetIndex;
+            else if (sourceIndex < targetIndex && r > sourceIndex && r <= targetIndex) nextRow = r - 1;
+            else if (sourceIndex > targetIndex && r >= targetIndex && r < sourceIndex) nextRow = r + 1;
+            newStyles[`${nextRow}:${c}`] = value;
+        });
+        currentSheet.styles = newStyles;
+
+        const orderedHeights = Array.from({ length: currentRows }, (_, idx) => getStoredRowHeight(idx) || null);
+        const [movedHeight] = orderedHeights.splice(sourceIndex, 1);
+        orderedHeights.splice(targetIndex, 0, movedHeight);
+        currentSheet.rowHeights = {};
+        orderedHeights.forEach((height, idx) => { if (height) currentSheet.rowHeights[idx] = height; });
+
+        if (activeCell.row === sourceIndex) activeCell.row = targetIndex;
+        else if (sourceIndex < targetIndex && activeCell.row > sourceIndex && activeCell.row <= targetIndex) activeCell.row -= 1;
+        else if (sourceIndex > targetIndex && activeCell.row >= targetIndex && activeCell.row < sourceIndex) activeCell.row += 1;
+
+        if (selectionStart && selectionEnd) {
+            const remapRow = (r) => {
+                if (r === sourceIndex) return targetIndex;
+                if (sourceIndex < targetIndex && r > sourceIndex && r <= targetIndex) return r - 1;
+                if (sourceIndex > targetIndex && r >= targetIndex && r < sourceIndex) return r + 1;
+                return r;
+            };
+            selectionStart.row = remapRow(selectionStart.row);
+            selectionEnd.row = remapRow(selectionEnd.row);
+        }
+
+        commitActiveSheetToWorkbook();
+        renderGrid();
+        markDirty();
+    }
+
+    function startColumnResize(col, event) {
+        event.preventDefault();
+        event.stopPropagation();
+        const th = head.querySelector(`th[data-col="${col}"]`);
+        if (!th) return;
+        activeColumnResize = {
+            col,
+            startX: event.clientX,
+            startWidth: th.getBoundingClientRect().width
+        };
+        document.body.classList.add("we-resizing-columns");
+    }
+
+    function getChartConfigFromInputs() {
+        return {
+            rangeText: chartRangeInput?.value?.trim() || "",
+            type: chartTypeSelect?.value || "line",
+            useHeader: chartFirstRowHeaderInput?.checked ?? true,
+            title: chartTitleInput?.value?.trim() || "",
+            xTitle: chartXTitleInput?.value?.trim() || "",
+            yTitle: chartYTitleInput?.value?.trim() || "",
+            showLegend: chartShowLegendInput?.checked ?? true,
+            showGrid: chartShowGridInput?.checked ?? true,
+            showLabels: chartShowLabelsInput?.checked ?? false,
+            color: chartSeriesColorInput?.value || DEFAULT_CHART_COLOR,
+            backgroundColor: chartBgColorInput?.value || "#111827",
+            width: parseInt(chartWidthInput?.value || "900", 10),
+            height: parseInt(chartHeightInput?.value || "360", 10),
+            lineWidth: parseInt(chartLineWidthInput?.value || "3", 10),
+            pointSize: parseInt(chartPointSizeInput?.value || "5", 10),
+            sortOrder: chartSortSelect?.value || "none",
+            legendPosition: chartLegendPositionSelect?.value || "bottom"
+        };
+    }
+
+    function refreshChartActionLabel() {
+        if (buildChartBtn) buildChartBtn.textContent = editingChartIndex === null ? "Dodaj wykres" : "Zapisz zmiany wykresu";
+    }
+
+    function syncChartTypeCards(type) {
+        chartTypeCards?.querySelectorAll(".we-chart-type-card").forEach(btn => {
+            btn.classList.toggle("active", (btn.dataset.chartType || "") === type);
+        });
+    }
+
+    function populateChartModal(config, index = null) {
+        editingChartIndex = index;
+        if (chartRangeInput) chartRangeInput.value = config.rangeText || "";
+        if (chartTypeSelect) chartTypeSelect.value = config.type || "line";
+        syncChartTypeCards(config.type || "line");
+        if (chartTitleInput) chartTitleInput.value = config.title || "";
+        if (chartXTitleInput) chartXTitleInput.value = config.xTitle || "";
+        if (chartYTitleInput) chartYTitleInput.value = config.yTitle || "";
+        if (chartSeriesColorInput) chartSeriesColorInput.value = config.color || DEFAULT_CHART_COLOR;
+        if (chartBgColorInput) chartBgColorInput.value = config.backgroundColor || "#111827";
+        if (chartWidthInput) chartWidthInput.value = String(config.width || 900);
+        if (chartHeightInput) chartHeightInput.value = String(config.height || 360);
+        if (chartLineWidthInput) chartLineWidthInput.value = String(config.lineWidth || 3);
+        if (chartPointSizeInput) chartPointSizeInput.value = String(config.pointSize || 5);
+        if (chartSortSelect) chartSortSelect.value = config.sortOrder || "none";
+        if (chartLegendPositionSelect) chartLegendPositionSelect.value = config.legendPosition || "bottom";
+        if (chartFirstRowHeaderInput) chartFirstRowHeaderInput.checked = config.useHeader ?? true;
+        if (chartShowLegendInput) chartShowLegendInput.checked = config.showLegend ?? true;
+        if (chartShowGridInput) chartShowGridInput.checked = config.showGrid ?? true;
+        if (chartShowLabelsInput) chartShowLabelsInput.checked = config.showLabels ?? false;
+        refreshChartActionLabel();
+        scheduleChartPreviewRefresh();
+    }
+
+    function scheduleChartPreviewRefresh() {
+        if (chartPreviewTimer) clearTimeout(chartPreviewTimer);
+        chartPreviewTimer = setTimeout(() => {
+            if (!chartLivePreview) return;
+            const config = getChartConfigFromInputs();
+            if (!config.rangeText) {
+                chartLivePreview.innerHTML = '<div class="we-chart-live-preview-empty">Wpisz zakres danych albo użyj bieżącego zaznaczenia, a tutaj pojawi się podgląd wykresu.</div>';
+                return;
+            }
+            try {
+                const previewConfig = {
+                    ...config,
+                    width: Math.min(parseInt(config.width || 900, 10), 560),
+                    height: Math.min(parseInt(config.height || 360, 10), 320)
+                };
+                chartLivePreview.innerHTML = `<div class="we-chart-preview-card">${buildChartHtml(previewConfig)}</div>`;
+            } catch (error) {
+                chartLivePreview.innerHTML = `<div class="we-chart-live-preview-empty">Nie udało się zbudować podglądu dla zakresu ${escapeHtml(config.rangeText)}.</div>`;
+            }
+        }, 120);
+    }
+
+    function setCaretToEnd(element) {
+        const selection = window.getSelection?.();
+        const range = document.createRange?.();
+        if (!selection || !range) return;
+        range.selectNodeContents(element);
+        range.collapse(false);
+        selection.removeAllRanges();
+        selection.addRange(range);
+    }
+
+    function enableCellEditing(row, col, td, initialValue = null) {
+        if (!currentSheet || !td || td.classList.contains("we-special-cell")) return;
+        td.classList.add("we-cell-editing");
+        td.contentEditable = "true";
+        td.spellcheck = false;
+        td.textContent = initialValue !== null ? initialValue : (currentSheet.grid[row][col] ?? "");
+        td.focus({ preventScroll: true });
+        setCaretToEnd(td);
     }
 
     function renderGrid() {
         if (!currentSheet) return;
 
         applySpills();
+        prepareConditionalRulesCache();
 
         head.innerHTML = "";
         body.innerHTML = "";
+        cellElements = [];
+        rowHeaderElements = [];
+        colHeaderElements = [];
+        highlightedCells = [];
+        highlightedHeaders = [];
+        highlightedFillCells = [];
+        activeCellElement = null;
 
         const headerRow = document.createElement("tr");
         const corner = document.createElement("th");
@@ -1580,22 +2008,82 @@ document.addEventListener("DOMContentLoaded", function () {
 
         for (let col = 0; col < currentCols; col += 1) {
             const th = document.createElement("th");
-            th.textContent = colToLabel(col);
-            th.title = `Zaznacz całą kolumnę ${colToLabel(col)}`;
+            th.dataset.col = String(col);
+            th.draggable = true;
+            th.classList.add("we-column-header");
+            th.innerHTML = `<span class="we-header-label">${escapeHtml(colToLabel(col))}</span><span class="we-col-resize-handle" title="Przeciągnij, aby zmienić szerokość kolumny"></span>`;
+            th.title = `Zaznacz całą kolumnę ${colToLabel(col)} • przeciągnij, aby zmienić kolejność`;
             th.addEventListener("click", () => selectWholeColumn(col));
+            th.addEventListener("dragstart", event => {
+                draggedColumnIndex = col;
+                th.classList.add("we-dragging-header");
+                event.dataTransfer.effectAllowed = "move";
+                event.dataTransfer.setData("text/plain", String(col));
+            });
+            th.addEventListener("dragend", () => {
+                draggedColumnIndex = null;
+                th.classList.remove("we-dragging-header");
+            });
+            th.addEventListener("dragover", event => {
+                event.preventDefault();
+                event.dataTransfer.dropEffect = "move";
+                th.classList.add("we-drop-target");
+            });
+            th.addEventListener("dragleave", () => th.classList.remove("we-drop-target"));
+            th.addEventListener("drop", event => {
+                event.preventDefault();
+                th.classList.remove("we-drop-target");
+                const source = draggedColumnIndex ?? parseInt(event.dataTransfer.getData("text/plain") || "-1", 10);
+                if (Number.isInteger(source) && source >= 0) moveColumn(source, col);
+            });
+            th.querySelector('.we-col-resize-handle')?.addEventListener('mousedown', event => startColumnResize(col, event));
+            th.querySelector('.we-col-resize-handle')?.addEventListener('dblclick', event => {
+                event.preventDefault();
+                event.stopPropagation();
+                autoFitSingleColumn(col);
+            });
+            colHeaderElements[col] = th;
             headerRow.appendChild(th);
         }
         head.appendChild(headerRow);
 
         for (let row = 0; row < currentRows; row += 1) {
             const tr = document.createElement("tr");
+            const storedRowHeight = getStoredRowHeight(row);
+            if (storedRowHeight) tr.style.height = `${storedRowHeight}px`;
 
             const rowHeader = document.createElement("th");
             rowHeader.className = "row-header";
             rowHeader.textContent = row + 1;
-            rowHeader.title = `Zaznacz cały wiersz ${row + 1}`;
+            rowHeader.draggable = true;
+            rowHeader.dataset.rowHeader = String(row);
+            rowHeader.title = `Zaznacz cały wiersz ${row + 1} • przeciągnij, aby zmienić kolejność`;
             rowHeader.addEventListener("click", () => selectWholeRow(row));
+            rowHeader.addEventListener("dragstart", event => {
+                draggedRowIndex = row;
+                rowHeader.classList.add("we-dragging-header");
+                event.dataTransfer.effectAllowed = "move";
+                event.dataTransfer.setData("text/plain", String(row));
+            });
+            rowHeader.addEventListener("dragend", () => {
+                draggedRowIndex = null;
+                rowHeader.classList.remove("we-dragging-header");
+            });
+            rowHeader.addEventListener("dragover", event => {
+                event.preventDefault();
+                event.dataTransfer.dropEffect = "move";
+                rowHeader.classList.add("we-drop-target");
+            });
+            rowHeader.addEventListener("dragleave", () => rowHeader.classList.remove("we-drop-target"));
+            rowHeader.addEventListener("drop", event => {
+                event.preventDefault();
+                rowHeader.classList.remove("we-drop-target");
+                const source = draggedRowIndex ?? parseInt(event.dataTransfer.getData("text/plain") || "-1", 10);
+                if (Number.isInteger(source) && source >= 0) moveRow(source, row);
+            });
+            rowHeaderElements[row] = rowHeader;
             tr.appendChild(rowHeader);
+            cellElements[row] = [];
 
             for (let col = 0; col < currentCols; col += 1) {
                 const td = document.createElement("td");
@@ -1650,11 +2138,9 @@ document.addEventListener("DOMContentLoaded", function () {
 
                 if (editableBlocked) {
                     td.classList.add("we-special-cell");
-                    td.contentEditable = "false";
-                } else {
-                    td.contentEditable = "true";
-                    td.spellcheck = false;
                 }
+                td.contentEditable = "false";
+                td.spellcheck = false;
 
                 applyCellStyleToElement(td, row, col);
 
@@ -1666,11 +2152,6 @@ document.addEventListener("DOMContentLoaded", function () {
                     selectionStart = { row, col };
                     selectionEnd = { row, col };
                     setActiveCell(row, col, false);
-                    updateSelectionHighlight();
-
-                    if (!editableBlocked) {
-                        td.focus();
-                    }
                 });
 
                 td.addEventListener("mouseover", () => {
@@ -1685,8 +2166,11 @@ document.addEventListener("DOMContentLoaded", function () {
                 });
 
                 td.addEventListener("click", () => {
-                    setActiveCell(row, col, false);
-                    if (!editableBlocked) td.focus();
+                    // Zaznaczenie jest obsługiwane na mousedown, żeby kliknięcie było natychmiastowe.
+                });
+
+                td.addEventListener("dblclick", () => {
+                    if (!editableBlocked) enableCellEditing(row, col, td);
                 });
 
                 td.addEventListener("contextmenu", event => {
@@ -1696,28 +2180,15 @@ document.addEventListener("DOMContentLoaded", function () {
                 });
 
                 td.addEventListener("focus", () => {
-                    setActiveCell(row, col, false);
                     const currentRaw = currentSheet.grid[row][col] ?? "";
                     if (formulaInput) formulaInput.value = currentRaw;
-                    if (!editableBlocked) {
-                        td.textContent = currentRaw;
-                        if (row === activeCell.row && col === activeCell.col) {
-                            td.insertAdjacentHTML("beforeend", '<span class="we-fill-handle" contenteditable="false" title="Przeciągnij, aby skopiować formułę lub wartość"></span>');
-                            td.querySelector(".we-fill-handle")?.addEventListener("mousedown", event => {
-                                event.preventDefault();
-                                event.stopPropagation();
-                                isFillDragging = true;
-                                fillDragStart = { row, col };
-                                fillDragEnd = { row, col };
-                                updateSelectionHighlight();
-                            });
-                        }
-                    }
                 });
 
                 td.addEventListener("blur", () => {
-                    if (!editableBlocked) {
+                    if (!editableBlocked && td.classList.contains("we-cell-editing")) {
                         const newValue = td.textContent ?? "";
+                        td.classList.remove("we-cell-editing");
+                        td.contentEditable = "false";
                         if (newValue !== (currentSheet.grid[row][col] ?? "")) {
                             pushHistorySnapshot();
                             currentSheet.grid[row][col] = newValue;
@@ -1726,22 +2197,35 @@ document.addEventListener("DOMContentLoaded", function () {
                         }
                         td.innerHTML = cellDisplayValue(row, col).html;
                         applyCellStyleToElement(td, row, col);
+                        if (row === activeCell.row && col === activeCell.col) {
+                            td.insertAdjacentHTML("beforeend", '<span class="we-fill-handle" title="Przeciągnij, aby skopiować formułę lub wartość"></span>');
+                        }
                         refreshComputedCells(row, col);
                     }
                 });
 
                 td.addEventListener("input", () => {
-                    if (!editableBlocked) {
+                    if (!editableBlocked && td.classList.contains("we-cell-editing")) {
                         commitActiveCellLive(row, col, td);
                     }
                 });
 
                 td.addEventListener("keydown", event => {
+                    const editing = td.classList.contains("we-cell-editing");
                     if (event.key === "Enter") {
                         event.preventDefault();
+                        if (!editing && !editableBlocked) {
+                            enableCellEditing(row, col, td);
+                            return;
+                        }
                         td.blur();
                         clearSelection();
                         setActiveCell(Math.min(currentRows - 1, row + 1), col, true);
+                        return;
+                    }
+                    if (!editing && !editableBlocked && event.key.length === 1 && !event.ctrlKey && !event.metaKey && !event.altKey) {
+                        event.preventDefault();
+                        enableCellEditing(row, col, td, event.key);
                     }
                 });
 
@@ -1754,6 +2238,7 @@ document.addEventListener("DOMContentLoaded", function () {
                     updateSelectionHighlight();
                 });
 
+                cellElements[row][col] = td;
                 tr.appendChild(td);
             }
 
@@ -1792,9 +2277,8 @@ document.addEventListener("DOMContentLoaded", function () {
         currentSheet.grid[row][col] = newValue;
         if (formulaInput) formulaInput.value = newValue;
         clearTimeout(autosaveTimer);
-        autosaveTimer = setTimeout(saveSheet, 900);
-        setAutosaveState("saving", "Zapisywanie...");
-        window.requestAnimationFrame(() => refreshComputedCells(row, col));
+        autosaveTimer = setTimeout(saveSheet, 300000);
+        setAutosaveState("saving", "Niezapisane zmiany — autozapis co 5 min");
     }
 
 
@@ -1847,40 +2331,39 @@ document.addEventListener("DOMContentLoaded", function () {
         if (key === "v") pasteClipboardToActiveCell();
     });
 
+    document.addEventListener("mousemove", event => {
+        if (!activeColumnResize) return;
+        const nextWidth = activeColumnResize.startWidth + (event.clientX - activeColumnResize.startX);
+        setStoredColumnWidth(activeColumnResize.col, nextWidth);
+        applyColumnWidths(getAutoColumnWidths());
+    });
+
     document.addEventListener("mouseup", () => {
+        if (activeColumnResize) {
+            activeColumnResize = null;
+            document.body.classList.remove("we-resizing-columns");
+            markDirty();
+        }
         if (isMouseSelecting) {
             isMouseSelecting = false;
             updateSelectionHighlight();
         }
     });
 
-    function autoFitColumns() {
-        const colWidths = Array.from({ length: currentCols }, () => 120);
-
-        for (let col = 0; col < currentCols; col += 1) {
-            colWidths[col] = Math.max(colWidths[col], (colToLabel(col).length * 12) + 42);
-
-            for (let row = 0; row < currentRows; row += 1) {
-                const raw = currentSheet.grid[row][col] ?? "";
-                const text = String(
-                    typeof raw === "string" && raw.trim().startsWith("=")
-                        ? displayFormulaValue(getCellComputedValue(row, col))
-                        : raw
-                );
-                colWidths[col] = Math.min(420, Math.max(colWidths[col], (text.length * 8) + 34));
-            }
-        }
-
-        const headerCells = head.querySelectorAll("th");
-        headerCells.forEach((cell, index) => {
-            if (index > 0) cell.style.minWidth = `${colWidths[index - 1]}px`;
-        });
-
-        body.querySelectorAll("tr").forEach(tr => {
-            tr.querySelectorAll("td").forEach((td, index) => {
-                td.style.minWidth = `${colWidths[index]}px`;
+    function autoFitColumns(forceResetManual = false) {
+        if (!currentSheet) return;
+        if (forceResetManual) {
+            currentSheet.columnWidths = {};
+            commitActiveSheetToWorkbook();
+            const widths = getAutoColumnWidths(true);
+            widths.forEach((width, col) => {
+                if (!currentSheet.columnWidths) currentSheet.columnWidths = {};
+                currentSheet.columnWidths[col] = width;
             });
-        });
+            commitActiveSheetToWorkbook();
+            markDirty();
+        }
+        applyColumnWidths(getAutoColumnWidths(false));
     }
 
     function applyFormulaToActiveCell() {
@@ -2055,6 +2538,8 @@ document.addEventListener("DOMContentLoaded", function () {
     function openModal(modalEl) {
         if (modalEl === chartModal) {
             if (chartRangeInput && !chartRangeInput.value.trim()) chartRangeInput.value = getCurrentSelectionRangeText();
+            refreshChartActionLabel();
+            scheduleChartPreviewRefresh();
         }
         if (modalEl === pivotModal) {
             if (pivotRangeInput && !pivotRangeInput.value.trim()) pivotRangeInput.value = getCurrentSelectionRangeText();
@@ -2064,6 +2549,14 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     function closeModal(modalEl) {
+        if (modalEl === chartModal) {
+            editingChartIndex = null;
+            refreshChartActionLabel();
+        }
+        if (modalEl === smartInsertModal) {
+            editingConditionalRuleIndex = null;
+            if (smartInsertApplyBtn) smartInsertApplyBtn.textContent = "Wstaw";
+        }
         modalEl?.classList.remove("open");
     }
 
@@ -2475,8 +2968,16 @@ document.addEventListener("DOMContentLoaded", function () {
             const card = document.createElement("div");
             card.className = "we-object-card";
             card.innerHTML = `
-                <div class="we-chart-object-title">Wykres ${index + 1}</div>
-                <div class="we-chart-object-subtitle">${escapeHtml(chart.rangeText)} • ${escapeHtml(chart.type)}</div>
+                <div class="we-object-head">
+                    <div>
+                        <div class="we-chart-object-title">Wykres ${index + 1}</div>
+                        <div class="we-chart-object-subtitle">${escapeHtml(chart.rangeText)} • ${escapeHtml(chart.type)}</div>
+                    </div>
+                    <div class="we-object-actions">
+                        <button type="button" class="btn btn-secondary" data-chart-action="edit" data-chart-index="${index}">Edytuj</button>
+                        <button type="button" class="btn btn-ghost" data-chart-action="delete" data-chart-index="${index}">Usuń</button>
+                    </div>
+                </div>
                 <div class="we-object-body">${html}</div>
             `;
             generatedObjectsArea.appendChild(card);
@@ -2487,8 +2988,12 @@ document.addEventListener("DOMContentLoaded", function () {
             const card = document.createElement("div");
             card.className = "we-object-card";
             card.innerHTML = `
-                <div class="we-chart-object-title">Tabela przestawna ${index + 1}</div>
-                <div class="we-chart-object-subtitle">${escapeHtml(pivot.rangeText)} • ${escapeHtml(pivot.agg)}</div>
+                <div class="we-object-head">
+                    <div>
+                        <div class="we-chart-object-title">Tabela przestawna ${index + 1}</div>
+                        <div class="we-chart-object-subtitle">${escapeHtml(pivot.rangeText)} • ${escapeHtml(pivot.agg)}</div>
+                    </div>
+                </div>
                 <div class="we-object-body">${html}</div>
             `;
             generatedObjectsArea.appendChild(card);
@@ -2982,13 +3487,15 @@ document.addEventListener("DOMContentLoaded", function () {
 
     function openSmartInsert(mode) {
         smartInsertMode = mode;
+        editingConditionalRuleIndex = null;
+        if (smartInsertApplyBtn) smartInsertApplyBtn.textContent = "Wstaw";
         if (!smartInsertModal || !smartInsertBody) return;
         const configs = {
             function: { title:"Wstaw funkcję", subtitle:"Wybierz funkcję z katalogu albo zacznij pisać w pasku formuły. Podpowiedzi pokażą wymagane argumenty.", body:`<div class="we-smart-grid"><label>Funkcja<select id="smart-function-select"></select></label><label>Zakres / argumenty<input id="smart-function-args" placeholder="np. A1:A10"></label><p class="we-smart-help">Przykład: SUMA z argumentem A1:A10 utworzy =SUMA(A1:A10). F4 w pasku formuły przełącza blokady $.</p></div>` },
             link: { title:"Wstaw link", subtitle:"Podaj tekst i adres. Link będzie klikalny w komórce.", body:`<div class="we-smart-grid"><label>Tekst wyświetlany<input id="smart-link-text" value="Otwórz"></label><label>Adres URL<input id="smart-link-url" value="https://"></label></div>` },
             checkbox: { title:"Wstaw pole wyboru", subtitle:"Ustaw początkowy stan pola wyboru i opcjonalny opis.", body:`<div class="we-smart-grid"><label class="we-smart-check"><input id="smart-checkbox-checked" type="checkbox"> Zaznaczone na start</label><label>Opis obok pola<input id="smart-checkbox-label" placeholder="opcjonalnie"></label></div>` },
             dropdown: { title:"Reguła sprawdzania poprawności danych", subtitle:"Utwórz menu rozwijane podobne do Arkuszy Google. Każda linia to jedna opcja.", body:`<div class="we-smart-grid"><label>Zastosuj do komórki<input value="${cellAddress(activeCell.row, activeCell.col)}" readonly></label><label>Kryteria<select><option>Menu</option><option>Menu z zakresu</option></select></label><label class="we-grid-span-2">Opcje<textarea id="smart-dropdown-options" rows="5">Opcja 1\nOpcja 2\nGotowe</textarea></label><label class="we-smart-check"><input id="smart-dropdown-multi" type="checkbox"> Zezwalaj na wybieranie wielu opcji</label></div>` },
-            "conditional-format": { title:"Formatowanie warunkowe", subtitle:"Gotowe reguły jak w Arkuszach Google: zaznacz zakres, wybierz warunek i kolor. Reguła działa automatycznie po zmianie danych.", body:`<div class="we-smart-grid we-conditional-grid"><label>Zakres<input id="conditional-range" value="${getCurrentSelectionRangeText()}" placeholder="np. A1:C10"></label><label>Przykład<select id="conditional-template"><option value="text-contains">Tekst zawiera…</option><option value="text-eq">Tekst to dokładnie…</option><option value="number-gt">Liczba większa niż…</option><option value="number-lt">Liczba mniejsza niż…</option><option value="number-between">Liczba między…</option><option value="empty">Puste komórki</option><option value="not-empty">Niepuste komórki</option></select></label><label>Wartość<input id="conditional-value" value="OK" placeholder="np. OK, 100, ❌"></label><label>Druga wartość<input id="conditional-value2" value="" placeholder="tylko dla zakresu między"></label><label>Kolor reguły<select id="conditional-preset"><option value="green">zielony — dobrze / OK</option><option value="red">czerwony — błąd / źle</option><option value="yellow">żółty — uwaga</option><option value="blue">niebieski — informacja</option><option value="purple">fioletowy — wyróżnienie</option></select></label><p class="we-smart-help">Przykłady: tekst zawiera ✅, tekst zawiera ❌, liczba większa niż 100, liczba mniejsza niż 0, komórka jest pusta. Reguły zapisują się w arkuszu.</p><div class="we-grid-span-2"><strong>Aktywne reguły</strong><div id="conditional-rules-list" class="we-conditional-list"></div></div></div>` }
+            "conditional-format": { title:"Formatowanie warunkowe", subtitle:"Dodaj regułę, ustaw priorytet i edytuj ją z listy po lewej bez usuwania.", body:`<div class="we-conditional-editor-layout"><section class="we-conditional-list-panel"><div class="we-conditional-panel-head"><strong>Aktywne reguły</strong><span class="we-conditional-badge">kolejność ma znaczenie</span></div><p>Reguły z wyższym priorytetem są ważniejsze. Strzałkami możesz zmieniać ich kolejność.</p><div id="conditional-rules-list" class="we-conditional-list"></div></section><section class="we-conditional-form-panel"><div class="we-conditional-form-head"><strong>Edytor reguły</strong><span>Wprowadź zakres, warunek i styl wyróżnienia.</span></div><div class="we-smart-grid we-conditional-grid"><label>Zakres<input id="conditional-range" value="${getCurrentSelectionRangeText()}" placeholder="np. A1:C10"></label><label>Warunek<select id="conditional-template"><option value="text-contains">Tekst zawiera…</option><option value="text-eq">Tekst to dokładnie…</option><option value="number-gt">Liczba większa niż…</option><option value="number-lt">Liczba mniejsza niż…</option><option value="number-between">Liczba między…</option><option value="empty">Puste komórki</option><option value="not-empty">Niepuste komórki</option></select></label><label>Wartość<input id="conditional-value" value="OK" placeholder="np. OK, 100, ❌"></label><label>Druga wartość<input id="conditional-value2" value="" placeholder="używana tylko dla „Liczba między”"></label><label>Kolor reguły<select id="conditional-preset"><option value="green">Zielony — dobrze / OK</option><option value="red">Czerwony — błąd / źle</option><option value="yellow">Żółty — uwaga</option><option value="blue">Niebieski — informacja</option><option value="purple">Fioletowy — wyróżnienie</option></select></label><label>Ważność<select id="conditional-priority"><option value="3">Wysoka — ma pierwszeństwo</option><option value="2" selected>Normalna</option><option value="1">Niska</option></select></label><div class="we-conditional-preview-tip we-grid-span-2">Szybkie przykłady: <span>tekst zawiera OK</span><span>liczba &gt; 100</span><span>pusta komórka</span></div></div></section></div>` }
         };
         const cfg = configs[mode] || configs.function;
         smartInsertTitle.textContent = cfg.title;
@@ -3019,6 +3526,7 @@ document.addEventListener("DOMContentLoaded", function () {
         });
         updateSmartPreview();
         renderConditionalRulesSummary();
+        if (mode === "conditional-format") fillConditionalForm(null, null);
         openModal(smartInsertModal);
         refreshI18nAfterDynamicRender();
     }
@@ -3057,7 +3565,8 @@ document.addEventListener("DOMContentLoaded", function () {
             const range = document.getElementById("conditional-range")?.value || getCurrentSelectionRangeText();
             const value = document.getElementById("conditional-value")?.value || "";
             const value2 = document.getElementById("conditional-value2")?.value || "";
-            return `Reguła: ${range} • ${type} • ${value}${value2 ? " / " + value2 : ""}`;
+            const priority = document.getElementById("conditional-priority")?.value || "2";
+            return `Reguła: ${range} • ${type} • ${value}${value2 ? " / " + value2 : ""} • ważność: ${conditionalPriorityLabel(priority)}`;
         }
         return "";
     }
@@ -3071,16 +3580,26 @@ document.addEventListener("DOMContentLoaded", function () {
             const preset = document.getElementById("conditional-preset")?.value || "yellow";
             const value = document.getElementById("conditional-value")?.value || "";
             const value2 = document.getElementById("conditional-value2")?.value || "";
-            pushHistorySnapshot();
-            ensureConditionalRules().push({
-                id: `cf_${Date.now()}`, range, type, value, value2, preset,
+            const priority = parseInt(document.getElementById("conditional-priority")?.value || "2", 10);
+            const nextRule = {
+                id: editingConditionalRuleIndex !== null ? ensureConditionalRules()[editingConditionalRuleIndex]?.id : `cf_${Date.now()}`,
+                range, type, value, value2, preset, priority,
                 style: buildConditionalStyle(preset),
                 label: `${type} ${value || ""}`.trim()
-            });
-            closeModal(smartInsertModal);
+            };
+            pushHistorySnapshot();
+            if (editingConditionalRuleIndex !== null && ensureConditionalRules()[editingConditionalRuleIndex]) {
+                ensureConditionalRules()[editingConditionalRuleIndex] = nextRule;
+                logUserAction("Zmieniono formatowanie warunkowe", { type: "conditional_format_edit", range });
+            } else {
+                ensureConditionalRules().push(nextRule);
+                logUserAction("Dodano formatowanie warunkowe", { type: "conditional_format", range });
+            }
+            editingConditionalRuleIndex = null;
+            fillConditionalForm(null, null);
+            renderConditionalRulesSummary();
             renderGrid();
             markDirty();
-            logUserAction("Dodano formatowanie warunkowe", { type: "conditional_format", range });
             return;
         }
         const formula = buildSmartInsertFormula();
@@ -4074,7 +4593,7 @@ document.addEventListener("DOMContentLoaded", function () {
         clearCellBtn?.addEventListener("click", clearActiveCell);
         toggleFullWidthBtn?.addEventListener("click", toggleFullWidth);
         toggleGridBtn?.addEventListener("click", toggleGrid);
-        autofitBtn?.addEventListener("click", autoFitColumns);
+        autofitBtn?.addEventListener("click", () => autoFitColumns(true));
 
         fontFamilySelect?.addEventListener("change", () => {
             applyStyleToSelectionOrActive({ fontFamily: fontFamilySelect.value });
@@ -4126,37 +4645,55 @@ document.addEventListener("DOMContentLoaded", function () {
             chartTypeCards.querySelectorAll(".we-chart-type-card").forEach(btn => btn.classList.remove("active"));
             card.classList.add("active");
             if (chartTypeSelect) chartTypeSelect.value = card.dataset.chartType || "line";
+            scheduleChartPreviewRefresh();
+        });
+
+        [chartRangeInput, chartTypeSelect, chartTitleInput, chartXTitleInput, chartYTitleInput, chartSeriesColorInput, chartBgColorInput, chartWidthInput, chartHeightInput, chartLineWidthInput, chartPointSizeInput, chartSortSelect, chartLegendPositionSelect, chartFirstRowHeaderInput, chartShowLegendInput, chartShowGridInput, chartShowLabelsInput]
+            .filter(Boolean)
+            .forEach(control => {
+                control.addEventListener("input", scheduleChartPreviewRefresh);
+                control.addEventListener("change", scheduleChartPreviewRefresh);
+            });
+
+        chartUseSelectionBtn?.addEventListener("click", () => {
+            if (chartRangeInput) chartRangeInput.value = getCurrentSelectionRangeText();
+            scheduleChartPreviewRefresh();
         });
 
         buildChartBtn?.addEventListener("click", () => {
-            const rangeText = chartRangeInput?.value?.trim();
-            if (!rangeText) {
+            const config = getChartConfigFromInputs();
+            if (!config.rangeText) {
                 alert("Podaj zakres danych.");
                 return;
             }
 
-            chartObjects.push({
-                rangeText,
-                type: chartTypeSelect?.value || "line",
-                useHeader: chartFirstRowHeaderInput?.checked ?? true,
-                title: chartTitleInput?.value?.trim() || "",
-                xTitle: chartXTitleInput?.value?.trim() || "",
-                yTitle: chartYTitleInput?.value?.trim() || "",
-                showLegend: chartShowLegendInput?.checked ?? true,
-                showGrid: chartShowGridInput?.checked ?? true,
-                showLabels: chartShowLabelsInput?.checked ?? false,
-                color: chartSeriesColorInput?.value || DEFAULT_CHART_COLOR,
-                backgroundColor: chartBgColorInput?.value || "#111827",
-                width: parseInt(chartWidthInput?.value || "900", 10),
-                height: parseInt(chartHeightInput?.value || "360", 10),
-                lineWidth: parseInt(chartLineWidthInput?.value || "3", 10),
-                pointSize: parseInt(chartPointSizeInput?.value || "5", 10),
-                sortOrder: chartSortSelect?.value || "none",
-                legendPosition: chartLegendPositionSelect?.value || "bottom"
-            });
+            if (editingChartIndex !== null && chartObjects[editingChartIndex]) {
+                chartObjects[editingChartIndex] = config;
+            } else {
+                chartObjects.push(config);
+            }
 
+            editingChartIndex = null;
+            refreshChartActionLabel();
             rerenderGeneratedObjects();
             closeModal(chartModal);
+        });
+
+        generatedObjectsArea?.addEventListener("click", (event) => {
+            const actionBtn = event.target.closest("[data-chart-action]");
+            if (!actionBtn) return;
+            const index = parseInt(actionBtn.dataset.chartIndex || "-1", 10);
+            if (!Number.isInteger(index) || !chartObjects[index]) return;
+            const action = actionBtn.dataset.chartAction;
+            if (action === "edit") {
+                populateChartModal(chartObjects[index], index);
+                openModal(chartModal);
+            }
+            if (action === "delete") {
+                chartObjects.splice(index, 1);
+                if (editingChartIndex === index) editingChartIndex = null;
+                rerenderGeneratedObjects();
+            }
         });
 
         buildPivotBtn?.addEventListener("click", buildPivotFromModal);

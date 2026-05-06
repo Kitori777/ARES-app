@@ -5,7 +5,7 @@
 {% block topbar_title %}Edytor arkusza{% endblock %}
 
 {% block extra_head %}
-<link rel="stylesheet" href="{% static 'css/worksheet_editor.css' %}?v=0.5.2">
+<link rel="stylesheet" href="{% static 'css/worksheet_editor.css' %}?v=0.6.0">
 {% endblock %}
 
 {% block content %}
@@ -307,6 +307,19 @@
                 </select>
             </section>
 
+        <section class="we-chart-preview-panel">
+            <div class="we-chart-types-title">Podgląd na żywo</div>
+            <div class="we-chart-preview-shell">
+                <div id="chart-live-preview" class="we-chart-live-preview">
+                    <div class="we-chart-live-preview-empty">Wybierz zakres i typ wykresu, aby zobaczyć podgląd jeszcze przed dodaniem.</div>
+                </div>
+            </div>
+            <div class="we-chart-preview-actions">
+                <button id="chart-use-selection-btn" class="btn btn-secondary" type="button">Użyj bieżącego zaznaczenia</button>
+                <span class="we-chart-preview-helper">Podgląd odświeża się automatycznie po zmianie ustawień.</span>
+            </div>
+        </section>
+
             <section class="we-chart-config-panel">
                 <div class="we-chart-types-title">Dane i wygląd</div>
                 <div class="we-chart-form-grid">
@@ -365,6 +378,7 @@
                 <p class="we-chart-preview-note">Podpowiedź: zaznacz dane w arkuszu, kliknij „Wykres”, a zakres zostanie użyty automatycznie. Dla bąbelkowego najlepiej użyć 3 kolumn: X, Y, rozmiar.</p>
             </section>
         </div>
+
 
         <div class="we-modal-actions">
             <button id="build-chart-btn" class="btn btn-primary" type="button">Dodaj wykres</button>
@@ -484,5 +498,5 @@
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="{% static 'js/formula_catalog.js' %}?v=0.3.9"></script>
 <script src="{% static 'js/formula_engine.js' %}?v=0.3.9"></script>
-<script src="{% static 'js/worksheet_editor.js' %}?v=0.4.9"></script>
+<script src="{% static 'js/worksheet_editor.js' %}?v=0.6.0"></script>
 {% endblock %}

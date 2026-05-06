@@ -226,6 +226,7 @@
 </section>
 {% endblock %}
 
+
 {% block extra_js %}
 <script>
     (function () {
@@ -235,6 +236,28 @@
         const prefKey = 'ares_preferences';
         const languageKey = 'ares_language';
         let uploadedAvatarDataUri = '';
+
+        const toastStack = document.getElementById('profile-toast-stack');
+        function showProfileToast(message, type = 'success', title = 'Zapisano') {
+            let stack = document.getElementById('profile-toast-stack');
+            if (!stack) {
+                stack = document.createElement('div');
+                stack.id = 'profile-toast-stack';
+                stack.className = 'profile-toast-stack';
+                stack.setAttribute('aria-live', 'polite');
+                stack.setAttribute('aria-atomic', 'true');
+                document.body.appendChild(stack);
+            }
+            const toast = document.createElement('div');
+            toast.className = `profile-toast ${type}`;
+            toast.innerHTML = `<strong>${title}</strong><small>${message}</small>`;
+            stack.appendChild(toast);
+            requestAnimationFrame(() => toast.classList.add('show'));
+            setTimeout(() => {
+                toast.classList.remove('show');
+                setTimeout(() => toast.remove(), 220);
+            }, 2600);
+        }
         let uploadedAvatarObjectUrl = '';
         const defaultName = '{{ request.user.username|escapejs }}';
         const defaultProfile = {
@@ -478,12 +501,12 @@
             const file = avatarUploadInput.files && avatarUploadInput.files[0];
             if (!file) return;
             if (!file.type || !file.type.startsWith('image/')) {
-                alert('Wybierz plik graficzny: PNG, JPG, GIF albo WEBP.');
+                showProfileToast('Wybierz plik graficzny: PNG, JPG, GIF albo WEBP.', 'error', 'Nieprawidłowy plik');
                 avatarUploadInput.value = '';
                 return;
             }
             if (file.size > 2 * 1024 * 1024) {
-                alert('Avatar jest za duży. Wybierz obraz do 2 MB.');
+                showProfileToast('Avatar jest za duży. Wybierz obraz do 2 MB.', 'error', 'Za duży plik');
                 avatarUploadInput.value = '';
                 return;
             }
@@ -533,7 +556,7 @@
 
         document.getElementById('save-appearance-btn')?.addEventListener('click', async () => {
             await saveServerSettings({ theme: currentTheme, profile: renderProfilePreview(), shortcuts, preferences: prefs });
-            alert('Wygląd został zapisany na koncie użytkownika.');
+            showProfileToast('Wygląd został zapisany na koncie użytkownika.', 'success', 'Zapisano wygląd');
         });
 
         document.getElementById('revert-theme-btn')?.addEventListener('click', () => {
@@ -550,7 +573,7 @@
             uploadedAvatarDataUri = '';
             saveJSON(profileKey, profile);
             hydrateProfileForm();
-            alert('Profil został zapisany.');
+            showProfileToast('Profil został zapisany.', 'success', 'Zapisano profil');
         });
 
         document.getElementById('clear-avatar-image-btn').addEventListener('click', () => {
@@ -569,7 +592,7 @@
             renderProfilePreview();
             updateQuickDockPreview();
             await saveServerSettings({ shortcuts: data, profile: renderProfilePreview(), theme: currentTheme, preferences: prefs });
-            alert(window.ARES_I18N?.t('Skróty zostały zapisane na koncie użytkownika.') || 'Skróty zostały zapisane na koncie użytkownika.');
+            showProfileToast(window.ARES_I18N?.t('Skróty zostały zapisane na koncie użytkownika.') || 'Skróty zostały zapisane na koncie użytkownika.', 'success', 'Zapisano skróty');
         });
 
         document.getElementById('save-preferences-btn').addEventListener('click', async () => {
@@ -587,7 +610,7 @@
             saveJSON(prefKey, data);
             updateQuickDockPreview();
             await saveServerSettings({ preferences: data, profile: renderProfilePreview(), theme: currentTheme, shortcuts });
-            alert('Preferencje zostały zapisane na koncie użytkownika.');
+            showProfileToast('Preferencje zostały zapisane na koncie użytkownika.', 'success', 'Zapisano preferencje');
             window.ARES_I18N?.refresh?.();
         });
 
