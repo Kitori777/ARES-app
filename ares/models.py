@@ -107,3 +107,26 @@ class SheetShare(models.Model):
     @property
     def can_edit(self):
         return self.permission == self.PERMISSION_EDIT
+
+
+class SheetChatMessage(models.Model):
+    """Krótka wiadomość w czacie przypiętym do konkretnego arkusza."""
+
+    sheet = models.ForeignKey(Sheet, on_delete=models.CASCADE, related_name='chat_messages')
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='sheet_chat_messages'
+    )
+    body = models.TextField(max_length=2000)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['created_at']
+        indexes = [
+            models.Index(fields=['sheet', 'created_at']),
+            models.Index(fields=['user', 'created_at']),
+        ]
+
+    def __str__(self):
+        return f'{self.sheet.name} / {self.user.username}: {self.body[:40]}'

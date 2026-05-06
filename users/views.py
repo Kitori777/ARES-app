@@ -437,6 +437,11 @@ def reports_view(request):
 
 
 @login_required
+def helpdesk_view(request):
+    return render(request, 'helpdesk.html')
+
+
+@login_required
 def profile_view(request):
     return render(request, 'profile.html')
 

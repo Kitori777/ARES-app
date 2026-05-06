@@ -452,3 +452,20 @@ EMAIL_DELIVERY_MODE=console
 ```
 
 Wtedy wiadomość z kodem weryfikacyjnym pojawi się w terminalu.
+
+
+## Aktualizacja v0.6.5 — wydajność, Helpdesk i czat arkusza
+
+Wersja v0.6.5 dodaje trzy ważne elementy:
+
+- **płynniejszy edytor arkusza** — lżejsze renderowanie siatki, szybsze zaznaczanie komórek i mniej kosztownych operacji przy każdym odświeżeniu;
+- **Helpdesk ARES** — osobna strona pomocy z odpowiedziami na pytania o funkcje aplikacji oraz odczytywaniem odpowiedzi głosowo przez przeglądarkę;
+- **czat arkusza** — panel w rogu edytora, zapisujący wiadomości przy konkretnym arkuszu i dostępny dla osób, którym arkusz został udostępniony.
+
+Po wdrożeniu należy uruchomić migracje:
+
+```bash
+python manage.py migrate
+```
+
+Na Renderze migracja wykona się automatycznie, jeśli w komendzie build/start nadal jest `manage.py migrate`.

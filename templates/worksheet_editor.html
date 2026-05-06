@@ -5,7 +5,7 @@
 {% block topbar_title %}Edytor arkusza{% endblock %}
 
 {% block extra_head %}
-<link rel="stylesheet" href="{% static 'css/worksheet_editor.css' %}?v=0.6.4">
+<link rel="stylesheet" href="{% static 'css/worksheet_editor.css' %}?v=0.6.6">
 {% endblock %}
 
 {% block content %}
@@ -17,6 +17,7 @@
                 <h1 id="editor-sheet-name">Arkusz</h1>
                 <p id="editor-sheet-meta">Ładowanie danych arkusza...</p>
                 <div id="autosave-badge" class="we-autosave-badge">Brak zmian</div>
+                <div class="we-performance-badge" title="Włączono szybsze zaznaczanie i lżejsze odświeżanie siatki">⚡ Tryb płynnego arkusza</div>
             </div>
         </div>
 
@@ -477,6 +478,25 @@
 
 <div id="sheet-context-menu" class="we-sheet-context-menu" hidden></div>
 
+<button id="we-chat-launcher" class="we-chat-launcher" type="button" title="Czat arkusza">💬 Czat <small id="we-chat-new-count">0</small></button>
+<section id="we-sheet-chat" class="we-sheet-chat" hidden aria-label="Czat arkusza">
+    <div class="we-chat-top">
+        <div>
+            <strong>Czat arkusza</strong>
+            <span id="we-chat-subtitle">Wiadomości widzą osoby z dostępem do arkusza.</span>
+        </div>
+        <button id="we-chat-close" class="we-chat-close" type="button" aria-label="Zamknij czat">✕</button>
+    </div>
+    <div id="we-chat-messages" class="we-chat-messages">
+        <div class="we-chat-empty">Ładowanie wiadomości...</div>
+    </div>
+    <form id="we-chat-form" class="we-chat-form">
+        <textarea id="we-chat-input" rows="1" maxlength="2000" placeholder="Napisz wiadomość... Enter wysyła, Shift+Enter dodaje linię"></textarea>
+        <button class="btn btn-primary" type="submit">Wyślij</button>
+    </form>
+</section>
+
+
 <div class="we-modal" id="solver-modal">
     <div class="we-modal-box we-solver-box">
         <div class="we-modal-top we-solver-top">
@@ -496,7 +516,8 @@
 
 {% block extra_js %}
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-<script src="{% static 'js/formula_catalog.js' %}?v=0.6.4"></script>
-<script src="{% static 'js/formula_engine.js' %}?v=0.6.4"></script>
-<script src="{% static 'js/worksheet_editor.js' %}?v=0.6.4"></script>
+<script src="{% static 'js/formula_catalog.js' %}?v=0.6.6"></script>
+<script src="{% static 'js/formula_engine.js' %}?v=0.6.6"></script>
+<script src="{% static 'js/worksheet_editor.js' %}?v=0.6.6"></script>
+<script src="{% static 'js/worksheet_chat.js' %}?v=0.6.6"></script>
 {% endblock %}

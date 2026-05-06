@@ -147,6 +147,8 @@ document.addEventListener("DOMContentLoaded", function () {
     let currentSheet = null;
     let currentRows = 20;
     let currentCols = 10;
+    const ARES_PERF_DEBUG = false;
+    let selectionFrameId = null;
     const MIN_ROWS = 20;
     const MIN_COLS = 10;
     const MAX_IMPORT_ROWS = 1000;
@@ -170,6 +172,10 @@ document.addEventListener("DOMContentLoaded", function () {
     let highlightedHeaders = [];
     let highlightedFillCells = [];
     let activeCellElement = null;
+    let computedCellKeys = new Set();
+    let gridDelegationBound = false;
+    let pendingColumnWidths = null;
+    let columnWidthFrameId = null;
     let cellElements = [];
     let rowHeaderElements = [];
     let colHeaderElements = [];
@@ -242,7 +248,7 @@ document.addEventListener("DOMContentLoaded", function () {
         });
 
         const text = await response.text();
-        console.log("GET", url, "status:", response.status, "body:", text);
+        if (ARES_PERF_DEBUG) console.log("GET", url, "status:", response.status, "body:", text);
 
         if (!response.ok) {
             throw new Error(`GET ${url} -> ${response.status}\n${text}`);
@@ -967,6 +973,35 @@ document.addEventListener("DOMContentLoaded", function () {
         selectionEnd = null;
     }
 
+    function getCellFromTarget(target) {
+        return target?.closest?.("td[data-row][data-col]") || null;
+    }
+
+    function getCellCoordsFromElement(td) {
+        if (!td) return null;
+        const row = Number(td.dataset.row);
+        const col = Number(td.dataset.col);
+        if (!Number.isInteger(row) || !Number.isInteger(col)) return null;
+        return { row, col };
+    }
+
+    function isCellValueComputed(raw) {
+        return typeof raw === "string" && (raw.trim().startsWith("=") || raw.startsWith(SPILL_PREFIX));
+    }
+
+    function isCellEditingBlocked(row, col) {
+        const rawValue = currentSheet?.grid?.[row]?.[col] ?? "";
+        const display = cellDisplayValue(row, col);
+        return Boolean(display.special || (typeof rawValue === "string" && rawValue.startsWith(SPILL_PREFIX)));
+    }
+
+    function syncComputedCellRegistry(row, col) {
+        const key = `${row}:${col}`;
+        const rawValue = currentSheet?.grid?.[row]?.[col] ?? "";
+        if (isCellValueComputed(rawValue)) computedCellKeys.add(key);
+        else computedCellKeys.delete(key);
+    }
+
     function selectWholeRow(row) {
         selectionStart = { row, col: 0 };
         selectionEnd = { row, col: Math.max(0, currentCols - 1) };
@@ -986,6 +1021,14 @@ document.addEventListener("DOMContentLoaded", function () {
         selectionEnd = { row: Math.max(0, currentRows - 1), col: Math.max(0, currentCols - 1) };
         setActiveCell(0, 0, false);
         updateSelectionHighlight();
+    }
+
+    function scheduleSelectionHighlight() {
+        if (selectionFrameId) return;
+        selectionFrameId = window.requestAnimationFrame(() => {
+            selectionFrameId = null;
+            updateSelectionHighlight();
+        });
     }
 
     function updateSelectionHighlight() {
@@ -1067,6 +1110,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
     function updateCellElement(row, col) {
         const td = cellElements[row]?.[col];
+        syncComputedCellRegistry(row, col);
         if (!td) return;
         td.innerHTML = cellDisplayValue(row, col).html;
         applyCellStyleToElement(td, row, col);
@@ -1835,22 +1879,34 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     function applyColumnWidths(colWidths) {
-        const headerCells = head.querySelectorAll("th[data-col]");
-        headerCells.forEach((cell) => {
-            const col = parseInt(cell.dataset.col || "-1", 10);
+        if (!Array.isArray(colWidths)) return;
+        colHeaderElements.forEach((cell, col) => {
+            if (!cell) return;
             const width = colWidths[col] || 120;
             cell.style.width = `${width}px`;
             cell.style.minWidth = `${width}px`;
             cell.style.maxWidth = `${width}px`;
         });
 
-        body.querySelectorAll("tr").forEach(tr => {
-            tr.querySelectorAll("td").forEach((td, index) => {
-                const width = colWidths[index] || 120;
+        cellElements.forEach(rowCells => {
+            rowCells?.forEach((td, col) => {
+                if (!td) return;
+                const width = colWidths[col] || 120;
                 td.style.width = `${width}px`;
                 td.style.minWidth = `${width}px`;
                 td.style.maxWidth = `${width}px`;
             });
+        });
+    }
+
+    function scheduleApplyColumnWidths(colWidths) {
+        pendingColumnWidths = colWidths;
+        if (columnWidthFrameId) return;
+        columnWidthFrameId = window.requestAnimationFrame(() => {
+            columnWidthFrameId = null;
+            const widths = pendingColumnWidths;
+            pendingColumnWidths = null;
+            applyColumnWidths(widths);
         });
     }
 
@@ -1859,7 +1915,7 @@ document.addEventListener("DOMContentLoaded", function () {
         const widths = getAutoColumnWidths(true);
         const autoWidth = widths[col] || 108;
         setStoredColumnWidth(col, autoWidth);
-        applyColumnWidths(getAutoColumnWidths(false));
+        scheduleApplyColumnWidths(getAutoColumnWidths(false));
         markDirty();
     }
 
@@ -2124,6 +2180,183 @@ document.addEventListener("DOMContentLoaded", function () {
         fastSelectCell(row, col, true);
     }
 
+    function bindGridInteractionDelegation() {
+        if (gridDelegationBound || !body) return;
+        gridDelegationBound = true;
+
+        body.addEventListener("mousedown", event => {
+            const td = getCellFromTarget(event.target);
+            if (!td || event.button !== 0) return;
+            if (event.target?.classList?.contains("we-fill-handle")) return;
+            if (event.target?.closest?.(".we-cell-checkbox, .we-cell-dropdown")) return;
+            const coords = getCellCoordsFromElement(td);
+            if (!coords) return;
+            const { row, col } = coords;
+
+            if (isEditingFormulaInBar()) {
+                event.preventDefault();
+                skipFormulaBlurHide = true;
+                formulaRangePickMode = true;
+                formulaRangeAnchor = { row, col };
+                selectionStart = { row, col };
+                selectionEnd = { row, col };
+                scheduleSelectionHighlight();
+                replaceCurrentFormulaArgument(buildRangeTextFromCells(formulaRangeAnchor, { row, col }));
+                return;
+            }
+
+            isMouseSelecting = true;
+            fastSelectCell(row, col, false);
+        });
+
+        body.addEventListener("mouseover", event => {
+            const td = getCellFromTarget(event.target);
+            if (!td) return;
+            const coords = getCellCoordsFromElement(td);
+            if (!coords) return;
+            const { row, col } = coords;
+
+            if (isFillDragging) {
+                fillDragEnd = { row, col };
+                scheduleSelectionHighlight();
+                return;
+            }
+            if (formulaRangePickMode && formulaRangeAnchor) {
+                selectionEnd = { row, col };
+                scheduleSelectionHighlight();
+                replaceCurrentFormulaArgument(buildRangeTextFromCells(formulaRangeAnchor, { row, col }));
+                return;
+            }
+            if (!isMouseSelecting) return;
+            selectionEnd = { row, col };
+            scheduleSelectionHighlight();
+        });
+
+        body.addEventListener("dblclick", event => {
+            const td = getCellFromTarget(event.target);
+            if (!td) return;
+            const coords = getCellCoordsFromElement(td);
+            if (!coords) return;
+            const { row, col } = coords;
+            const editableBlocked = isCellEditingBlocked(row, col);
+            event.preventDefault();
+            const oldStart = selectionStart ? { ...selectionStart } : null;
+            const oldEnd = selectionEnd ? { ...selectionEnd } : null;
+            activeCell = { row, col };
+            updateFormulaBar();
+            if (oldStart && oldEnd) {
+                selectionStart = oldStart;
+                selectionEnd = oldEnd;
+                updateSelectionHighlight();
+            }
+            if (td.querySelector("[data-tooltip]")) {
+                openCommentEditor((currentSheet.grid[row][col] || "").startsWith("=NOTE(") ? "note" : "comment");
+                return;
+            }
+            if (!editableBlocked) enableCellEditing(row, col, td);
+        });
+
+        body.addEventListener("contextmenu", event => {
+            const td = getCellFromTarget(event.target);
+            if (!td) return;
+            const coords = getCellCoordsFromElement(td);
+            if (!coords) return;
+            event.preventDefault();
+            if (document.activeElement === td) td.blur();
+            showCellContextMenu(coords.row, coords.col, event);
+        });
+
+        body.addEventListener("focusin", event => {
+            const td = getCellFromTarget(event.target);
+            if (!td) return;
+            const coords = getCellCoordsFromElement(td);
+            if (!coords) return;
+            const currentRaw = currentSheet?.grid?.[coords.row]?.[coords.col] ?? "";
+            if (formulaInput) formulaInput.value = currentRaw;
+        });
+
+        body.addEventListener("focusout", event => {
+            const td = getCellFromTarget(event.target);
+            if (!td) return;
+            const coords = getCellCoordsFromElement(td);
+            if (!coords) return;
+            const { row, col } = coords;
+            if (!isCellEditingBlocked(row, col) && td.classList.contains("we-cell-editing")) {
+                const newValue = td.textContent ?? "";
+                td.classList.remove("we-cell-editing");
+                td.contentEditable = "false";
+                if (newValue !== (currentSheet.grid[row][col] ?? "")) {
+                    pushHistorySnapshot();
+                    currentSheet.grid[row][col] = newValue;
+                    syncComputedCellRegistry(row, col);
+                    markDirty();
+                    logUserAction("Edycja komórki", { type: "cell_edit", cell: cellAddress(row, col), newValue });
+                }
+                td.innerHTML = cellDisplayValue(row, col).html;
+                applyCellStyleToElement(td, row, col);
+                if (row === activeCell.row && col === activeCell.col) {
+                    attachFillHandle(td, row, col);
+                }
+                refreshComputedCells(row, col);
+            }
+        });
+
+        body.addEventListener("input", event => {
+            const td = getCellFromTarget(event.target);
+            if (!td) return;
+            const coords = getCellCoordsFromElement(td);
+            if (!coords) return;
+            if (!isCellEditingBlocked(coords.row, coords.col) && td.classList.contains("we-cell-editing")) {
+                commitActiveCellLive(coords.row, coords.col, td);
+            }
+        });
+
+        body.addEventListener("keydown", event => {
+            const td = getCellFromTarget(event.target);
+            if (!td) return;
+            const coords = getCellCoordsFromElement(td);
+            if (!coords) return;
+            const { row, col } = coords;
+            const editableBlocked = isCellEditingBlocked(row, col);
+            const editing = td.classList.contains("we-cell-editing");
+            if (!editing) {
+                if (event.key === "Enter") {
+                    event.preventDefault();
+                    moveActiveCellBy(1, 0);
+                    return;
+                }
+                if (event.key === "Tab") {
+                    event.preventDefault();
+                    moveActiveCellBy(0, event.shiftKey ? -1 : 1);
+                    return;
+                }
+                if (event.key === "ArrowDown") { event.preventDefault(); moveActiveCellBy(1, 0); return; }
+                if (event.key === "ArrowUp") { event.preventDefault(); moveActiveCellBy(-1, 0); return; }
+                if (event.key === "ArrowRight") { event.preventDefault(); moveActiveCellBy(0, 1); return; }
+                if (event.key === "ArrowLeft") { event.preventDefault(); moveActiveCellBy(0, -1); return; }
+                if (!editableBlocked && event.key.length === 1 && !event.ctrlKey && !event.metaKey && !event.altKey) {
+                    event.preventDefault();
+                    enableCellEditing(row, col, td, event.key);
+                }
+                return;
+            }
+            if (event.key === "Enter") {
+                event.preventDefault();
+                td.blur();
+                moveActiveCellBy(1, 0);
+                return;
+            }
+            if (event.key === "Escape") {
+                event.preventDefault();
+                td.classList.remove("we-cell-editing");
+                td.contentEditable = "false";
+                td.innerHTML = cellDisplayValue(row, col).html;
+                applyCellStyleToElement(td, row, col);
+                td.focus({ preventScroll: true });
+            }
+        });
+    }
+
     function renderGrid() {
         if (!currentSheet) return;
 
@@ -2139,6 +2372,11 @@ document.addEventListener("DOMContentLoaded", function () {
         highlightedHeaders = [];
         highlightedFillCells = [];
         activeCellElement = null;
+        computedCellKeys = new Set();
+        bindGridInteractionDelegation();
+
+        const headFragment = document.createDocumentFragment();
+        const bodyFragment = document.createDocumentFragment();
 
         const headerRow = document.createElement("tr");
         const corner = document.createElement("th");
@@ -2187,7 +2425,8 @@ document.addEventListener("DOMContentLoaded", function () {
             colHeaderElements[col] = th;
             headerRow.appendChild(th);
         }
-        head.appendChild(headerRow);
+        headFragment.appendChild(headerRow);
+        head.appendChild(headFragment);
 
         for (let row = 0; row < currentRows; row += 1) {
             const tr = document.createElement("tr");
@@ -2235,6 +2474,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
                 const rawValue = currentSheet.grid[row][col] ?? "";
                 const display = cellDisplayValue(row, col);
+                syncComputedCellRegistry(row, col);
 
                 td.innerHTML = display.html;
                 const checkboxInput = td.querySelector(".we-cell-checkbox");
@@ -2286,174 +2526,44 @@ document.addEventListener("DOMContentLoaded", function () {
 
                 applyCellStyleToElement(td, row, col);
 
-                td.addEventListener("mousedown", event => {
-                    if (event.button !== 0) return;
-                    if (event.target?.classList?.contains("we-fill-handle")) return;
-
-                    if (isEditingFormulaInBar()) {
-                        event.preventDefault();
-                        skipFormulaBlurHide = true;
-                        formulaRangePickMode = true;
-                        formulaRangeAnchor = { row, col };
-                        selectionStart = { row, col };
-                        selectionEnd = { row, col };
-                        updateSelectionHighlight();
-                        replaceCurrentFormulaArgument(buildRangeTextFromCells(formulaRangeAnchor, { row, col }));
-                        return;
-                    }
-
-                    isMouseSelecting = true;
-                    fastSelectCell(row, col, false);
-                });
-
-                td.addEventListener("mouseover", () => {
-                    if (isFillDragging) {
-                        fillDragEnd = { row, col };
-                        updateSelectionHighlight();
-                        return;
-                    }
-                    if (formulaRangePickMode && formulaRangeAnchor) {
-                        selectionEnd = { row, col };
-                        updateSelectionHighlight();
-                        replaceCurrentFormulaArgument(buildRangeTextFromCells(formulaRangeAnchor, { row, col }));
-                        return;
-                    }
-                    if (!isMouseSelecting) return;
-                    selectionEnd = { row, col };
-                    updateSelectionHighlight();
-                });
-
-                td.addEventListener("click", () => {
-                    // Zaznaczenie jest obsługiwane na mousedown, żeby kliknięcie było natychmiastowe.
-                });
-
-                td.addEventListener("dblclick", event => {
-                    event.preventDefault();
-                    const oldStart = selectionStart ? { ...selectionStart } : null;
-                    const oldEnd = selectionEnd ? { ...selectionEnd } : null;
-                    activeCell = { row, col };
-                    updateFormulaBar();
-                    if (oldStart && oldEnd) {
-                        selectionStart = oldStart;
-                        selectionEnd = oldEnd;
-                        updateSelectionHighlight();
-                    }
-                    if (!editableBlocked) enableCellEditing(row, col, td);
-                });
-
-                td.addEventListener("contextmenu", event => {
-                    event.preventDefault();
-                    if (document.activeElement === td) td.blur();
-                    showCellContextMenu(row, col, event);
-                });
-
-                td.addEventListener("focus", () => {
-                    const currentRaw = currentSheet.grid[row][col] ?? "";
-                    if (formulaInput) formulaInput.value = currentRaw;
-                });
-
-                td.addEventListener("blur", () => {
-                    if (!editableBlocked && td.classList.contains("we-cell-editing")) {
-                        const newValue = td.textContent ?? "";
-                        td.classList.remove("we-cell-editing");
-                        td.contentEditable = "false";
-                        if (newValue !== (currentSheet.grid[row][col] ?? "")) {
-                            pushHistorySnapshot();
-                            currentSheet.grid[row][col] = newValue;
-                            markDirty();
-                            logUserAction("Edycja komórki", { type: "cell_edit", cell: cellAddress(row, col), newValue });
-                        }
-                        td.innerHTML = cellDisplayValue(row, col).html;
-                        applyCellStyleToElement(td, row, col);
-                        if (row === activeCell.row && col === activeCell.col) {
-                            attachFillHandle(td, row, col);
-                        }
-                        refreshComputedCells(row, col);
-                    }
-                });
-
-                td.addEventListener("input", () => {
-                    if (!editableBlocked && td.classList.contains("we-cell-editing")) {
-                        commitActiveCellLive(row, col, td);
-                    }
-                });
-
-                td.addEventListener("keydown", event => {
-                    const editing = td.classList.contains("we-cell-editing");
-                    if (!editing) {
-                        if (event.key === "Enter") {
-                            event.preventDefault();
-                            moveActiveCellBy(1, 0);
-                            return;
-                        }
-                        if (event.key === "Tab") {
-                            event.preventDefault();
-                            moveActiveCellBy(0, event.shiftKey ? -1 : 1);
-                            return;
-                        }
-                        if (event.key === "ArrowDown") { event.preventDefault(); moveActiveCellBy(1, 0); return; }
-                        if (event.key === "ArrowUp") { event.preventDefault(); moveActiveCellBy(-1, 0); return; }
-                        if (event.key === "ArrowRight") { event.preventDefault(); moveActiveCellBy(0, 1); return; }
-                        if (event.key === "ArrowLeft") { event.preventDefault(); moveActiveCellBy(0, -1); return; }
-                        if (!editableBlocked && event.key.length === 1 && !event.ctrlKey && !event.metaKey && !event.altKey) {
-                            event.preventDefault();
-                            enableCellEditing(row, col, td, event.key);
-                        }
-                        return;
-                    }
-                    if (event.key === "Enter") {
-                        event.preventDefault();
-                        td.blur();
-                        moveActiveCellBy(1, 0);
-                        return;
-                    }
-                    if (event.key === "Escape") {
-                        event.preventDefault();
-                        td.classList.remove("we-cell-editing");
-                        td.contentEditable = "false";
-                        td.innerHTML = cellDisplayValue(row, col).html;
-                        applyCellStyleToElement(td, row, col);
-                        td.focus({ preventScroll: true });
-                    }
-                });
-
-                td.querySelector(".we-fill-handle")?.addEventListener("mousedown", event => {
-                    event.preventDefault();
-                    event.stopPropagation();
-                    isFillDragging = true;
-                    fillDragStart = { row, col };
-                    fillDragEnd = { row, col };
-                    updateSelectionHighlight();
-                });
-
                 cellElements[row][col] = td;
                 tr.appendChild(td);
             }
 
-            body.appendChild(tr);
+            bodyFragment.appendChild(tr);
         }
 
+        body.appendChild(bodyFragment);
         updateSelectionHighlight();
-        autoFitColumns();
-        rerenderGeneratedObjects();
+        scheduleApplyColumnWidths(getAutoColumnWidths(false));
+        if (window.requestIdleCallback) {
+            window.requestIdleCallback(() => rerenderGeneratedObjects(), { timeout: 600 });
+        } else {
+            window.setTimeout(() => rerenderGeneratedObjects(), 0);
+        }
     }
 
     function refreshComputedCells(changedRow = null, changedCol = null) {
         if (!currentSheet || !body) return;
+        if (Number.isInteger(changedRow) && Number.isInteger(changedCol)) {
+            syncComputedCellRegistry(changedRow, changedCol);
+        }
         const focused = document.activeElement;
-        body.querySelectorAll("td[data-row][data-col]").forEach(td => {
-            const row = Number(td.dataset.row);
-            const col = Number(td.dataset.col);
+        computedCellKeys.forEach(key => {
+            const [row, col] = key.split(":").map(Number);
             if (!Number.isInteger(row) || !Number.isInteger(col)) return;
-            if (td === focused) return;
+            const td = cellElements[row]?.[col];
+            if (!td || td === focused) return;
             const raw = currentSheet.grid?.[row]?.[col] ?? "";
-            const shouldRefresh = typeof raw === "string" && (raw.trim().startsWith("=") || raw.startsWith(SPILL_PREFIX));
-            if (!shouldRefresh) return;
+            if (!isCellValueComputed(raw)) {
+                computedCellKeys.delete(key);
+                return;
+            }
             const display = cellDisplayValue(row, col);
             td.innerHTML = display.html;
             applyCellStyleToElement(td, row, col);
             if (row === activeCell.row && col === activeCell.col) {
-                td.insertAdjacentHTML("beforeend", '<span class="we-fill-handle" contenteditable="false" title="Przeciągnij, aby skopiować formułę lub wartość"></span>');
+                attachFillHandle(td, row, col);
             }
         });
     }
@@ -2562,7 +2672,7 @@ document.addEventListener("DOMContentLoaded", function () {
         if (!activeColumnResize) return;
         const nextWidth = activeColumnResize.startWidth + (event.clientX - activeColumnResize.startX);
         setStoredColumnWidth(activeColumnResize.col, nextWidth);
-        applyColumnWidths(getAutoColumnWidths());
+        scheduleApplyColumnWidths(getAutoColumnWidths());
     });
 
     document.addEventListener("mouseup", () => {
@@ -2600,7 +2710,7 @@ document.addEventListener("DOMContentLoaded", function () {
             commitActiveSheetToWorkbook();
             markDirty();
         }
-        applyColumnWidths(getAutoColumnWidths(false));
+        scheduleApplyColumnWidths(getAutoColumnWidths(false));
     }
 
     function applyFormulaToActiveCell() {
@@ -3325,10 +3435,17 @@ document.addEventListener("DOMContentLoaded", function () {
             setAutosaveState("", currentSheetCanEdit ? "Brak zmian" : "Tylko do odczytu");
 
             window.requestAnimationFrame(() => {
-                initializeFormulaBrowser();
                 openInitialQuickPanel();
-                window.ARES_I18N?.refresh?.();
             });
+            const idleInit = () => {
+                initializeFormulaBrowser();
+                window.ARES_I18N?.refresh?.();
+            };
+            if (window.requestIdleCallback) {
+                window.requestIdleCallback(idleInit, { timeout: 700 });
+            } else {
+                window.setTimeout(idleInit, 80);
+            }
         } catch (error) {
             console.error("Błąd w loadSheet():", error);
             if (sheetMetaEl) sheetMetaEl.textContent = "Nie udało się załadować danych arkusza.";

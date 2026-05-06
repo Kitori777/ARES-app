@@ -1,0 +1,61 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}ARES | Helpdesk{% endblock %}
+{% block topbar_title %}Helpdesk ARES{% endblock %}
+
+{% block content %}
+<section class="helpdesk-page">
+    <div class="helpdesk-hero">
+        <div>
+            <div class="eyebrow">CENTRUM POMOCY</div>
+            <h1>Helpdesk ARES</h1>
+            <p>Jedno miejsce do szybkiego wyjaśnienia funkcji aplikacji: arkuszy, importu, formuł, wykresów, Solvera, udostępniania, profilu i zgłoszeń.</p>
+        </div>
+        <div class="helpdesk-hero-card">
+            <strong>Asystent głosowy</strong>
+            <span>Wpisz pytanie i kliknij „Odpowiedz głosowo”, a przeglądarka odczyta odpowiedź.</span>
+        </div>
+    </div>
+
+    <div class="helpdesk-layout">
+        <section class="helpdesk-chat-card">
+            <div class="helpdesk-chat-head">
+                <div>
+                    <strong>Zapytaj o aplikację</strong>
+                    <p>Przykład: „Jak zaimportować XLSX?”, „Jak działa Solver?”, „Jak udostępnić arkusz?”.</p>
+                </div>
+            </div>
+            <div class="helpdesk-question-row">
+                <input id="helpdesk-question" type="search" placeholder="Wpisz pytanie o ARES..." autocomplete="off">
+                <button id="helpdesk-answer-btn" class="btn btn-primary" type="button">Odpowiedz</button>
+                <button id="helpdesk-speak-btn" class="btn btn-secondary" type="button">Odpowiedz głosowo</button>
+            </div>
+            <div id="helpdesk-answer" class="helpdesk-answer">
+                Wpisz pytanie albo wybierz temat z listy poniżej.
+            </div>
+        </section>
+
+        <aside class="helpdesk-topics-card">
+            <strong>Najczęstsze tematy</strong>
+            <div id="helpdesk-topic-list" class="helpdesk-topic-list"></div>
+        </aside>
+    </div>
+
+    <section class="helpdesk-knowledge">
+        <h2>Co potrafi ARES?</h2>
+        <div class="helpdesk-grid">
+            <article><h3>Arkusze</h3><p>Edycja komórek, zaznaczanie zakresów, skróty klawiszowe, formatowanie, komentarze, notatki, pola wyboru, listy rozwijane i obsługa wielu zakładek.</p></article>
+            <article><h3>Formuły</h3><p>Obliczenia rozpoczynane znakiem =, odwołania do komórek, katalog funkcji, podpowiedzi argumentów i podstawowe formuły matematyczne.</p></article>
+            <article><h3>Dane</h3><p>Import CSV, TXT, TSV, XLSX i XLS, eksport CSV, sortowanie, czyszczenie danych, szablony tabel oraz scalanie arkuszy.</p></article>
+            <article><h3>Analiza</h3><p>Wykresy, tabele przestawne, formatowanie warunkowe, Solver oraz gotowe układy akademickie do nauki i zadań.</p></article>
+            <article><h3>Współpraca</h3><p>Udostępnianie arkusza innym użytkownikom, poziomy dostępu oraz czat przypięty do konkretnego arkusza.</p></article>
+            <article><h3>Profil i administracja</h3><p>Motywy, język, skróty szybkiego dostępu, avatar, historia zmian, zgłaszanie problemów i panel administratora.</p></article>
+        </div>
+    </section>
+</section>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/ares_helpdesk.js' %}?v=0.6.6"></script>
+{% endblock %}

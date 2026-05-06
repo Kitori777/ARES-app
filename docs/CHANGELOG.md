@@ -1,5 +1,24 @@
 # Changelog
 
+## [v0.6.0] - 2026-05-06
+
+### Dodano
+- Dodano stronę **Helpdesk ARES** z bazą wiedzy o arkuszach, imporcie, formułach, wykresach, Solverze, udostępnianiu, profilu i zgłoszeniach.
+- Dodano odpowiedzi głosowe w Helpdesku z użyciem `speechSynthesis` przeglądarki.
+- Dodano czat przypięty do arkusza, widoczny dla użytkowników mających dostęp do danego arkusza.
+- Dodano model `SheetChatMessage`, migrację bazy oraz API pobierania i wysyłania wiadomości czatu arkusza.
+
+### Zmieniono
+- Przyspieszono renderowanie siatki arkusza przez składanie wierszy w `DocumentFragment`.
+- Ograniczono kosztowne automatyczne dopasowywanie szerokości kolumn przy każdym renderze arkusza.
+- Zmieniono przeciąganie zaznaczenia na lżejsze odświeżanie przez `requestAnimationFrame`.
+- Przesunięto odświeżanie wygenerowanych obiektów na czas bezczynności przeglądarki, aby kliknięcia i zaznaczanie komórek były płynniejsze.
+
+### Naprawiono
+- Ograniczono nadmiarowe logowanie żądań API w konsoli podczas pracy arkusza.
+- Poprawiono UX pracy w arkuszu przy większych zakresach i częstym zaznaczaniu komórek.
+
+
 # Changelog
 
 ## [v0.5.0] - 2026-05-05

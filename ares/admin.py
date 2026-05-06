@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import HistoryEntry, Sheet, SheetShare
+from .models import HistoryEntry, Sheet, SheetShare, SheetChatMessage
 
 
 @admin.register(Sheet)
@@ -25,3 +25,10 @@ class HistoryEntryAdmin(admin.ModelAdmin):
     list_filter = ('action', 'created_at')
     search_fields = ('user__username', 'user__email', 'sheet__name', 'action')
     readonly_fields = ('created_at',)
+
+
+@admin.register(SheetChatMessage)
+class SheetChatMessageAdmin(admin.ModelAdmin):
+    list_display = ('sheet', 'user', 'body', 'created_at')
+    search_fields = ('sheet__name', 'user__username', 'user__email', 'body')
+    list_filter = ('created_at',)

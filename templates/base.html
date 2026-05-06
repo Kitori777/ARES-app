@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}ARES{% endblock %}</title>
-    <link rel="stylesheet" href="{% static 'css/style.css' %}?v=0.5.9">
+    <link rel="stylesheet" href="{% static 'css/style.css' %}?v=0.6.6">
     {% block extra_head %}{% endblock %}
 </head>
 <body class="ares-body" data-theme="midnight-blue">
@@ -30,6 +30,7 @@
             <a href="{% url 'import_data' %}" class="app-menu-link">Import CSV/XLSX</a>
             <a href="{% url 'history' %}" class="app-menu-link">Historia zmian</a>
             <a href="{% url 'reports' %}" class="app-menu-link">Raporty</a>
+            <a href="{% url 'helpdesk' %}" class="app-menu-link">Helpdesk</a>
             <a href="{% url 'profile' %}" class="app-menu-link">Profil użytkownika</a>
             <a href="{% url 'bug_report' %}" class="app-menu-link">Zgłoś problem</a>
             {% if request.user.is_superuser %}<a href="{% url 'admin_bug_reports' %}" class="app-menu-link">Panel zgłoszeń</a>
@@ -70,6 +71,7 @@
                             <a href="{% url 'profile' %}#appearance">Wygląd i motywy</a>
                             <a href="{% url 'profile' %}#shortcuts">Skróty</a>
                             <a href="{% url 'profile' %}#preferences">Preferencje</a>
+                            <a href="{% url 'helpdesk' %}">Helpdesk</a>
                             <a href="{% url 'bug_report' %}">Zgłoś problem</a>
                             {% if request.user.is_superuser %}<a href="{% url 'admin_bug_reports' %}">Panel zgłoszeń</a>
                             <a href="{% url 'admin_users_panel' %}">Panel użytkowników</a>{% endif %}
@@ -104,6 +106,7 @@
             <a href="{% url 'import_data' %}" data-dock-shortcut="import" title="Import danych"><span>⇩</span><small>Import</small></a>
             <a href="{% url 'reports' %}" data-dock-shortcut="reports" title="Raporty"><span>◫</span><small>Raporty</small></a>
             <a href="{% url 'history' %}" data-dock-shortcut="history" title="Historia zmian"><span>⏱</span><small>Historia</small></a>
+            <a href="{% url 'helpdesk' %}" data-dock-shortcut="helpdesk" title="Helpdesk"><span>?</span><small>Pomoc</small></a>
             <a href="{% url 'worksheet_editor' %}?open=charts" data-dock-shortcut="charts" title="Wykresy"><span>◒</span><small>Wykresy</small></a>
             <a href="{% url 'worksheet_editor' %}?open=solver" data-dock-shortcut="solver" title="Solver"><span>∑</span><small>Solver</small></a>
             <a href="{% url 'worksheet_editor' %}?open=math" data-dock-shortcut="math" title="Matematyka akademicka"><span>∫</span><small>Matematyka</small></a>
@@ -170,6 +173,7 @@
             solver: false,
             math: false,
             merge: false,
+            helpdesk: true,
             feedback: false,
             adminReports: false,
             adminUsers: false

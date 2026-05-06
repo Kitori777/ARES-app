@@ -33,9 +33,13 @@ function getCsrfToken() {
 }
 
 function estimateSizeMbFromGrid(sheet) {
+    const bytes = Number(sheet?.gridSizeBytes);
+    if (Number.isFinite(bytes) && bytes >= 0) {
+        return (bytes / (1024 * 1024)).toFixed(2);
+    }
     const json = JSON.stringify(sheet);
-    const bytes = new Blob([json]).size;
-    return (bytes / (1024 * 1024)).toFixed(2);
+    const fallbackBytes = new Blob([json]).size;
+    return (fallbackBytes / (1024 * 1024)).toFixed(2);
 }
 
 function formatDate(dateString) {
