@@ -209,6 +209,10 @@ document.addEventListener("DOMContentLoaded", function () {
     let fillDragStart = null;
     let fillDragEnd = null;
     let isFillDragging = false;
+    let formulaRangePickMode = false;
+    let formulaRangeAnchor = null;
+    let skipFormulaBlurHide = false;
+    let formulaEditTarget = null;
 
     const SPILL_PREFIX = "__SPILL__:";
     const DEFAULT_CHART_COLOR = "#4f8cff";
@@ -1061,6 +1065,95 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     }
 
+    function updateCellElement(row, col) {
+        const td = cellElements[row]?.[col];
+        if (!td) return;
+        td.innerHTML = cellDisplayValue(row, col).html;
+        applyCellStyleToElement(td, row, col);
+        if (row === activeCell.row && col === activeCell.col) attachFillHandle(td, row, col);
+    }
+
+    function clearSelectedCellsFast() {
+        if (!currentSheet) return;
+        pushHistorySnapshot();
+        forEachSelectedCell((row, col) => {
+            currentSheet.grid[row][col] = "";
+            updateCellElement(row, col);
+        });
+        markDirty();
+        updateFormulaBar();
+    }
+
+    function fillDownSelection() {
+        const bounds = getSelectionBounds();
+        if (!currentSheet || !bounds || bounds.rowEnd <= bounds.rowStart) return;
+        pushHistorySnapshot();
+        for (let col = bounds.colStart; col <= bounds.colEnd; col += 1) {
+            const sourceValue = currentSheet.grid[bounds.rowStart]?.[col] ?? "";
+            const sourceStyle = { ...getCellStyle(bounds.rowStart, col) };
+            for (let row = bounds.rowStart + 1; row <= bounds.rowEnd; row += 1) {
+                const rowOffset = row - bounds.rowStart;
+                currentSheet.grid[row][col] = adjustFormulaReferences(sourceValue, rowOffset, 0);
+                currentSheet.styles[getCellStyleKey(row, col)] = { ...sourceStyle };
+                updateCellElement(row, col);
+            }
+        }
+        updateSelectionHighlight();
+        markDirty();
+    }
+
+    function enterCellEdit(row = activeCell.row, col = activeCell.col) {
+        const td = cellElements[row]?.[col];
+        if (!td || td.classList.contains("we-special-cell")) return;
+        enableCellEditing(row, col, td);
+    }
+
+    function clearFastActiveOnly() {
+        activeCellElement?.classList?.remove("active-cell");
+        colHeaderElements[activeCell.col]?.classList?.remove("active-header");
+        rowHeaderElements[activeCell.row]?.classList?.remove("active-header");
+        activeCellElement?.querySelector(".we-fill-handle")?.remove();
+    }
+
+    function fastSelectCell(row, col, focus = false) {
+        if (!currentSheet) return;
+        const prevRow = activeCell.row;
+        const prevCol = activeCell.col;
+        const sameCell = prevRow === row && prevCol === col;
+
+        if (!sameCell) {
+            clearFastActiveOnly();
+        }
+
+        activeCell = { row, col };
+        selectionStart = { row, col };
+        selectionEnd = { row, col };
+
+        activeCellElement = cellElements[row]?.[col] || null;
+        activeCellElement?.classList.add("active-cell");
+        colHeaderElements[col]?.classList.add("active-header");
+        rowHeaderElements[row]?.classList.add("active-header");
+        attachFillHandle(activeCellElement, row, col);
+
+        updateFormulaBar();
+        scheduleRefreshStartControls();
+
+        if (focus && activeCellElement) {
+            activeCellElement.focus({ preventScroll: true });
+        }
+    }
+
+    function isFormulaRangePickerReady() {
+        if (!formulaInput || document.activeElement !== formulaInput) return false;
+        const value = String(formulaInput.value || "");
+        if (!value.trim().startsWith("=")) return false;
+        const pos = formulaInput.selectionStart ?? value.length;
+        const before = value.slice(0, pos);
+        const lastChar = before.trim().slice(-1);
+        if (["(", ";", ",", "+", "-", "*", "/", "^"].includes(lastChar)) return true;
+        return /\$?[A-Z]+\$?\d+(?::\$?[A-Z]+\$?\d+)?$/i.test(before);
+    }
+
     function ensureConditionalRules() {
         if (!currentSheet) return [];
         if (!Array.isArray(currentSheet.conditionalRules)) currentSheet.conditionalRules = [];
@@ -1692,18 +1785,7 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     function setActiveCell(row, col, focus = false) {
-        const sameCell = activeCell.row === row && activeCell.col === col;
-        activeCell = { row, col };
-        if (!sameCell) {
-            updateFormulaBar();
-            updateSelectionHighlight();
-            scheduleRefreshStartControls();
-        }
-
-        if (focus) {
-            const cell = cellElements[row]?.[col];
-            if (cell) cell?.focus?.({ preventScroll: true });
-        }
+        fastSelectCell(row, col, focus);
     }
 
     function getStoredColumnWidth(col) {
@@ -1972,6 +2054,23 @@ document.addEventListener("DOMContentLoaded", function () {
         selection.addRange(range);
     }
 
+    function attachFillHandle(td, row, col) {
+        if (!td || row !== activeCell.row || col !== activeCell.col) return;
+        td.querySelector(".we-fill-handle")?.remove();
+        const handle = document.createElement("span");
+        handle.className = "we-fill-handle";
+        handle.title = "Przeciągnij, aby skopiować formułę lub wartość";
+        handle.addEventListener("mousedown", event => {
+            event.preventDefault();
+            event.stopPropagation();
+            isFillDragging = true;
+            fillDragStart = { row, col };
+            fillDragEnd = { row, col };
+            updateSelectionHighlight();
+        });
+        td.appendChild(handle);
+    }
+
     function enableCellEditing(row, col, td, initialValue = null) {
         if (!currentSheet || !td || td.classList.contains("we-special-cell")) return;
         td.classList.add("we-cell-editing");
@@ -1980,6 +2079,49 @@ document.addEventListener("DOMContentLoaded", function () {
         td.textContent = initialValue !== null ? initialValue : (currentSheet.grid[row][col] ?? "");
         td.focus({ preventScroll: true });
         setCaretToEnd(td);
+    }
+
+    function isEditingFormulaInBar() {
+        return isFormulaRangePickerReady();
+    }
+
+    function buildRangeTextFromCells(a, b = a) {
+        if (!a || !b) return "";
+        const rowStart = Math.min(a.row, b.row);
+        const rowEnd = Math.max(a.row, b.row);
+        const colStart = Math.min(a.col, b.col);
+        const colEnd = Math.max(a.col, b.col);
+        const startRef = cellAddress(rowStart, colStart);
+        const endRef = cellAddress(rowEnd, colEnd);
+        return startRef === endRef ? startRef : `${startRef}:${endRef}`;
+    }
+
+    function replaceCurrentFormulaArgument(rangeText) {
+        if (!formulaInput || !rangeText) return;
+        const value = formulaInput.value || "";
+        const cursor = formulaInput.selectionStart ?? value.length;
+        const before = value.slice(0, cursor);
+        const after = value.slice(cursor);
+        const openIndex = before.lastIndexOf("(");
+        const commaIndex = before.lastIndexOf(";");
+        const commaIndex2 = before.lastIndexOf(",");
+        const splitIndex = Math.max(openIndex, commaIndex, commaIndex2);
+        const lastToken = before.slice(splitIndex + 1);
+        const tokenMatch = lastToken.match(/(\$?[A-Z]+\$?\d+(?::\$?[A-Z]+\$?\d+)?)$/i);
+        let start = cursor;
+        if (tokenMatch) start = cursor - tokenMatch[1].length;
+        const next = value.slice(0, start) + rangeText + after;
+        formulaInput.value = next;
+        const pos = start + rangeText.length;
+        formulaInput.setSelectionRange(pos, pos);
+        formulaInput.focus({ preventScroll: true });
+        formulaInput.dispatchEvent(new Event("input", { bubbles: true }));
+    }
+
+    function moveActiveCellBy(deltaRow, deltaCol) {
+        const row = Math.max(0, Math.min(currentRows - 1, activeCell.row + deltaRow));
+        const col = Math.max(0, Math.min(currentCols - 1, activeCell.col + deltaCol));
+        fastSelectCell(row, col, true);
     }
 
     function renderGrid() {
@@ -2129,7 +2271,7 @@ document.addEventListener("DOMContentLoaded", function () {
                     td.addEventListener("dblclick", () => openCommentEditor((currentSheet.grid[row][col] || "").startsWith("=NOTE(") ? "note" : "comment"));
                 }
                 if (row === activeCell.row && col === activeCell.col) {
-                    td.insertAdjacentHTML("beforeend", '<span class="we-fill-handle" title="Przeciągnij, aby skopiować formułę lub wartość"></span>');
+                    attachFillHandle(td, row, col);
                 }
 
                 const editableBlocked =
@@ -2148,16 +2290,32 @@ document.addEventListener("DOMContentLoaded", function () {
                     if (event.button !== 0) return;
                     if (event.target?.classList?.contains("we-fill-handle")) return;
 
+                    if (isEditingFormulaInBar()) {
+                        event.preventDefault();
+                        skipFormulaBlurHide = true;
+                        formulaRangePickMode = true;
+                        formulaRangeAnchor = { row, col };
+                        selectionStart = { row, col };
+                        selectionEnd = { row, col };
+                        updateSelectionHighlight();
+                        replaceCurrentFormulaArgument(buildRangeTextFromCells(formulaRangeAnchor, { row, col }));
+                        return;
+                    }
+
                     isMouseSelecting = true;
-                    selectionStart = { row, col };
-                    selectionEnd = { row, col };
-                    setActiveCell(row, col, false);
+                    fastSelectCell(row, col, false);
                 });
 
                 td.addEventListener("mouseover", () => {
                     if (isFillDragging) {
                         fillDragEnd = { row, col };
                         updateSelectionHighlight();
+                        return;
+                    }
+                    if (formulaRangePickMode && formulaRangeAnchor) {
+                        selectionEnd = { row, col };
+                        updateSelectionHighlight();
+                        replaceCurrentFormulaArgument(buildRangeTextFromCells(formulaRangeAnchor, { row, col }));
                         return;
                     }
                     if (!isMouseSelecting) return;
@@ -2169,7 +2327,17 @@ document.addEventListener("DOMContentLoaded", function () {
                     // Zaznaczenie jest obsługiwane na mousedown, żeby kliknięcie było natychmiastowe.
                 });
 
-                td.addEventListener("dblclick", () => {
+                td.addEventListener("dblclick", event => {
+                    event.preventDefault();
+                    const oldStart = selectionStart ? { ...selectionStart } : null;
+                    const oldEnd = selectionEnd ? { ...selectionEnd } : null;
+                    activeCell = { row, col };
+                    updateFormulaBar();
+                    if (oldStart && oldEnd) {
+                        selectionStart = oldStart;
+                        selectionEnd = oldEnd;
+                        updateSelectionHighlight();
+                    }
                     if (!editableBlocked) enableCellEditing(row, col, td);
                 });
 
@@ -2198,7 +2366,7 @@ document.addEventListener("DOMContentLoaded", function () {
                         td.innerHTML = cellDisplayValue(row, col).html;
                         applyCellStyleToElement(td, row, col);
                         if (row === activeCell.row && col === activeCell.col) {
-                            td.insertAdjacentHTML("beforeend", '<span class="we-fill-handle" title="Przeciągnij, aby skopiować formułę lub wartość"></span>');
+                            attachFillHandle(td, row, col);
                         }
                         refreshComputedCells(row, col);
                     }
@@ -2212,20 +2380,40 @@ document.addEventListener("DOMContentLoaded", function () {
 
                 td.addEventListener("keydown", event => {
                     const editing = td.classList.contains("we-cell-editing");
-                    if (event.key === "Enter") {
-                        event.preventDefault();
-                        if (!editing && !editableBlocked) {
-                            enableCellEditing(row, col, td);
+                    if (!editing) {
+                        if (event.key === "Enter") {
+                            event.preventDefault();
+                            moveActiveCellBy(1, 0);
                             return;
                         }
-                        td.blur();
-                        clearSelection();
-                        setActiveCell(Math.min(currentRows - 1, row + 1), col, true);
+                        if (event.key === "Tab") {
+                            event.preventDefault();
+                            moveActiveCellBy(0, event.shiftKey ? -1 : 1);
+                            return;
+                        }
+                        if (event.key === "ArrowDown") { event.preventDefault(); moveActiveCellBy(1, 0); return; }
+                        if (event.key === "ArrowUp") { event.preventDefault(); moveActiveCellBy(-1, 0); return; }
+                        if (event.key === "ArrowRight") { event.preventDefault(); moveActiveCellBy(0, 1); return; }
+                        if (event.key === "ArrowLeft") { event.preventDefault(); moveActiveCellBy(0, -1); return; }
+                        if (!editableBlocked && event.key.length === 1 && !event.ctrlKey && !event.metaKey && !event.altKey) {
+                            event.preventDefault();
+                            enableCellEditing(row, col, td, event.key);
+                        }
                         return;
                     }
-                    if (!editing && !editableBlocked && event.key.length === 1 && !event.ctrlKey && !event.metaKey && !event.altKey) {
+                    if (event.key === "Enter") {
                         event.preventDefault();
-                        enableCellEditing(row, col, td, event.key);
+                        td.blur();
+                        moveActiveCellBy(1, 0);
+                        return;
+                    }
+                    if (event.key === "Escape") {
+                        event.preventDefault();
+                        td.classList.remove("we-cell-editing");
+                        td.contentEditable = "false";
+                        td.innerHTML = cellDisplayValue(row, col).html;
+                        applyCellStyleToElement(td, row, col);
+                        td.focus({ preventScroll: true });
                     }
                 });
 
@@ -2293,7 +2481,13 @@ document.addEventListener("DOMContentLoaded", function () {
         const colStart = Math.min(fillDragStart.col, fillDragEnd.col);
         const colEnd = Math.max(fillDragStart.col, fillDragEnd.col);
 
-        if (rowStart === rowEnd && colStart === colEnd) return;
+        if (rowStart === rowEnd && colStart === colEnd) {
+            fillDragStart = null;
+            fillDragEnd = null;
+            isFillDragging = false;
+            updateSelectionHighlight();
+            return;
+        }
 
         pushHistorySnapshot();
         ensureDimensions(rowEnd + 1, colEnd + 1);
@@ -2306,29 +2500,62 @@ document.addEventListener("DOMContentLoaded", function () {
                 const colOffset = col - fillDragStart.col;
                 currentSheet.grid[row][col] = adjustFormulaReferences(sourceValue, rowOffset, colOffset);
                 currentSheet.styles[getCellStyleKey(row, col)] = { ...sourceStyle };
+
+                const td = cellElements[row]?.[col];
+                if (td) {
+                    td.innerHTML = cellDisplayValue(row, col).html;
+                    applyCellStyleToElement(td, row, col);
+                }
             }
         }
 
         activeCell = { row: fillDragEnd.row, col: fillDragEnd.col };
+        selectionStart = { row: rowStart, col: colStart };
+        selectionEnd = { row: rowEnd, col: colEnd };
         fillDragStart = null;
         fillDragEnd = null;
         isFillDragging = false;
-        renderGrid();
+        updateFormulaBar();
+        updateSelectionHighlight();
+        attachFillHandle(cellElements[activeCell.row]?.[activeCell.col], activeCell.row, activeCell.col);
         markDirty();
     }
 
     document.addEventListener("keydown", event => {
         const target = event.target;
         const isPlainEditable = target?.tagName === "INPUT" || target?.tagName === "TEXTAREA" || target?.isContentEditable;
+        const insideSheet = document.activeElement?.closest?.(".we-sheet-table") || target?.closest?.(".we-sheet-table");
+
+        if (insideSheet && !isPlainEditable && (event.key === "Delete" || event.key === "Backspace")) {
+            event.preventDefault();
+            clearSelectedCellsFast();
+            return;
+        }
+
+        if (insideSheet && !isPlainEditable && event.key === "F2") {
+            event.preventDefault();
+            enterCellEdit();
+            return;
+        }
+
+        if (insideSheet && !isPlainEditable && (event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "d") {
+            event.preventDefault();
+            fillDownSelection();
+            return;
+        }
+
         if (!event.ctrlKey && !event.metaKey) return;
         const key = event.key.toLowerCase();
-        if (!["c", "x", "v"].includes(key)) return;
+        if (!["c", "x", "v", "s", "z", "y"].includes(key)) return;
         if (isPlainEditable && !target?.closest?.(".we-sheet-table")) return;
-        if (!document.activeElement?.closest?.(".we-sheet-table") && !target?.closest?.(".we-sheet-table")) return;
+        if (!insideSheet && key !== "s") return;
         event.preventDefault();
         if (key === "c") copySelectionToClipboard(false);
         if (key === "x") copySelectionToClipboard(true);
         if (key === "v") pasteClipboardToActiveCell();
+        if (key === "s") saveSheet();
+        if (key === "z") undoLastChange();
+        if (key === "y") redoLastChange();
     });
 
     document.addEventListener("mousemove", event => {
@@ -2344,9 +2571,19 @@ document.addEventListener("DOMContentLoaded", function () {
             document.body.classList.remove("we-resizing-columns");
             markDirty();
         }
+        if (isFillDragging) {
+            applyFillDrag();
+            return;
+        }
+        if (formulaRangePickMode) {
+            formulaRangePickMode = false;
+            formulaRangeAnchor = null;
+            skipFormulaBlurHide = false;
+            formulaInput?.focus?.({ preventScroll: true });
+            updateSelectionHighlight();
+        }
         if (isMouseSelecting) {
             isMouseSelecting = false;
-            updateSelectionHighlight();
         }
     });
 
@@ -2368,6 +2605,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
     function applyFormulaToActiveCell() {
         if (!currentSheet) return;
+        const targetCell = formulaEditTarget || activeCell;
         const value = formulaInput?.value ?? "";
         const validation = validateFormulaBeforeApply(value);
         if (!validation.ok) {
@@ -2379,19 +2617,26 @@ document.addEventListener("DOMContentLoaded", function () {
 
         pushHistorySnapshot();
 
-        if (hasMultiSelection()) {
-            forEachSelectedCell((row, col) => {
-                ensureDimensions(row + 1, col + 1);
-                currentSheet.grid[row][col] = value;
-            });
-        } else {
-            ensureDimensions(activeCell.row + 1, activeCell.col + 1);
-            currentSheet.grid[activeCell.row][activeCell.col] = value;
-        }
+        ensureDimensions(targetCell.row + 1, targetCell.col + 1);
+        currentSheet.grid[targetCell.row][targetCell.col] = value;
 
-        renderGrid();
+        const activeTd = cellElements[targetCell.row]?.[targetCell.col];
+        if (activeTd) {
+            activeTd.innerHTML = cellDisplayValue(targetCell.row, targetCell.col).html;
+            applyCellStyleToElement(activeTd, targetCell.row, targetCell.col);
+            attachFillHandle(activeTd, targetCell.row, targetCell.col);
+        }
+        refreshComputedCells(targetCell.row, targetCell.col);
         markDirty();
-        logUserAction("Wpisano formułę", { type: "formula_apply", formula: value, cell: cellAddress(activeCell.row, activeCell.col) });
+        formulaEditTarget = null;
+        activeCell = { ...targetCell };
+        selectionStart = { ...targetCell };
+        selectionEnd = { ...targetCell };
+        updateSelectionHighlight();
+        updateFormulaBar();
+        if (formulaHelperPopover) formulaHelperPopover.hidden = true;
+        formulaBarRangeSelectionEnabled = false;
+        logUserAction("Wpisano formułę", { type: "formula_apply", formula: value, cell: cellAddress(targetCell.row, targetCell.col) });
     }
 
     function renderFormulaCategories() {
@@ -3056,10 +3301,7 @@ document.addEventListener("DOMContentLoaded", function () {
     async function loadSheet() {
         try {
             await ensureSheetIdForEditor();
-            console.log("Ładowanie arkusza, sheetId =", sheetId);
-
             const data = await getJson(`/ares/api/sheets/${sheetId}/`);
-            console.log("Dane arkusza z API:", data);
 
             currentSheet = normalizeLoadedSheet({
                 ...data,
@@ -3078,12 +3320,15 @@ document.addEventListener("DOMContentLoaded", function () {
             if (renameBtn) renameBtn.disabled = !currentSheetCanShare;
             renderWorkbookTabs();
 
-            initializeFormulaBrowser();
             renderGrid();
             activateStartRibbon();
             setAutosaveState("", currentSheetCanEdit ? "Brak zmian" : "Tylko do odczytu");
-            openInitialQuickPanel();
-            window.ARES_I18N?.refresh?.();
+
+            window.requestAnimationFrame(() => {
+                initializeFormulaBrowser();
+                openInitialQuickPanel();
+                window.ARES_I18N?.refresh?.();
+            });
         } catch (error) {
             console.error("Błąd w loadSheet():", error);
             if (sheetMetaEl) sheetMetaEl.textContent = "Nie udało się załadować danych arkusza.";
@@ -4541,22 +4786,20 @@ document.addEventListener("DOMContentLoaded", function () {
             renderFormulaHelper();
             if (!currentSheet) return;
             const value = formulaInput.value ?? "";
-            const activeTd = body?.querySelector(`td[data-row="${activeCell.row}"][data-col="${activeCell.col}"]`);
             ensureDimensions(activeCell.row + 1, activeCell.col + 1);
             currentSheet.grid[activeCell.row][activeCell.col] = value;
-            if (activeTd && document.activeElement !== activeTd) {
-                activeTd.innerHTML = cellDisplayValue(activeCell.row, activeCell.col).html;
-                applyCellStyleToElement(activeTd, activeCell.row, activeCell.col);
-            }
             clearTimeout(autosaveTimer);
-            autosaveTimer = setTimeout(saveSheet, 900);
-            setAutosaveState("saving", "Zapisywanie...");
-            window.requestAnimationFrame(() => refreshComputedCells(activeCell.row, activeCell.col));
+            autosaveTimer = setTimeout(saveSheet, 300000);
+            setAutosaveState("saving", "Niezapisane zmiany — autozapis co 5 min");
         });
-        formulaInput?.addEventListener("focus", renderFormulaHelper);
+        formulaInput?.addEventListener("focus", () => {
+            formulaEditTarget = { ...activeCell };
+            renderFormulaHelper();
+        });
         document.addEventListener("click", event => {
             if (!formulaHelperPopover || formulaHelperPopover.hidden) return;
-            if (event.target === formulaInput || formulaHelperPopover.contains(event.target)) return;
+            if (event.target === formulaInput || formulaHelperPopover.contains(event.target) || event.target.closest?.(".we-sheet-table")) return;
+            if (skipFormulaBlurHide) return;
             formulaHelperPopover.hidden = true;
         });
         formulaHelperPopover?.addEventListener("click", event => {

@@ -377,7 +377,12 @@
 
             if (fn === "ABS") return Math.abs(ctx.parseNumber(normalizeScalar(args[0], ctx, visited)));
             if (fn === "ROUND") return Number(ctx.parseNumber(normalizeScalar(args[0], ctx, visited)).toFixed(parseInt(normalizeScalar(args[1], ctx, visited) || 0, 10)));
-            if (fn === "PIERWIASTEK") return Math.sqrt(Math.max(0, ctx.parseNumber(normalizeScalar(args[0], ctx, visited))));
+            if (fn === "PIERWIASTEK") {
+                const value = ctx.parseNumber(normalizeScalar(args[0], ctx, visited));
+                const degree = Math.max(2, ctx.parseNumber(normalizeScalar(args[1], ctx, visited) || 2));
+                if (value < 0 && degree % 2 === 0) return "#BŁĄD";
+                return Math.sign(value) * Math.pow(Math.abs(value), 1 / degree);
+            }
             if (fn === "MOC") return Math.pow(ctx.parseNumber(normalizeScalar(args[0], ctx, visited)), ctx.parseNumber(normalizeScalar(args[1], ctx, visited)));
             if (fn === "LN") return Math.log(ctx.parseNumber(normalizeScalar(args[0], ctx, visited)));
             if (fn === "LOG") return Math.log(ctx.parseNumber(normalizeScalar(args[0], ctx, visited))) / Math.log(ctx.parseNumber(normalizeScalar(args[1], ctx, visited) || 10));

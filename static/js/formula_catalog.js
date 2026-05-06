@@ -3,7 +3,7 @@ window.FORMULA_CATALOG = {
         { name: "SUMA", syntax: "=SUMA(A1:A10)", description: "Dodaje wartości z zakresu lub argumentów.", example: "=SUMA(B2:B10)" },
         { name: "ABS", syntax: "=ABS(A1)", description: "Wartość bezwzględna.", example: "=ABS(B2)" },
         { name: "ROUND", syntax: "=ROUND(A1;2)", description: "Zaokrągla liczbę do wskazanej liczby miejsc.", example: "=ROUND(C2;1)" },
-        { name: "PIERWIASTEK", syntax: "=PIERWIASTEK(A1)", description: "Pierwiastek kwadratowy.", example: "=PIERWIASTEK(D2)" },
+        { name: "PIERWIASTEK", syntax: "=PIERWIASTEK(A1;2)", description: "Pierwiastek z liczby. Drugi argument wybiera stopień pierwiastka: 2, 3, 4 itd.", example: "=PIERWIASTEK(D2;3)", params: [{ label: "liczba lub komórka", description: "Wartość, z której liczysz pierwiastek." }, { label: "stopień", description: "2 = kwadratowy, 3 = sześcienny, 4 = czwartego stopnia itd." }] },
         { name: "MOC", syntax: "=MOC(A1;2)", description: "Podnosi liczbę do potęgi.", example: "=MOC(E2;3)" },
         { name: "LN", syntax: "=LN(A1)", description: "Logarytm naturalny.", example: "=LN(F2)" },
         { name: "LOG", syntax: "=LOG(A1;10)", description: "Logarytm przy dowolnej podstawie.", example: "=LOG(G2;2)" },

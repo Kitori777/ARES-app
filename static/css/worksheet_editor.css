@@ -3997,3 +3997,191 @@ body[data-theme] .profile-toast.success {
         grid-template-columns: 1fr !important;
     }
 }
+
+/* v0.6.1 — formula helper, QoL navigation, larger conditional modal */
+html body[data-theme] .we-formula-helper-popover,
+html body[data-theme] #formula-helper-popover {
+    background: linear-gradient(180deg, var(--panel) 0%, var(--panel-2) 100%) !important;
+    color: var(--text) !important;
+    border-color: var(--line) !important;
+    box-shadow: var(--shadow, 0 18px 40px rgba(0,0,0,.22)) !important;
+}
+
+html body[data-theme] .we-formula-helper-head {
+    background: color-mix(in srgb, var(--primary) 22%, var(--panel-2) 78%) !important;
+    color: var(--text) !important;
+    border-color: var(--line) !important;
+}
+
+html body[data-theme] .we-formula-helper-body,
+html body[data-theme] .we-formula-helper-list,
+html body[data-theme] .we-formula-helper-item {
+    background: transparent !important;
+    color: var(--text) !important;
+    border-color: var(--line) !important;
+}
+
+html body[data-theme] .we-formula-helper-item:hover {
+    background: color-mix(in srgb, var(--primary) 18%, transparent) !important;
+}
+
+html body[data-theme] .we-formula-helper-syntax,
+html body[data-theme] .we-formula-helper-body small,
+html body[data-theme] .we-formula-helper-example {
+    color: var(--muted) !important;
+}
+
+.we-formula-helper-popover,
+#formula-helper-popover {
+    max-height: min(390px, calc(100vh - 220px)) !important;
+    overflow: auto !important;
+    z-index: 2500 !important;
+}
+
+.we-smart-insert-box,
+.we-modal-box.we-smart-insert-box {
+    width: min(1380px, calc(100vw - 64px)) !important;
+    max-width: 1380px !important;
+}
+
+.we-conditional-editor-layout {
+    grid-template-columns: minmax(380px, 0.9fr) minmax(660px, 1.1fr) !important;
+}
+
+.we-ribbon-panel,
+.we-ribbon-panel.active {
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+}
+
+.we-ribbon-panel .we-panel-grid,
+.we-ribbon-panel .we-action-grid,
+.we-ribbon-panel .we-button-grid,
+.we-ribbon-panel .we-template-grid,
+.we-ribbon-panel .we-data-grid,
+.we-ribbon-panel .we-panel-actions {
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    align-items: center !important;
+    gap: 10px !important;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    width: max-content !important;
+    max-width: 100% !important;
+}
+
+.we-ribbon-panel button,
+.we-ribbon-panel .btn,
+.we-ribbon-panel .we-insert-item,
+.we-ribbon-panel .we-template-card {
+    flex: 0 0 auto !important;
+    white-space: nowrap !important;
+}
+
+.we-sheet-table td {
+    user-select: none;
+}
+
+.we-sheet-table td.we-cell-editing {
+    user-select: text;
+}
+
+.we-fill-handle {
+    display: block !important;
+    position: absolute !important;
+    border-radius: 3px !important;
+    z-index: 30 !important;
+}
+
+/* v0.6.2 — cell click/fill performance */
+.we-sheet-table,
+.we-sheet-table * {
+    transition: none !important;
+    animation: none !important;
+}
+
+.we-sheet-table td.active-cell {
+    outline: 2px solid var(--primary, #8b5cf6) !important;
+    outline-offset: -2px !important;
+    box-shadow: none !important;
+}
+
+.we-sheet-table td.selected-range {
+    background: color-mix(in srgb, var(--primary, #8b5cf6) 12%, transparent) !important;
+}
+
+.we-sheet-table td.fill-preview {
+    background: color-mix(in srgb, var(--primary, #8b5cf6) 22%, transparent) !important;
+}
+
+.we-fill-handle {
+    cursor: crosshair !important;
+    touch-action: none;
+}
+
+/* v0.6.4 — stable load, compact helper, layout fix */
+#formula-helper-popover,
+.we-formula-helper-popover {
+    max-width: min(680px, calc(100vw - 120px)) !important;
+    width: auto !important;
+    max-height: 300px !important;
+    overflow: auto !important;
+    border-radius: 16px !important;
+    z-index: 2500 !important;
+}
+
+.we-formula-helper-body {
+    padding: 10px 14px !important;
+    gap: 6px !important;
+}
+
+.we-formula-helper-list {
+    max-height: 120px !important;
+    overflow: auto !important;
+}
+
+.we-formula-helper-head,
+.we-formula-helper-item {
+    padding: 8px 14px !important;
+}
+
+.we-sheet-card,
+.we-sheet-scroll {
+    contain: layout paint !important;
+}
+
+.we-sheet-table,
+.we-sheet-table * {
+    transition: none !important;
+    animation: none !important;
+}
+
+.we-sheet-loading {
+    min-height: 240px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--muted);
+}
+
+.we-cell-editing {
+    user-select: text !important;
+}
+
+/* kiedy menu boczne jest otwarte, prawy panel/profil nie może wchodzić na treść */
+.app-shell.sidebar-open .profile-dropdown,
+.app-shell.sidebar-expanded .profile-dropdown,
+.app-shell.sidebar-open .user-floating-panel,
+.app-shell.sidebar-expanded .user-floating-panel {
+    right: 24px !important;
+    max-width: min(340px, calc(100vw - 320px)) !important;
+}
+
+.profile-dropdown {
+    max-width: min(340px, calc(100vw - 32px)) !important;
+    z-index: 5000 !important;
+}
+
+.quick-access-dock {
+    z-index: 1200 !important;
+}
