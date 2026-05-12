@@ -7,7 +7,20 @@ from .models import PendingRegistration
 
 
 class RegisterForm(UserCreationForm):
+    username = forms.CharField(required=True, label='Login')
     email = forms.EmailField(required=True, label='Adres e-mail')
+    password1 = forms.CharField(
+        label='Hasło',
+        strip=False,
+        widget=forms.PasswordInput(attrs={'autocomplete': 'new-password'}),
+        help_text='Wpisz hasło do konta ARES.',
+    )
+    password2 = forms.CharField(
+        label='Powtórz hasło',
+        strip=False,
+        widget=forms.PasswordInput(attrs={'autocomplete': 'new-password'}),
+        help_text='Powtórz to samo hasło dla potwierdzenia.',
+    )
 
     class Meta:
         model = User

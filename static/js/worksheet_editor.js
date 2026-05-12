@@ -1,6 +1,7 @@
 document.addEventListener("DOMContentLoaded", function () {
     const params = new URLSearchParams(window.location.search);
     let sheetId = params.get("sheet");
+    const DEMO_MODE = document.body?.dataset.demoMode === "1";
     let currentSheetCanEdit = true;
     let currentSheetCanShare = false;
     const initialOpenPanel = params.get("open");
@@ -11,6 +12,13 @@ document.addEventListener("DOMContentLoaded", function () {
     const sheetNameEl = document.getElementById("editor-sheet-name");
     const sheetMetaEl = document.getElementById("editor-sheet-meta");
     const autosaveBadge = document.getElementById("autosave-badge");
+    const sheetTagsEl = document.getElementById("sheet-tags");
+    const addSheetTagBtn = document.getElementById("add-sheet-tag-btn");
+    const sheetTagModal = document.getElementById("sheet-tag-modal");
+    const sheetTagInput = document.getElementById("sheet-tag-input");
+    const sheetTagSaveBtn = document.getElementById("sheet-tag-save-btn");
+    const sheetTagCancelBtns = document.querySelectorAll("[data-close-sheet-tag]");
+    const sheetTagSuggestionBtns = document.querySelectorAll("[data-tag-suggestion]");
 
     const saveBtn = document.getElementById("save-sheet-btn");
     const exportBtn = document.getElementById("export-csv-btn");
@@ -179,6 +187,7 @@ document.addEventListener("DOMContentLoaded", function () {
     let cellElements = [];
     let rowHeaderElements = [];
     let colHeaderElements = [];
+    let columnElements = [];
     let workbook = null;
     let activeWorkbookSheetIndex = 0;
     let pivotConfig = { rows: [], columns: [], values: [], filters: [] };
@@ -204,6 +213,8 @@ document.addEventListener("DOMContentLoaded", function () {
     };
     let activeTooltip = null;
     let recentColors = JSON.parse(localStorage.getItem("ares_recent_colors") || "[]");
+    let lastLiveAutosaveNoticeAt = 0;
+    const LARGE_SELECTION_CELL_LIMIT = 1500;
 
     let historyStack = [];
     let redoStack = [];
@@ -240,7 +251,47 @@ document.addEventListener("DOMContentLoaded", function () {
         return null;
     }
 
+    function sheetApiCacheKey(url) {
+        return `ares_api_cache_v073:${url}`;
+    }
+
+    function clearLegacySheetApiCache() {
+        try {
+            Object.keys(sessionStorage || {}).forEach(key => {
+                if (key.startsWith("ares_api_cache")) {
+                    sessionStorage.removeItem(key);
+                }
+            });
+        } catch (error) {
+            // Cache pomocniczy nie może blokować ładowania arkusza.
+        }
+    }
+    clearLegacySheetApiCache();
+
+    function readSheetApiCache(url) {
+        try {
+            const raw = sessionStorage.getItem(sheetApiCacheKey(url));
+            if (!raw) return null;
+            const parsed = JSON.parse(raw);
+            if (!parsed || Date.now() - parsed.time > 120000) return null;
+            return parsed.data;
+        } catch (error) {
+            return null;
+        }
+    }
+
+    function writeSheetApiCache(url, data) {
+        try {
+            sessionStorage.setItem(sheetApiCacheKey(url), JSON.stringify({ time: Date.now(), data }));
+        } catch (error) {
+            // Brak miejsca w sessionStorage nie może blokować edytora.
+        }
+    }
+
     async function getJson(url) {
+        // Edytor arkusza musi zawsze dostać aktualny stan z backendu.
+        // Stary cache sessionStorage potrafił trzymać błędne metadane typu Kolumny: undefined.
+
         const response = await fetch(url, {
             method: "GET",
             headers: { "X-Requested-With": "XMLHttpRequest" },
@@ -254,7 +305,8 @@ document.addEventListener("DOMContentLoaded", function () {
             throw new Error(`GET ${url} -> ${response.status}\n${text}`);
         }
 
-        return JSON.parse(text);
+        const data = JSON.parse(text);
+        return data;
     }
 
     async function postJson(url, data) {
@@ -284,6 +336,7 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     async function logUserAction(action, details = {}) {
+        if (DEMO_MODE) return;
         try {
             await postJson("/ares/api/history/add/", {
                 sheetId: sheetId,
@@ -394,45 +447,206 @@ document.addEventListener("DOMContentLoaded", function () {
         return Array.from({ length: rows }, () => Array.from({ length: cols }, () => ""));
     }
 
+    function normalizeGridRows(grid) {
+        if (!Array.isArray(grid)) return [];
+        return grid.map(row => Array.isArray(row) ? row : []);
+    }
+
     function inferDimensionsFromGrid(grid) {
-        const rows = Math.max(Array.isArray(grid) ? grid.length : 0, MIN_ROWS || 20);
-        let cols = MIN_COLS || 10;
+        // Liczymy wyłącznie z realnej siatki, bez starych pól z bazy/cache.
+        // Dzięki temu w nagłówku nie pojawia się już np. „Kolumny: undefined”.
+        const maybeWorkbookGrid = grid && !Array.isArray(grid) && Array.isArray(grid.sheets)
+            ? grid.sheets[Math.max(0, Math.min(Number(grid.activeSheetIndex) || 0, grid.sheets.length - 1))]?.grid
+            : grid;
+        const rowsSource = normalizeGridRows(maybeWorkbookGrid);
+        const rowCount = rowsSource.length;
+        const maxCols = rowsSource.reduce((max, row) => Math.max(max, Array.isArray(row) ? row.length : 0), 0);
+        const rows = Math.max(rowCount, MIN_ROWS);
+        const cols = Math.max(maxCols, MIN_COLS);
 
-        (grid || []).forEach(row => {
-            cols = Math.max(cols, Array.isArray(row) ? row.length : 0);
-        });
-
-        return {
-            rows: Number.isFinite(rows) && rows > 0 ? rows : (MIN_ROWS || 20),
-            cols: Number.isFinite(cols) && cols > 0 ? cols : (MIN_COLS || 10)
-        };
+        return { rows, cols };
     }
 
     function safeSheetName(value, fallback = "Arkusz 1") {
         const text = String(value ?? "").trim();
-        if (!text || text === "undefined" || text === "null") return fallback;
-        // Stare/zepsute zapisy potrafiły traktować liczbę wierszy jako nazwę zakładki.
-        if (/^\d+$/.test(text)) return fallback;
+        const safeFallback = String(fallback || "Arkusz 1").trim() || "Arkusz 1";
+        if (!text || /^(undefined|null|nan)$/i.test(text)) return safeFallback;
+        if (/^\d+$/.test(text)) return safeFallback;
         return text;
     }
 
+    function safeDimension(value, fallback) {
+        const numeric = Number(value);
+        return Number.isFinite(numeric) && numeric > 0 ? numeric : fallback;
+    }
+
+    function getActiveSheetTitleFallback() {
+        return safeSheetName(currentSheet?.name, `Arkusz ${activeWorkbookSheetIndex + 1 || 1}`);
+    }
+
+    function getActiveTabName() {
+        const activeWorkbookName = workbook?.sheets?.[activeWorkbookSheetIndex]?.name;
+        const fallback = getActiveSheetTitleFallback();
+        return safeSheetName(activeWorkbookName || currentSheet?.activeTabName || fallback, fallback);
+    }
+
     function syncSheetDimensionsFromGrid() {
-        const dims = inferDimensionsFromGrid(currentSheet?.grid || workbook?.sheets?.[activeWorkbookSheetIndex]?.grid || []);
-        currentRows = Number.isFinite(dims.rows) ? dims.rows : (MIN_ROWS || 20);
-        currentCols = Number.isFinite(dims.cols) ? dims.cols : (MIN_COLS || 10);
+        const activeWorkbookGrid = workbook?.sheets?.[activeWorkbookSheetIndex]?.grid;
+        const grid = Array.isArray(currentSheet?.grid) ? currentSheet.grid : (Array.isArray(activeWorkbookGrid) ? activeWorkbookGrid : []);
+        const dims = inferDimensionsFromGrid(grid);
+        currentRows = Math.max(safeDimension(dims.rows, MIN_ROWS), MIN_ROWS);
+        currentCols = Math.max(safeDimension(dims.cols, MIN_COLS), MIN_COLS);
+        if (currentSheet && Array.isArray(currentSheet.grid)) {
+            ensureDimensions(currentRows, currentCols);
+        }
         return { rows: currentRows, cols: currentCols };
+    }
+
+    function setSheetMetaText(tabName, rows, cols, extra = "") {
+        if (!sheetMetaEl) return;
+        const rowLabel = Math.max(Number(rows) || 0, MIN_ROWS);
+        const colLabel = Math.max(Number(cols) || 0, MIN_COLS);
+        const safeTab = safeSheetName(tabName, getActiveSheetTitleFallback());
+        sheetMetaEl.replaceChildren();
+        const parts = [
+            ["Zakładka", safeTab],
+            ["Wiersze", String(rowLabel)],
+            ["Kolumny", String(colLabel)]
+        ];
+        parts.forEach(([label, value]) => {
+            const pill = document.createElement("span");
+            pill.className = "we-meta-pill";
+            const strong = document.createElement("strong");
+            strong.textContent = `${label}:`;
+            const span = document.createElement("span");
+            span.textContent = value;
+            pill.append(strong, span);
+            sheetMetaEl.appendChild(pill);
+        });
+        if (extra) {
+            const info = document.createElement("span");
+            info.className = "we-meta-pill we-meta-info";
+            info.textContent = String(extra).replace(/^\s*•\s*/, "");
+            sheetMetaEl.appendChild(info);
+        }
+        sheetMetaEl.dataset.rows = String(rowLabel);
+        sheetMetaEl.dataset.cols = String(colLabel);
+        sheetMetaEl.dataset.tab = safeTab;
     }
 
     function updateSheetMeta(extra = "") {
         if (!sheetMetaEl) return;
         const dims = syncSheetDimensionsFromGrid();
-        const tabName = safeSheetName(
-            currentSheet?.activeTabName || workbook?.sheets?.[activeWorkbookSheetIndex]?.name,
-            `Arkusz ${activeWorkbookSheetIndex + 1 || 1}`
-        );
-        sheetMetaEl.textContent = `Zakładka: ${tabName} • Wiersze: ${dims.rows} • Kolumny: ${dims.cols}${extra || ""}`;
+        setSheetMetaText(getActiveTabName(), dims.rows, dims.cols, extra);
     }
- 
+
+    function repairSheetMetaFromRenderedGrid(extra = "") {
+        if (!sheetMetaEl) return;
+        const renderedRows = body?.querySelectorAll("tr").length || 0;
+        const renderedCols = head?.querySelectorAll("th.we-column-header").length || 0;
+        if (renderedRows || renderedCols) {
+            setSheetMetaText(getActiveTabName(), renderedRows || currentRows, renderedCols || currentCols, extra);
+        }
+    }
+
+    function normalizeTags(tags) {
+        if (!Array.isArray(tags)) return [];
+        const seen = new Set();
+        return tags
+            .map(tag => String(tag || "").trim())
+            .filter(Boolean)
+            .filter(tag => {
+                const key = tag.toLowerCase();
+                if (seen.has(key)) return false;
+                seen.add(key);
+                return true;
+            })
+            .slice(0, 8);
+    }
+
+    function sanitizeLegacyCellStyles(styles) {
+        if (!styles || typeof styles !== "object") return {};
+        const clean = {};
+        Object.entries(styles).forEach(([key, style]) => {
+            if (!style || typeof style !== "object") return;
+            const next = { ...style };
+            const hasExplicitBorderLook = Boolean(next.borderColor || next.borderWidth || next.borderLineStyle);
+            const borderKeys = ["border", "borderTop", "borderRight", "borderBottom", "borderLeft"];
+            const hasBorderFlag = borderKeys.some(prop => Boolean(next[prop]));
+
+            // Starsze paczki potrafiły zapisać same flagi obramowań bez jawnego koloru/szerokości.
+            // Po ponownym otwarciu wyglądało to jak poszarpane separatory między kolumnami.
+            if (hasBorderFlag && !hasExplicitBorderLook) {
+                borderKeys.forEach(prop => { delete next[prop]; });
+            }
+
+            clean[key] = next;
+        });
+        return clean;
+    }
+
+    function renderSheetTags() {
+        if (!sheetTagsEl) return;
+        const tags = normalizeTags(currentSheet?.tags || workbook?.sheets?.[activeWorkbookSheetIndex]?.tags || []);
+        currentSheet.tags = tags;
+        sheetTagsEl.innerHTML = "";
+        if (!tags.length) {
+            const empty = document.createElement("span");
+            empty.className = "we-sheet-tag-empty";
+            empty.textContent = "Brak tagów";
+            sheetTagsEl.appendChild(empty);
+            return;
+        }
+        tags.forEach((tag, index) => {
+            const chip = document.createElement("button");
+            chip.type = "button";
+            chip.className = "we-sheet-tag";
+            chip.title = "Kliknij, aby usunąć tag";
+            chip.textContent = `#${tag}`;
+            chip.addEventListener("click", () => {
+                if (!currentSheetCanEdit) return;
+                currentSheet.tags.splice(index, 1);
+                renderSheetTags();
+                markDirty();
+            });
+            sheetTagsEl.appendChild(chip);
+        });
+    }
+
+    function openSheetTagModal() {
+        if (!currentSheetCanEdit || !sheetTagModal || !sheetTagInput) return;
+        sheetTagInput.value = "";
+        sheetTagInput.classList.remove("input-error");
+        sheetTagModal.hidden = false;
+        document.body.classList.add("modal-open");
+        window.setTimeout(() => sheetTagInput.focus(), 40);
+    }
+
+    function closeSheetTagModal() {
+        if (!sheetTagModal) return;
+        sheetTagModal.hidden = true;
+        document.body.classList.remove("modal-open");
+    }
+
+    function saveSheetTagFromModal() {
+        if (!currentSheet || !sheetTagInput || !currentSheetCanEdit) return;
+        const tag = String(sheetTagInput.value || "").trim().replace(/^#/, "").replace(/\s+/g, " ").slice(0, 24);
+        if (!tag) {
+            sheetTagInput.focus();
+            sheetTagInput.classList.add("input-error");
+            window.setTimeout(() => sheetTagInput.classList.remove("input-error"), 900);
+            return;
+        }
+        currentSheet.tags = normalizeTags([...(currentSheet.tags || []), tag]);
+        renderSheetTags();
+        markDirty();
+        closeSheetTagModal();
+    }
+
+    function addSheetTag() {
+        openSheetTagModal();
+    }
+
     function makeUniqueSheetName(baseName = "Arkusz", ignoreIndex = null) {
         const base = String(baseName || "Arkusz").trim() || "Arkusz";
         if (!workbook?.sheets?.length) return base;
@@ -458,13 +672,14 @@ document.addEventListener("DOMContentLoaded", function () {
         return {
             name: safeSheetName(sheet?.name, `Arkusz ${index + 1}`),
             grid: Array.isArray(sheet?.grid) ? sheet.grid : emptyGrid(),
-            styles: sheet?.styles || {},
+            styles: sanitizeLegacyCellStyles(sheet?.styles || {}),
             conditionalRules: Array.isArray(sheet?.conditionalRules) ? sheet.conditionalRules : [],
             color: sheet?.color || "",
             hidden: Boolean(sheet?.hidden),
             protected: Boolean(sheet?.protected),
             columnWidths: sheet?.columnWidths || {},
-            rowHeights: sheet?.rowHeights || {}
+            rowHeights: sheet?.rowHeights || {},
+            tags: normalizeTags(sheet?.tags || [])
         };
     }
 
@@ -537,7 +752,8 @@ document.addEventListener("DOMContentLoaded", function () {
             styles: currentSheet.styles || {},
             conditionalRules: currentSheet.conditionalRules || [],
             columnWidths: currentSheet.columnWidths || {},
-            rowHeights: currentSheet.rowHeights || {}
+            rowHeights: currentSheet.rowHeights || {},
+            tags: normalizeTags(currentSheet.tags || [])
         };
     }
 
@@ -548,10 +764,11 @@ document.addEventListener("DOMContentLoaded", function () {
         workbook.activeSheetIndex = index;
         const selected = workbook.sheets[index];
         currentSheet.grid = selected.grid;
-        currentSheet.styles = selected.styles || {};
+        currentSheet.styles = sanitizeLegacyCellStyles(selected.styles || {});
         currentSheet.conditionalRules = Array.isArray(selected.conditionalRules) ? selected.conditionalRules : [];
         currentSheet.columnWidths = selected.columnWidths || {};
         currentSheet.rowHeights = selected.rowHeights || {};
+        currentSheet.tags = normalizeTags(selected.tags || []);
         currentSheet.activeTabName = selected.name;
         const dims = inferDimensionsFromGrid(currentSheet.grid);
         currentRows = dims.rows;
@@ -560,6 +777,7 @@ document.addEventListener("DOMContentLoaded", function () {
         activeCell = { row: 0, col: 0 };
         clearSelection();
         updateSheetMeta();
+        renderSheetTags();
         renderWorkbookTabs();
         if (shouldRender) renderGrid();
     }
@@ -772,8 +990,9 @@ document.addEventListener("DOMContentLoaded", function () {
             conditionalRules: Array.isArray(active.conditionalRules) ? active.conditionalRules : [],
             columnWidths: active.columnWidths || {},
             rowHeights: active.rowHeights || {},
+            tags: normalizeTags(active.tags || data.tags || []),
             grid: normalized,
-            activeTabName: safeSheetName(active.name, "Arkusz 1")
+            activeTabName: safeSheetName(active.name, safeSheetName(data.name, "Arkusz 1"))
         };
     }
 
@@ -839,6 +1058,11 @@ document.addEventListener("DOMContentLoaded", function () {
 
     function markDirty(options = {}) {
         if (!currentSheet || isRestoringHistory || !currentSheetCanEdit) return;
+        if (DEMO_MODE) {
+            setAutosaveState("saving", "Tryb demo — zmiany tylko do odświeżenia strony");
+            if (options.rerenderObjects) rerenderGeneratedObjects();
+            return;
+        }
         setAutosaveState("saving", "Niezapisane zmiany — autozapis co 5 min");
         scheduleAutosave();
         if (options.rerenderObjects) rerenderGeneratedObjects();
@@ -1047,15 +1271,19 @@ document.addEventListener("DOMContentLoaded", function () {
         const rowEnd = bounds ? bounds.rowEnd : activeCell.row;
         const colStart = bounds ? bounds.colStart : activeCell.col;
         const colEnd = bounds ? bounds.colEnd : activeCell.col;
+        const selectedCellCount = Math.max(1, (rowEnd - rowStart + 1) * (colEnd - colStart + 1));
+        const largeSelection = selectedCellCount > LARGE_SELECTION_CELL_LIMIT;
 
-        for (let row = rowStart; row <= rowEnd; row += 1) {
-            const rowCells = cellElements[row];
-            if (!rowCells) continue;
-            for (let col = colStart; col <= colEnd; col += 1) {
-                const td = rowCells[col];
-                if (!td) continue;
-                td.classList.add("selected-range");
-                highlightedCells.push(td);
+        if (!largeSelection) {
+            for (let row = rowStart; row <= rowEnd; row += 1) {
+                const rowCells = cellElements[row];
+                if (!rowCells) continue;
+                for (let col = colStart; col <= colEnd; col += 1) {
+                    const td = rowCells[col];
+                    if (!td) continue;
+                    td.classList.add("selected-range");
+                    highlightedCells.push(td);
+                }
             }
         }
 
@@ -1091,19 +1319,24 @@ document.addEventListener("DOMContentLoaded", function () {
         }
 
         if (bounds) {
-            for (let col = bounds.colStart; col <= bounds.colEnd; col += 1) {
+            const headerStepCol = largeSelection ? Math.max(1, Math.ceil((bounds.colEnd - bounds.colStart + 1) / 80)) : 1;
+            const headerStepRow = largeSelection ? Math.max(1, Math.ceil((bounds.rowEnd - bounds.rowStart + 1) / 120)) : 1;
+            for (let col = bounds.colStart; col <= bounds.colEnd; col += headerStepCol) {
                 const th = colHeaderElements[col];
                 if (th && !highlightedHeaders.includes(th)) {
                     th.classList.add("selected-header");
                     highlightedHeaders.push(th);
                 }
             }
-            for (let row = bounds.rowStart; row <= bounds.rowEnd; row += 1) {
+            for (let row = bounds.rowStart; row <= bounds.rowEnd; row += headerStepRow) {
                 const th = rowHeaderElements[row];
                 if (th && !highlightedHeaders.includes(th)) {
                     th.classList.add("selected-header");
                     highlightedHeaders.push(th);
                 }
+            }
+            if (largeSelection && activeCellLabel) {
+                activeCellLabel.textContent = `${colToLabel(activeCell.col)}${activeCell.row + 1} • ${selectedCellCount} kom.`;
             }
         }
     }
@@ -1112,7 +1345,7 @@ document.addEventListener("DOMContentLoaded", function () {
         const td = cellElements[row]?.[col];
         syncComputedCellRegistry(row, col);
         if (!td) return;
-        td.innerHTML = cellDisplayValue(row, col).html;
+        setCellDisplayContent(td, row, col);
         applyCellStyleToElement(td, row, col);
         if (row === activeCell.row && col === activeCell.col) attachFillHandle(td, row, col);
     }
@@ -1154,9 +1387,19 @@ document.addEventListener("DOMContentLoaded", function () {
 
     function clearFastActiveOnly() {
         activeCellElement?.classList?.remove("active-cell");
+        activeCellElement?.querySelector(".we-fill-handle")?.remove();
         colHeaderElements[activeCell.col]?.classList?.remove("active-header");
         rowHeaderElements[activeCell.row]?.classList?.remove("active-header");
-        activeCellElement?.querySelector(".we-fill-handle")?.remove();
+
+        // Lekkie czyszczenie poprzedniego zaznaczenia bez pełnego przebudowania siatki.
+        if (highlightedCells.length <= 400) {
+            highlightedCells.forEach(el => el?.classList?.remove("selected-range", "fill-preview"));
+            highlightedCells = [];
+        }
+        highlightedHeaders.forEach(el => el?.classList?.remove("selected-header", "active-header"));
+        highlightedHeaders = [];
+        highlightedFillCells.forEach(el => el?.classList?.remove("fill-preview"));
+        highlightedFillCells = [];
     }
 
     function fastSelectCell(row, col, focus = false) {
@@ -1175,8 +1418,10 @@ document.addEventListener("DOMContentLoaded", function () {
 
         activeCellElement = cellElements[row]?.[col] || null;
         activeCellElement?.classList.add("active-cell");
+        highlightedCells = activeCellElement ? [activeCellElement] : [];
         colHeaderElements[col]?.classList.add("active-header");
         rowHeaderElements[row]?.classList.add("active-header");
+        highlightedHeaders = [colHeaderElements[col], rowHeaderElements[row]].filter(Boolean);
         attachFillHandle(activeCellElement, row, col);
 
         updateFormulaBar();
@@ -1880,22 +2125,17 @@ document.addEventListener("DOMContentLoaded", function () {
 
     function applyColumnWidths(colWidths) {
         if (!Array.isArray(colWidths)) return;
+        const rowHeaderCol = sheetGridTable?.querySelector("colgroup .we-row-header-col");
+        if (rowHeaderCol) rowHeaderCol.style.width = "52px";
         colHeaderElements.forEach((cell, col) => {
             if (!cell) return;
-            const width = colWidths[col] || 120;
+            const width = colWidths[col] || 112;
             cell.style.width = `${width}px`;
-            cell.style.minWidth = `${width}px`;
-            cell.style.maxWidth = `${width}px`;
         });
-
-        cellElements.forEach(rowCells => {
-            rowCells?.forEach((td, col) => {
-                if (!td) return;
-                const width = colWidths[col] || 120;
-                td.style.width = `${width}px`;
-                td.style.minWidth = `${width}px`;
-                td.style.maxWidth = `${width}px`;
-            });
+        columnElements.forEach((colEl, col) => {
+            if (!colEl) return;
+            const width = colWidths[col] || 112;
+            colEl.style.width = `${width}px`;
         });
     }
 
@@ -2292,12 +2532,16 @@ document.addEventListener("DOMContentLoaded", function () {
                     markDirty();
                     logUserAction("Edycja komórki", { type: "cell_edit", cell: cellAddress(row, col), newValue });
                 }
-                td.innerHTML = cellDisplayValue(row, col).html;
+                setCellDisplayContent(td, row, col);
                 applyCellStyleToElement(td, row, col);
                 if (row === activeCell.row && col === activeCell.col) {
                     attachFillHandle(td, row, col);
                 }
-                refreshComputedCells(row, col);
+                if (window.requestIdleCallback) {
+                    window.requestIdleCallback(() => refreshComputedCells(row, col), { timeout: 700 });
+                } else {
+                    window.setTimeout(() => refreshComputedCells(row, col), 60);
+                }
             }
         });
 
@@ -2350,11 +2594,23 @@ document.addEventListener("DOMContentLoaded", function () {
                 event.preventDefault();
                 td.classList.remove("we-cell-editing");
                 td.contentEditable = "false";
-                td.innerHTML = cellDisplayValue(row, col).html;
+                setCellDisplayContent(td, row, col);
                 applyCellStyleToElement(td, row, col);
                 td.focus({ preventScroll: true });
             }
         });
+    }
+
+    function setCellDisplayContent(td, row, col, display = null) {
+        if (!td || !currentSheet) return;
+        const raw = currentSheet.grid?.[row]?.[col] ?? "";
+        const isFormulaLike = typeof raw === "string" && (raw.trim().startsWith("=") || raw.startsWith(SPILL_PREFIX));
+        const resolvedDisplay = display || (isFormulaLike ? cellDisplayValue(row, col) : null);
+        if (resolvedDisplay?.special || isFormulaLike) {
+            td.innerHTML = resolvedDisplay ? resolvedDisplay.html : cellDisplayValue(row, col).html;
+        } else {
+            td.textContent = String(raw ?? "");
+        }
     }
 
     function renderGrid() {
@@ -2377,6 +2633,24 @@ document.addEventListener("DOMContentLoaded", function () {
 
         const headFragment = document.createDocumentFragment();
         const bodyFragment = document.createDocumentFragment();
+        let colgroup = sheetGridTable?.querySelector("colgroup");
+        if (!colgroup && sheetGridTable) {
+            colgroup = document.createElement("colgroup");
+            sheetGridTable.insertBefore(colgroup, sheetGridTable.firstChild);
+        }
+        if (colgroup) colgroup.innerHTML = "";
+        columnElements = [];
+        if (colgroup) {
+            const cornerCol = document.createElement("col");
+            cornerCol.className = "we-row-header-col";
+            colgroup.appendChild(cornerCol);
+            for (let col = 0; col < currentCols; col += 1) {
+                const colEl = document.createElement("col");
+                colEl.dataset.col = String(col);
+                colgroup.appendChild(colEl);
+                columnElements[col] = colEl;
+            }
+        }
 
         const headerRow = document.createElement("tr");
         const corner = document.createElement("th");
@@ -2391,7 +2665,7 @@ document.addEventListener("DOMContentLoaded", function () {
             th.dataset.col = String(col);
             th.draggable = true;
             th.classList.add("we-column-header");
-            th.innerHTML = `<span class="we-header-label">${escapeHtml(colToLabel(col))}</span><span class="we-col-resize-handle" title="Przeciągnij, aby zmienić szerokość kolumny"></span>`;
+            th.innerHTML = `<span class="we-header-label">${escapeHtml(colToLabel(col))}</span>`;
             th.title = `Zaznacz całą kolumnę ${colToLabel(col)} • przeciągnij, aby zmienić kolejność`;
             th.addEventListener("click", () => selectWholeColumn(col));
             th.addEventListener("dragstart", event => {
@@ -2473,11 +2747,12 @@ document.addEventListener("DOMContentLoaded", function () {
                 td.tabIndex = 0;
 
                 const rawValue = currentSheet.grid[row][col] ?? "";
-                const display = cellDisplayValue(row, col);
+                const isFormulaLike = typeof rawValue === "string" && (rawValue.trim().startsWith("=") || rawValue.startsWith(SPILL_PREFIX));
+                const display = isFormulaLike ? cellDisplayValue(row, col) : { special: false };
                 syncComputedCellRegistry(row, col);
 
-                td.innerHTML = display.html;
-                const checkboxInput = td.querySelector(".we-cell-checkbox");
+                setCellDisplayContent(td, row, col, display);
+                const checkboxInput = isFormulaLike ? td.querySelector(".we-cell-checkbox") : null;
                 if (checkboxInput) {
                     checkboxInput.addEventListener("click", event => event.stopPropagation());
                     checkboxInput.addEventListener("mousedown", event => event.stopPropagation());
@@ -2490,7 +2765,7 @@ document.addEventListener("DOMContentLoaded", function () {
                         logUserAction("Zmieniono pole wyboru", { type: "checkbox_change", cell: cellAddress(row, col), checked: event.target.checked });
                     });
                 }
-                const dropdownInput = td.querySelector(".we-cell-dropdown");
+                const dropdownInput = isFormulaLike ? td.querySelector(".we-cell-dropdown") : null;
                 if (dropdownInput) {
                     dropdownInput.addEventListener("click", event => event.stopPropagation());
                     dropdownInput.addEventListener("mousedown", event => event.stopPropagation());
@@ -2503,7 +2778,7 @@ document.addEventListener("DOMContentLoaded", function () {
                         logUserAction("Zmieniono menu komórki", { type: "dropdown_change", cell: cellAddress(row, col), value: event.target.value });
                     });
                 }
-                const tooltipMarker = td.querySelector("[data-tooltip]");
+                const tooltipMarker = isFormulaLike ? td.querySelector("[data-tooltip]") : null;
                 if (tooltipMarker) {
                     td.addEventListener("mouseenter", event => showCellTooltip(tooltipMarker.dataset.tooltip || "", event.clientX, event.clientY));
                     td.addEventListener("mousemove", event => { if (activeTooltip) { activeTooltip.style.left = `${Math.min(event.clientX + 12, window.innerWidth - 340)}px`; activeTooltip.style.top = `${Math.min(event.clientY + 12, window.innerHeight - 120)}px`; } });
@@ -2536,11 +2811,16 @@ document.addEventListener("DOMContentLoaded", function () {
         body.appendChild(bodyFragment);
         updateSelectionHighlight();
         scheduleApplyColumnWidths(getAutoColumnWidths(false));
-        if (window.requestIdleCallback) {
-            window.requestIdleCallback(() => rerenderGeneratedObjects(), { timeout: 600 });
-        } else {
-            window.setTimeout(() => rerenderGeneratedObjects(), 0);
+        if ((chartObjects && chartObjects.length) || (pivotObjects && pivotObjects.length)) {
+            if (window.requestIdleCallback) {
+                window.requestIdleCallback(() => rerenderGeneratedObjects(), { timeout: 800 });
+            } else {
+                window.setTimeout(() => rerenderGeneratedObjects(), 120);
+            }
+        } else if (generatedObjectsCard) {
+            generatedObjectsCard.hidden = true;
         }
+        repairSheetMetaFromRenderedGrid();
     }
 
     function refreshComputedCells(changedRow = null, changedCol = null) {
@@ -2574,9 +2854,16 @@ document.addEventListener("DOMContentLoaded", function () {
         ensureDimensions(row + 1, col + 1);
         currentSheet.grid[row][col] = newValue;
         if (formulaInput) formulaInput.value = newValue;
+
+        // Nie uderzamy w sieć ani w status na każdą literę. To usuwa mikroprzycięcia przy pisaniu.
+        if (DEMO_MODE || !currentSheetCanEdit) return;
         clearTimeout(autosaveTimer);
         autosaveTimer = setTimeout(saveSheet, 300000);
-        setAutosaveState("saving", "Niezapisane zmiany — autozapis co 5 min");
+        const now = Date.now();
+        if (now - lastLiveAutosaveNoticeAt > 1200) {
+            lastLiveAutosaveNoticeAt = now;
+            setAutosaveState("saving", "Niezapisane zmiany — autozapis co 5 min");
+        }
     }
 
 
@@ -2613,7 +2900,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
                 const td = cellElements[row]?.[col];
                 if (td) {
-                    td.innerHTML = cellDisplayValue(row, col).html;
+                    setCellDisplayContent(td, row, col);
                     applyCellStyleToElement(td, row, col);
                 }
             }
@@ -2732,7 +3019,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
         const activeTd = cellElements[targetCell.row]?.[targetCell.col];
         if (activeTd) {
-            activeTd.innerHTML = cellDisplayValue(targetCell.row, targetCell.col).html;
+            setCellDisplayContent(activeTd, targetCell.row, targetCell.col);
             applyCellStyleToElement(activeTd, targetCell.row, targetCell.col);
             attachFillHandle(activeTd, targetCell.row, targetCell.col);
         }
@@ -3363,6 +3650,12 @@ document.addEventListener("DOMContentLoaded", function () {
             return;
         }
 
+        if (DEMO_MODE) {
+            commitActiveSheetToWorkbook();
+            setAutosaveState("", "Tryb demo — zmiany nie są zapisywane");
+            return;
+        }
+
         setAutosaveState("saving", "Zapisywanie...");
         try {
             await postJson(`/ares/api/sheets/${sheetId}/save/`, {
@@ -3373,6 +3666,12 @@ document.addEventListener("DOMContentLoaded", function () {
                 conditionalRules: currentSheet.conditionalRules || [],
                 action: "Zapisano arkusz"
             });
+            writeSheetApiCache(`/ares/api/sheets/${sheetId}/`, {
+                ...currentSheet,
+                canEdit: currentSheetCanEdit,
+                canShare: currentSheetCanShare,
+                isShared: false
+            });
 
             setAutosaveState("saved", "Wszystkie zmiany zapisane");
         } catch (error) {
@@ -3381,7 +3680,46 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     }
 
+    function demoSheetPayload() {
+        const grid = emptyGrid(20, 10);
+        grid[0][0] = "Produkt";
+        grid[0][1] = "Styczeń";
+        grid[0][2] = "Luty";
+        grid[0][3] = "Marzec";
+        grid[0][4] = "Razem";
+        grid[1][0] = "Panel IPP";
+        grid[1][1] = "120";
+        grid[1][2] = "132";
+        grid[1][3] = "141";
+        grid[1][4] = "=SUMA(B2:D2)";
+        grid[2][0] = "Boczek drzwiowy";
+        grid[2][1] = "84";
+        grid[2][2] = "91";
+        grid[2][3] = "96";
+        grid[2][4] = "=SUMA(B3:D3)";
+        grid[4][0] = "Tryb demo";
+        grid[4][1] = "Możesz testować formuły, formatowanie, wykresy i zakładki.";
+        grid[5][0] = "Zapis";
+        grid[5][1] = "Wyłączony — po odświeżeniu zmiany znikną.";
+        return {
+            id: "demo",
+            order: 1,
+            name: "Arkusz demo",
+            category: "Tryb testowy",
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+            canEdit: true,
+            canShare: false,
+            isShared: false,
+            grid,
+        };
+    }
+
     async function ensureSheetIdForEditor() {
+        if (DEMO_MODE) {
+            sheetId = "demo";
+            return sheetId;
+        }
         if (sheetId && sheetId !== "undefined" && sheetId !== "null") return sheetId;
         const sheets = await getJson('/ares/api/sheets/');
         let first = Array.isArray(sheets) && sheets.length ? sheets[0] : null;
@@ -3411,7 +3749,7 @@ document.addEventListener("DOMContentLoaded", function () {
     async function loadSheet() {
         try {
             await ensureSheetIdForEditor();
-            const data = await getJson(`/ares/api/sheets/${sheetId}/`);
+            const data = DEMO_MODE ? demoSheetPayload() : await getJson(`/ares/api/sheets/${sheetId}/`);
 
             currentSheet = normalizeLoadedSheet({
                 ...data,
@@ -3424,15 +3762,17 @@ document.addEventListener("DOMContentLoaded", function () {
             redoStack = [];
 
             if (sheetNameEl) sheetNameEl.textContent = currentSheet.name || "Arkusz";
-            updateSheetMeta(`${data.isShared ? " • Udostępniony" : ""}${!currentSheetCanEdit ? " • Tylko odczyt" : ""}`);
+            updateSheetMeta(DEMO_MODE ? " • Tryb demo — zapis wyłączony" : `${data.isShared ? " • Udostępniony" : ""}${!currentSheetCanEdit ? " • Tylko odczyt" : ""}`);
             if (saveBtn) saveBtn.disabled = !currentSheetCanEdit;
             if (applyFormulaBtn) applyFormulaBtn.disabled = !currentSheetCanEdit;
             if (renameBtn) renameBtn.disabled = !currentSheetCanShare;
             renderWorkbookTabs();
+            renderSheetTags();
 
             renderGrid();
+            repairSheetMetaFromRenderedGrid(DEMO_MODE ? " • Tryb demo — zapis wyłączony" : `${data.isShared ? " • Udostępniony" : ""}${!currentSheetCanEdit ? " • Tylko odczyt" : ""}`);
             activateStartRibbon();
-            setAutosaveState("", currentSheetCanEdit ? "Brak zmian" : "Tylko do odczytu");
+            setAutosaveState("", DEMO_MODE ? "Tryb demo — zmiany nie są zapisywane" : (currentSheetCanEdit ? "Brak zmian" : "Tylko do odczytu"));
 
             window.requestAnimationFrame(() => {
                 openInitialQuickPanel();
@@ -5153,5 +5493,37 @@ document.addEventListener("DOMContentLoaded", function () {
     initializeMenus();
     initializeModals();
     initializeEvents();
+    if (addSheetTagBtn) {
+        addSheetTagBtn.addEventListener("click", addSheetTag);
+    }
+    if (sheetTagSaveBtn) {
+        sheetTagSaveBtn.addEventListener("click", saveSheetTagFromModal);
+    }
+    if (sheetTagInput) {
+        sheetTagInput.addEventListener("keydown", event => {
+            if (event.key === "Enter") {
+                event.preventDefault();
+                saveSheetTagFromModal();
+            }
+            if (event.key === "Escape") {
+                event.preventDefault();
+                closeSheetTagModal();
+            }
+        });
+    }
+    sheetTagCancelBtns.forEach(btn => btn.addEventListener("click", closeSheetTagModal));
+    sheetTagSuggestionBtns.forEach(btn => {
+        btn.addEventListener("click", () => {
+            if (!sheetTagInput) return;
+            sheetTagInput.value = btn.dataset.tagSuggestion || "";
+            sheetTagInput.focus();
+        });
+    });
+    if (sheetTagModal) {
+        sheetTagModal.addEventListener("click", event => {
+            if (event.target === sheetTagModal) closeSheetTagModal();
+        });
+    }
+
     loadSheet();
 });

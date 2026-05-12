@@ -5,12 +5,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}ARES{% endblock %}</title>
-    <link rel="stylesheet" href="{% static 'css/style.css' %}?v=0.6.6">
+    <link rel="stylesheet" href="{% static 'css/style.css' %}?v=0.7.7">
     {% block extra_head %}{% endblock %}
 </head>
-<body class="ares-body" data-theme="midnight-blue">
+<body class="ares-body" data-theme="midnight-blue"{% if demo_mode %} data-demo-mode="1"{% endif %}>
 
-{% if request.user.is_authenticated %}
+{% if request.user.is_authenticated or demo_mode %}
 <div class="app-shell" id="app-shell">
     <aside class="app-sidebar" id="app-sidebar">
         <div class="app-logo-box">
@@ -25,6 +25,11 @@
         </div>
 
         <nav class="app-menu">
+            {% if demo_mode %}
+            <a href="{% url 'demo' %}" class="app-menu-link">Edytor demo</a>
+            <a href="{% url 'login' %}" class="app-menu-link">Zaloguj się</a>
+            <a href="{% url 'register' %}" class="app-menu-link">Utwórz konto</a>
+            {% else %}
             <a href="{% url 'dashboard' %}" class="app-menu-link">Start</a>
             <a href="{% url 'worksheets' %}" class="app-menu-link">Arkusze</a>
             <a href="{% url 'import_data' %}" class="app-menu-link">Import CSV/XLSX</a>
@@ -35,6 +40,7 @@
             <a href="{% url 'bug_report' %}" class="app-menu-link">Zgłoś problem</a>
             {% if request.user.is_superuser %}<a href="{% url 'admin_bug_reports' %}" class="app-menu-link">Panel zgłoszeń</a>
             <a href="{% url 'admin_users_panel' %}" class="app-menu-link">Panel użytkowników</a>{% endif %}
+            {% endif %}
         </nav>
     </aside>
 
@@ -51,22 +57,28 @@
             </div>
 
             <div class="topbar-actions">
+                <button class="topbar-music-trigger" id="topbar-music-trigger" type="button" title="Muzyka z YouTube" aria-label="Otwórz muzykę z YouTube">♪</button>
                 <div class="topbar-clock" id="topbar-clock" hidden>00:00</div>
                 <div class="profile-menu" id="profile-menu">
                     <button class="profile-trigger" id="profile-trigger" type="button" aria-haspopup="true" aria-expanded="false">
                         <span class="profile-trigger-avatar" id="profile-trigger-avatar">S</span>
-                        <span class="profile-trigger-name" id="profile-trigger-name">{{ request.user.username }}</span>
+                        <span class="profile-trigger-name" id="profile-trigger-name">{% if demo_mode %}Gość demo{% else %}{{ request.user.username }}{% endif %}</span>
                         <span class="profile-trigger-arrow">▾</span>
                     </button>
                     <div class="profile-dropdown" id="profile-dropdown" hidden>
                         <div class="profile-dropdown-head">
                             <div class="profile-dropdown-avatar" id="profile-dropdown-avatar">S</div>
                             <div>
-                                <strong id="profile-dropdown-display">{{ request.user.username }}</strong>
-                                <small>Ustawienia użytkownika i wyglądu</small>
+                                <strong id="profile-dropdown-display">{% if demo_mode %}Gość demo{% else %}{{ request.user.username }}{% endif %}</strong>
+                                <small>{% if demo_mode %}Tryb testowy bez zapisu konta{% else %}Ustawienia użytkownika i wyglądu{% endif %}</small>
                             </div>
                         </div>
                         <div class="profile-dropdown-links">
+                            {% if demo_mode %}
+                            <a href="{% url 'login' %}">Zaloguj się, żeby zapisywać</a>
+                            <a href="{% url 'register' %}">Utwórz konto</a>
+                            <a href="{% url 'demo' %}">Wyczyść i uruchom demo od nowa</a>
+                            {% else %}
                             <a href="{% url 'profile' %}">Profil użytkownika</a>
                             <a href="{% url 'profile' %}#appearance">Wygląd i motywy</a>
                             <a href="{% url 'profile' %}#shortcuts">Skróty</a>
@@ -75,14 +87,41 @@
                             <a href="{% url 'bug_report' %}">Zgłoś problem</a>
                             {% if request.user.is_superuser %}<a href="{% url 'admin_bug_reports' %}">Panel zgłoszeń</a>
                             <a href="{% url 'admin_users_panel' %}">Panel użytkowników</a>{% endif %}
+                            {% endif %}
                         </div>
                         <div class="profile-dropdown-footer">
-                            <a href="{% url 'logout' %}" class="btn btn-ghost btn-full">Wyloguj</a>
+                            {% if demo_mode %}<a href="{% url 'login' %}" class="btn btn-ghost btn-full">Zakończ demo</a>{% else %}<a href="{% url 'logout' %}" class="btn btn-ghost btn-full">Wyloguj</a>{% endif %}
                         </div>
                     </div>
                 </div>
             </div>
         </header>
+
+        <section class="topbar-music-panel" id="topbar-music-panel" hidden aria-label="Muzyka z YouTube">
+            <div class="music-panel-head">
+                <div>
+                    <strong>Muzyka z YouTube</strong>
+                    <small>Wklej link do filmu albo wpisz frazę. ARES uruchamia odtwarzanie wewnątrz aplikacji — bez otwierania nowego okna.</small>
+                </div>
+                <button type="button" class="music-panel-close" id="music-panel-close" aria-label="Zamknij panel muzyki">×</button>
+            </div>
+            <div class="music-panel-controls">
+                <input id="music-youtube-input" class="music-input" type="text" placeholder="np. Despacito albo https://www.youtube.com/watch?v=...">
+                <button type="button" class="btn btn-secondary" id="music-search-btn">Szukaj</button>
+                <button type="button" class="btn btn-primary" id="music-play-btn">Puść</button>
+                <button type="button" class="btn btn-secondary" id="music-stop-btn">Stop</button>
+            </div>
+            <div class="music-progress-card" id="music-progress-card" hidden>
+                <div class="music-progress-top">
+                    <span id="music-track-label">Odtwarzanie</span>
+                    <strong id="music-time-left">--:--</strong>
+                </div>
+                <div class="music-progress-bar" aria-hidden="true"><span id="music-progress-fill"></span></div>
+                <div class="music-progress-meta" id="music-progress-meta">00:00 / 00:00</div>
+            </div>
+            <div class="music-panel-status" id="music-panel-status">Wklej link z YouTube i kliknij „Puść”. Panel możesz zamknąć — odtwarzacz zostanie w aplikacji.</div>
+            <div class="music-hidden-player" id="music-hidden-player" aria-hidden="true"></div>
+        </section>
 
         <main class="ares-main">
             <div class="container">
@@ -136,8 +175,8 @@
 </main>
 {% endif %}
 
-{% if request.user.is_authenticated %}
-<script src="{% static 'js/ares_i18n.js' %}?v=0.5.3"></script>
+{% if request.user.is_authenticated or demo_mode %}
+<script src="{% static 'js/ares_i18n.js' %}?v=0.7.7"></script>
 <script>
     (function () {
         const shell = document.getElementById('app-shell');
@@ -158,6 +197,7 @@
             if (!shell) return;
             shell.classList.toggle('sidebar-collapsed', collapsed);
             localStorage.setItem(STORAGE_KEY, collapsed ? '1' : '0');
+            document.body.classList.toggle('sidebar-is-open', !collapsed);
         }
 
         let prefs = loadJSON(prefKey, { showClock: true, compactSidebar: false, showQuickDock: true, language: localStorage.getItem(languageKey) || 'pl' });
@@ -203,14 +243,16 @@
         localStorage.setItem(languageKey, prefs.language || localStorage.getItem(languageKey) || 'pl');
         window.ARES_I18N?.setLanguage(localStorage.getItem(languageKey) || 'pl');
 
-        const defaultUsername = '{{ request.user.username|escapejs }}';
-        const settings = loadJSON(profileKey, {
+        const defaultUsername = '{% if demo_mode %}Gość demo{% else %}{{ request.user.username|escapejs }}{% endif %}';
+        const demoMode = document.body?.dataset.demoMode === '1';
+        const defaultProfileSettings = {
             displayName: defaultUsername,
-            avatarText: defaultUsername ? defaultUsername.charAt(0).toUpperCase() : 'A',
-            avatarStyle: 'linear-gradient(135deg, #6ea8ff, #3d62ff)',
+            avatarText: demoMode ? 'D' : (defaultUsername ? defaultUsername.charAt(0).toUpperCase() : 'A'),
+            avatarStyle: demoMode ? 'linear-gradient(135deg, #7c5cff, #4f8cff)' : 'linear-gradient(135deg, #6ea8ff, #3d62ff)',
             avatarImage: '',
             avatarShape: 'rounded'
-        });
+        };
+        const settings = demoMode ? defaultProfileSettings : loadJSON(profileKey, defaultProfileSettings);
 
         const nameNode = document.getElementById('profile-trigger-name');
         const triggerAvatar = document.getElementById('profile-trigger-avatar');
@@ -277,7 +319,37 @@
             document.addEventListener('click', function (e) {
                 if (!menu.contains(e.target) && !dropdown.contains(e.target)) closeProfileDropdown();
             });
+            dropdown.querySelectorAll('a').forEach(link => {
+                link.addEventListener('click', () => closeProfileDropdown());
+            });
         }
+
+        function closeAllFloatingMenusBeforeNavigation(link) {
+            const openDropdown = document.getElementById('profile-dropdown');
+            const openMenu = document.getElementById('profile-menu');
+            const openTrigger = document.getElementById('profile-trigger');
+            if (openDropdown) openDropdown.setAttribute('hidden', 'hidden');
+            openMenu?.classList.remove('profile-menu-open');
+            openTrigger?.setAttribute('aria-expanded', 'false');
+            document.body.classList.remove('profile-menu-open');
+            const href = link?.getAttribute('href') || '';
+            const isProfileNavigation = href.includes('/profile');
+            if (shell && (window.innerWidth <= 980 || isProfileNavigation)) {
+                applyState(true);
+            }
+            document.body.classList.remove('sidebar-is-open');
+        }
+
+        document.querySelectorAll('.app-sidebar .app-menu-link, .quick-access-dock a, .profile-dropdown a').forEach(link => {
+            link.addEventListener('pointerdown', () => closeAllFloatingMenusBeforeNavigation(link), { passive: true });
+            link.addEventListener('click', () => closeAllFloatingMenusBeforeNavigation(link));
+        });
+
+        window.addEventListener('pageshow', () => {
+            document.getElementById('profile-dropdown')?.setAttribute('hidden', 'hidden');
+            document.getElementById('profile-menu')?.classList.remove('profile-menu-open');
+            document.getElementById('profile-trigger')?.setAttribute('aria-expanded', 'false');
+        });
 
         const clock = document.getElementById('topbar-clock');
         function renderClock() {
@@ -292,6 +364,252 @@
         }
         renderClock();
         setInterval(renderClock, 1000 * 30);
+
+        const musicTrigger = document.getElementById('topbar-music-trigger');
+        const musicPanel = document.getElementById('topbar-music-panel');
+        const musicClose = document.getElementById('music-panel-close');
+        const musicInput = document.getElementById('music-youtube-input');
+        const musicSearch = document.getElementById('music-search-btn');
+        const musicPlay = document.getElementById('music-play-btn');
+        const musicStop = document.getElementById('music-stop-btn');
+        const musicPlayer = document.getElementById('music-hidden-player');
+        const musicStatus = document.getElementById('music-panel-status');
+        const musicProgressCard = document.getElementById('music-progress-card');
+        const musicProgressFill = document.getElementById('music-progress-fill');
+        const musicProgressMeta = document.getElementById('music-progress-meta');
+        const musicTimeLeft = document.getElementById('music-time-left');
+        const musicTrackLabel = document.getElementById('music-track-label');
+        const musicKey = 'ares_youtube_music_link';
+        let ytApiPromise = null;
+        let ytPlayer = null;
+        let ytProgressTimer = null;
+        let ytPlayerIdCounter = 0;
+
+        function extractYouTubeId(value) {
+            const text = (value || '').trim();
+            if (!text) return '';
+            const patterns = [
+                /youtu\.be\/([A-Za-z0-9_-]{6,})/,
+                /youtube\.com\/watch\?[^#]*v=([A-Za-z0-9_-]{6,})/,
+                /youtube\.com\/embed\/([A-Za-z0-9_-]{6,})/,
+                /youtube\.com\/shorts\/([A-Za-z0-9_-]{6,})/,
+                /youtube-nocookie\.com\/embed\/([A-Za-z0-9_-]{6,})/,
+            ];
+            for (const pattern of patterns) {
+                const match = text.match(pattern);
+                if (match) return match[1];
+            }
+            return '';
+        }
+
+        function setMusicStatus(message, type = 'info') {
+            if (!musicStatus) return;
+            musicStatus.textContent = message;
+            musicStatus.dataset.state = type;
+        }
+
+        function formatMusicTime(seconds) {
+            const safe = Math.max(0, Math.floor(Number(seconds) || 0));
+            const minutes = Math.floor(safe / 60);
+            const rest = String(safe % 60).padStart(2, '0');
+            return `${minutes}:${rest}`;
+        }
+
+        function updateMusicProgress() {
+            if (!ytPlayer || typeof ytPlayer.getCurrentTime !== 'function') return;
+            let current = 0;
+            let duration = 0;
+            try {
+                current = ytPlayer.getCurrentTime() || 0;
+                duration = ytPlayer.getDuration() || 0;
+            } catch (error) {
+                return;
+            }
+            const percent = duration > 0 ? Math.min(100, Math.max(0, (current / duration) * 100)) : 0;
+            if (musicProgressFill) musicProgressFill.style.width = percent + '%';
+            if (musicProgressMeta) musicProgressMeta.textContent = `${formatMusicTime(current)} / ${duration ? formatMusicTime(duration) : '--:--'}`;
+            if (musicTimeLeft) musicTimeLeft.textContent = duration ? `zostało ${formatMusicTime(duration - current)}` : 'ładowanie…';
+            if (musicProgressCard) musicProgressCard.hidden = false;
+        }
+
+        function startMusicProgressTimer() {
+            window.clearInterval(ytProgressTimer);
+            updateMusicProgress();
+            ytProgressTimer = window.setInterval(updateMusicProgress, 700);
+        }
+
+        function resetMusicProgress() {
+            window.clearInterval(ytProgressTimer);
+            ytProgressTimer = null;
+            if (musicProgressFill) musicProgressFill.style.width = '0%';
+            if (musicProgressMeta) musicProgressMeta.textContent = '00:00 / 00:00';
+            if (musicTimeLeft) musicTimeLeft.textContent = '--:--';
+            if (musicProgressCard) musicProgressCard.hidden = true;
+        }
+
+        function loadYouTubeApi() {
+            if (window.YT?.Player) return Promise.resolve(window.YT);
+            if (ytApiPromise) return ytApiPromise;
+            ytApiPromise = new Promise((resolve, reject) => {
+                const previousReady = window.onYouTubeIframeAPIReady;
+                window.onYouTubeIframeAPIReady = function () {
+                    if (typeof previousReady === 'function') previousReady();
+                    resolve(window.YT);
+                };
+                const existing = document.querySelector('script[src="https://www.youtube.com/iframe_api"]');
+                if (!existing) {
+                    const script = document.createElement('script');
+                    script.src = 'https://www.youtube.com/iframe_api';
+                    script.async = true;
+                    script.onerror = () => reject(new Error('Nie udało się załadować odtwarzacza YouTube.'));
+                    document.head.appendChild(script);
+                }
+                window.setTimeout(() => {
+                    if (window.YT?.Player) resolve(window.YT);
+                }, 3500);
+            });
+            return ytApiPromise;
+        }
+
+        function destroyMusicPlayer() {
+            try {
+                if (ytPlayer && typeof ytPlayer.destroy === 'function') ytPlayer.destroy();
+            } catch (error) {}
+            ytPlayer = null;
+            if (musicPlayer) musicPlayer.innerHTML = '';
+            resetMusicProgress();
+        }
+
+        async function renderMusicPlayer(value) {
+            if (!musicPlayer) return;
+            const id = extractYouTubeId(value);
+            if (!id) {
+                setMusicStatus('To wygląda jak fraza. Kliknij „Szukaj”, wybierz film lub podcast i wklej link do ARES.', 'warn');
+                return;
+            }
+            localStorage.setItem(musicKey, value);
+            setMusicStatus('Ładowanie odtwarzacza YouTube w aplikacji…', 'info');
+            destroyMusicPlayer();
+            if (musicTrackLabel) musicTrackLabel.textContent = 'YouTube';
+            const holderId = `ares-youtube-player-${++ytPlayerIdCounter}`;
+            musicPlayer.innerHTML = `<div id="${holderId}"></div>`;
+            try {
+                const YT = await loadYouTubeApi();
+                ytPlayer = new YT.Player(holderId, {
+                    width: 320,
+                    height: 180,
+                    videoId: id,
+                    host: 'https://www.youtube-nocookie.com',
+                    playerVars: {
+                        autoplay: 1,
+                        playsinline: 1,
+                        controls: 0,
+                        disablekb: 1,
+                        fs: 0,
+                        rel: 0,
+                        modestbranding: 1,
+                        origin: window.location.origin
+                    },
+                    events: {
+                        onReady: event => {
+                            try {
+                                event.target.unMute();
+                                event.target.setVolume(70);
+                                event.target.playVideo();
+                            } catch (error) {}
+                            setMusicStatus('Odtwarzanie uruchomione w aplikacji. Widzisz postęp utworu, a panel możesz zamknąć.', 'ok');
+                            startMusicProgressTimer();
+                        },
+                        onStateChange: event => {
+                            if (event.data === YT.PlayerState.PLAYING) {
+                                setMusicStatus('Odtwarzanie trwa w aplikacji.', 'ok');
+                                startMusicProgressTimer();
+                            }
+                            if (event.data === YT.PlayerState.PAUSED) setMusicStatus('Odtwarzanie wstrzymane przez YouTube/odtwarzacz.', 'info');
+                            if (event.data === YT.PlayerState.ENDED) {
+                                setMusicStatus('Utwór zakończony.', 'info');
+                                resetMusicProgress();
+                            }
+                            if (event.data === YT.PlayerState.BUFFERING) setMusicStatus('Buforowanie YouTube…', 'info');
+                        },
+                        onError: () => {
+                            setMusicStatus('Ten film blokuje osadzanie albo odtwarzanie w tle. Wklej inny link z YouTube.', 'warn');
+                            resetMusicProgress();
+                        }
+                    }
+                });
+            } catch (error) {
+                setMusicStatus('Nie udało się załadować odtwarzacza YouTube. Sprawdź internet albo wklej inny link.', 'warn');
+                resetMusicProgress();
+            }
+        }
+
+        function stopMusicPlayer() {
+            destroyMusicPlayer();
+            setMusicStatus('Zatrzymano muzykę.', 'info');
+        }
+
+        function openMusicPanel() {
+            if (!musicPanel) return;
+            musicPanel.removeAttribute('hidden');
+            musicInput?.focus();
+        }
+
+        function closeMusicPanel() {
+            musicPanel?.setAttribute('hidden', 'hidden');
+        }
+
+        musicTrigger?.addEventListener('click', function (event) {
+            event.stopPropagation();
+            if (!musicPanel) return;
+            musicPanel.hasAttribute('hidden') ? openMusicPanel() : closeMusicPanel();
+        });
+        musicClose?.addEventListener('click', closeMusicPanel);
+        musicPlay?.addEventListener('click', function () {
+            renderMusicPlayer(musicInput?.value || '');
+        });
+        musicStop?.addEventListener('click', stopMusicPlayer);
+        musicSearch?.addEventListener('click', function () {
+            const query = (musicInput?.value || '').trim();
+            if (!query) return;
+            const id = extractYouTubeId(query);
+            if (id) {
+                renderMusicPlayer(query);
+                return;
+            }
+            window.open('https://www.youtube.com/results?search_query=' + encodeURIComponent(query), '_blank', 'noopener');
+        });
+        musicInput?.addEventListener('keydown', function (event) {
+            if (event.key === 'Enter') {
+                event.preventDefault();
+                const id = extractYouTubeId(musicInput.value);
+                id ? renderMusicPlayer(musicInput.value) : musicSearch?.click();
+            }
+        });
+        const lastMusicLink = localStorage.getItem(musicKey);
+        if (lastMusicLink && musicInput) musicInput.value = lastMusicLink;
+
+        // Lekkie przyspieszenie przechodzenia po aplikacji: przeglądarka pobiera stronę dopiero
+        // gdy użytkownik najedzie na link albo gdy system ma chwilę wolnego czasu.
+        const prefetchedLinks = new Set();
+        function prefetchInternalLink(url) {
+            try {
+                const parsed = new URL(url, window.location.origin);
+                if (parsed.origin !== window.location.origin || prefetchedLinks.has(parsed.href)) return;
+                if (parsed.pathname === window.location.pathname) return;
+                const link = document.createElement('link');
+                link.rel = 'prefetch';
+                link.href = parsed.href;
+                document.head.appendChild(link);
+                prefetchedLinks.add(parsed.href);
+            } catch (error) {}
+        }
+        document.querySelectorAll('a[href^="/"]').forEach(link => {
+            link.addEventListener('mouseenter', () => prefetchInternalLink(link.href), { once: true });
+            link.addEventListener('focus', () => prefetchInternalLink(link.href), { once: true });
+        });
+        // Bez masowego prefetchu: przy wolnym hostingu/Renderze wiele ukrytych requestów potrafi
+        // pogorszyć płynność. Zostaje tylko lekki prefetch po najechaniu na konkretny link.
 
         const dock = document.getElementById('quick-access-dock');
         if (dock) {
@@ -412,11 +730,13 @@
             }
         }
 
-        fetch('{% url "profile_settings_api" %}', { credentials: 'same-origin' })
-            .then(response => response.ok ? response.json() : null)
-            .then(migrateLocalProfileIfNeeded)
-            .then(applyServerProfileSettings)
-            .catch(() => {});
+        if (!demoMode) {
+            fetch('{% url "profile_settings_api" %}', { credentials: 'same-origin' })
+                .then(response => response.ok ? response.json() : null)
+                .then(migrateLocalProfileIfNeeded)
+                .then(applyServerProfileSettings)
+                .catch(() => {});
+        }
     })();
 </script>
 {% endif %}

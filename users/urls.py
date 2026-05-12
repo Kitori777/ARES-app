@@ -8,6 +8,7 @@ from .views import (
     logout_view,
     worksheets_view,
     worksheet_editor_view,
+    demo_view,
     import_data_view,
     history_view,
     reports_view,
@@ -21,7 +22,10 @@ from .views import (
 
 urlpatterns = [
     path('', login_view, name='login'),
+    path('login/', login_view, name='login_explicit'),
+    path('accounts/login/', login_view, name='login_accounts_compat'),
     path('register/', register_view, name='register'),
+    path('demo/', demo_view, name='demo'),
     path('verify/', verify_email_view, name='verify_email'),
     path('verify/resend/', resend_verification_email_view, name='resend_verification_email'),
     path('dashboard/', dashboard_view, name='dashboard'),

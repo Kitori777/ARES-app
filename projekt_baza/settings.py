@@ -24,11 +24,16 @@ def env_list(name: str, default: list[str] | None = None) -> list[str]:
 SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-dev-only-change-me')
 DEBUG = env_bool('DEBUG', True)
 
-ALLOWED_HOSTS = env_list('ALLOWED_HOSTS', ['127.0.0.1', 'localhost'] if DEBUG else [])
-CSRF_TRUSTED_ORIGINS = env_list(
-    'CSRF_TRUSTED_ORIGINS',
-    ['http://127.0.0.1:8000', 'http://localhost:8000'] if DEBUG else [],
-)
+render_host = os.getenv('RENDER_EXTERNAL_HOSTNAME', '').strip()
+_default_allowed_hosts = ['127.0.0.1', 'localhost'] if DEBUG else ['.onrender.com']
+if render_host and render_host not in _default_allowed_hosts:
+    _default_allowed_hosts.append(render_host)
+ALLOWED_HOSTS = env_list('ALLOWED_HOSTS', _default_allowed_hosts)
+
+_default_csrf_origins = ['http://127.0.0.1:8000', 'http://localhost:8000'] if DEBUG else []
+if render_host:
+    _default_csrf_origins.append(f'https://{render_host}')
+CSRF_TRUSTED_ORIGINS = env_list('CSRF_TRUSTED_ORIGINS', _default_csrf_origins)
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -73,6 +78,11 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'projekt_baza.wsgi.application'
+
+LOGIN_URL = '/login/'
+LOGIN_REDIRECT_URL = '/dashboard/'
+LOGOUT_REDIRECT_URL = '/login/'
+
 
 DATABASES = {
     'default': dj_database_url.config(

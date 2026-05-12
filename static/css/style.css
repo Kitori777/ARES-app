@@ -4263,3 +4263,672 @@ body[data-theme] .we-chat-form textarea {
 body[data-theme] .we-chat-form textarea::placeholder {
     color: var(--muted);
 }
+
+/* v0.6.7 — tryb demo oraz równe formularze logowania/rejestracji */
+.auth-card-polished,
+.auth-showcase,
+.auth-demo-box,
+.auth-switch-box {
+    box-sizing: border-box;
+}
+
+.auth-card-polished * {
+    box-sizing: border-box;
+}
+
+.auth-form input,
+.auth-card-polished input,
+.auth-card-polished .form-input {
+    display: block;
+    margin: 0;
+}
+
+.auth-demo-box {
+    margin-top: 16px;
+    padding: 15px;
+    border-radius: 18px;
+    background: rgba(79, 140, 255, 0.10);
+    border: 1px solid rgba(124, 171, 255, 0.22);
+    color: #c7d7ff;
+    display: grid;
+    gap: 8px;
+    line-height: 1.45;
+}
+
+.auth-demo-box strong {
+    color: #f4f8ff;
+}
+
+.auth-demo-box .btn {
+    margin-top: 4px;
+    justify-content: center;
+}
+
+.demo-mode-banner {
+    margin-bottom: 18px;
+    padding: 14px 16px;
+    border-radius: 20px;
+    border: 1px solid rgba(124, 171, 255, 0.28);
+    background: linear-gradient(135deg, rgba(79,140,255,0.16), rgba(255,255,255,0.06));
+    color: var(--text, #eef4ff);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    box-shadow: 0 14px 34px rgba(10, 20, 35, 0.16);
+}
+
+.demo-mode-banner strong {
+    padding: 6px 10px;
+    border-radius: 999px;
+    background: rgba(79, 140, 255, 0.24);
+    color: #ffffff;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    font-size: .78rem;
+}
+
+.demo-mode-banner span {
+    flex: 1 1 360px;
+    color: var(--muted, #b6c3dc);
+}
+
+.demo-mode-banner .btn {
+    white-space: nowrap;
+}
+
+/* v0.6.8 — demo jako gość, muzyka YouTube i poprawki profilu */
+.topbar-music-trigger {
+    width: 46px;
+    height: 46px;
+    border-radius: 16px;
+    border: 1px solid color-mix(in srgb, var(--primary) 28%, var(--line));
+    background: linear-gradient(135deg, color-mix(in srgb, var(--primary) 18%, var(--panel)), color-mix(in srgb, var(--panel-2) 88%, transparent));
+    color: var(--text);
+    font-size: 1.35rem;
+    font-weight: 900;
+    cursor: pointer;
+    box-shadow: 0 14px 30px rgba(0,0,0,.16);
+    transition: transform .16s ease, border-color .16s ease, background .16s ease;
+}
+.topbar-music-trigger:hover {
+    transform: translateY(-1px);
+    border-color: color-mix(in srgb, var(--primary) 55%, var(--line));
+    background: color-mix(in srgb, var(--primary) 16%, var(--panel));
+}
+.topbar-music-panel {
+    position: fixed;
+    top: 88px;
+    right: 26px;
+    width: min(520px, calc(100vw - 32px));
+    z-index: 80;
+    padding: 16px;
+    border-radius: 22px;
+    border: 1px solid color-mix(in srgb, var(--primary) 26%, var(--line));
+    background: linear-gradient(180deg, color-mix(in srgb, var(--panel) 96%, transparent), color-mix(in srgb, var(--panel-2) 98%, transparent));
+    color: var(--text);
+    box-shadow: 0 26px 80px rgba(0,0,0,.34);
+}
+.music-panel-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 14px;
+    margin-bottom: 14px;
+}
+.music-panel-head strong { display: block; font-size: 1.05rem; }
+.music-panel-head small { display: block; margin-top: 4px; color: var(--muted); line-height: 1.35; }
+.music-panel-close {
+    width: 34px;
+    height: 34px;
+    border-radius: 12px;
+    border: 1px solid var(--line);
+    background: color-mix(in srgb, var(--panel-2) 78%, transparent);
+    color: var(--text);
+    cursor: pointer;
+    font-size: 1.2rem;
+}
+.music-panel-controls {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    gap: 10px;
+    align-items: center;
+}
+.music-input {
+    width: 100%;
+    min-width: 0;
+    padding: 13px 14px;
+    border-radius: 14px;
+    border: 1px solid var(--line);
+    background: color-mix(in srgb, var(--panel) 88%, transparent);
+    color: var(--text);
+    outline: none;
+}
+.music-input:focus { border-color: color-mix(in srgb, var(--primary) 55%, var(--line)); }
+.music-panel-player {
+    margin-top: 14px;
+    min-height: 92px;
+    border-radius: 18px;
+    border: 1px dashed color-mix(in srgb, var(--primary) 30%, var(--line));
+    background: color-mix(in srgb, var(--panel-2) 68%, transparent);
+    overflow: hidden;
+    display: grid;
+    place-items: center;
+    color: var(--muted);
+    text-align: center;
+    padding: 12px;
+}
+.music-panel-player iframe {
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    border: 0;
+    border-radius: 14px;
+}
+body[data-demo-mode="1"] .profile-trigger {
+    border-color: color-mix(in srgb, var(--primary) 34%, var(--line));
+    background: color-mix(in srgb, var(--primary) 10%, var(--panel));
+}
+body[data-demo-mode="1"] .profile-trigger-name::after {
+    content: 'bez zapisu';
+    display: inline-flex;
+    margin-left: 8px;
+    padding: 3px 7px;
+    border-radius: 999px;
+    font-size: .68rem;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    background: color-mix(in srgb, var(--primary) 18%, transparent);
+    color: var(--muted);
+}
+.profile-tabs-nav {
+    top: 88px;
+    padding: 10px;
+    margin: -10px -10px 8px;
+    border-radius: 22px;
+    background: color-mix(in srgb, var(--bg) 72%, transparent);
+    border: 1px solid color-mix(in srgb, var(--primary) 12%, transparent);
+    backdrop-filter: blur(14px);
+}
+.profile-tab-link {
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, #fff 4%, transparent);
+}
+.profile-tab-link.active,
+.profile-tab-link:hover {
+    box-shadow: 0 10px 26px rgba(0,0,0,.16), inset 0 0 0 1px color-mix(in srgb, var(--primary) 20%, transparent);
+}
+.profile-section { scroll-margin-top: 130px; }
+.profile-section,
+.settings-card,
+.profile-preview-card,
+.theme-card,
+.shortcut-card,
+.toggle-card {
+    border-color: color-mix(in srgb, var(--primary) 15%, var(--line));
+}
+.profile-section {
+    box-shadow: 0 24px 70px rgba(0,0,0,.18), inset 0 1px 0 color-mix(in srgb, #fff 6%, transparent);
+}
+.profile-section-head {
+    padding-bottom: 14px;
+    border-bottom: 1px solid color-mix(in srgb, var(--primary) 14%, var(--line));
+}
+.theme-card {
+    min-height: 98px;
+    outline: 1px solid color-mix(in srgb, #fff 5%, transparent);
+    transition: transform .16s ease, border-color .16s ease, box-shadow .16s ease, background .16s ease;
+}
+.theme-card:hover {
+    transform: translateY(-1px);
+    border-color: color-mix(in srgb, var(--primary) 38%, var(--line));
+    background: color-mix(in srgb, var(--primary) 8%, var(--panel));
+}
+.theme-card.active {
+    border-color: color-mix(in srgb, var(--primary) 62%, var(--line));
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--primary) 15%, transparent), 0 18px 46px rgba(0,0,0,.18);
+}
+.theme-swatches i {
+    width: 44px;
+    height: 26px;
+    border: 2px solid color-mix(in srgb, #fff 18%, var(--line));
+    box-shadow: inset 0 0 0 1px rgba(0,0,0,.16), 0 8px 18px rgba(0,0,0,.12);
+}
+.shortcut-card,
+.toggle-card {
+    min-height: 112px;
+}
+@media (max-width: 760px) {
+    .music-panel-controls { grid-template-columns: 1fr; }
+    .topbar-music-panel { top: 76px; right: 12px; }
+    .profile-tabs-nav { top: 74px; }
+}
+
+/* v0.6.9 — poprawka panelu muzyki i profilu */
+.music-panel-player { display: none !important; }
+.music-hidden-player {
+    position: fixed;
+    width: 1px;
+    height: 1px;
+    left: -10000px;
+    top: auto;
+    overflow: hidden;
+    opacity: 0;
+    pointer-events: none;
+}
+.music-hidden-player iframe { width: 1px; height: 1px; border: 0; }
+.music-panel-status {
+    margin-top: 12px;
+    padding: 11px 13px;
+    border-radius: 14px;
+    border: 1px solid color-mix(in srgb, var(--primary) 18%, var(--line));
+    background: color-mix(in srgb, var(--panel-2) 72%, transparent);
+    color: var(--muted);
+    font-size: .92rem;
+    line-height: 1.45;
+}
+.music-panel-status[data-state="ok"] {
+    color: color-mix(in srgb, #59e3aa 82%, var(--text));
+    border-color: color-mix(in srgb, #59e3aa 34%, var(--line));
+    background: color-mix(in srgb, #59e3aa 10%, var(--panel));
+}
+.music-panel-status[data-state="warn"] {
+    color: color-mix(in srgb, #ffd166 84%, var(--text));
+    border-color: color-mix(in srgb, #ffd166 34%, var(--line));
+    background: color-mix(in srgb, #ffd166 10%, var(--panel));
+}
+
+.profile-tabs-nav {
+    position: relative !important;
+    top: auto !important;
+    z-index: 1 !important;
+    margin: 0 0 18px !important;
+    padding: 12px !important;
+    display: flex !important;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    border-radius: 24px !important;
+    background: linear-gradient(135deg, color-mix(in srgb, var(--panel) 92%, transparent), color-mix(in srgb, var(--panel-2) 96%, transparent)) !important;
+    border: 1px solid color-mix(in srgb, var(--primary) 18%, var(--line)) !important;
+    box-shadow: 0 18px 46px rgba(0,0,0,.16);
+    backdrop-filter: none !important;
+}
+.profile-tab-link {
+    min-width: 110px;
+    text-align: center;
+    padding: 12px 20px !important;
+    border-radius: 18px !important;
+    white-space: nowrap;
+}
+.profile-section { scroll-margin-top: 24px !important; }
+.profile-section,
+.settings-card,
+.profile-preview-card {
+    overflow: hidden;
+}
+.profile-two-col {
+    align-items: stretch;
+}
+.avatar-style-grid,
+.avatar-shape-grid,
+.profile-symbol-grid,
+.theme-grid,
+.shortcut-grid,
+.preferences-grid {
+    min-width: 0;
+}
+.theme-card,
+.shortcut-card,
+.toggle-card,
+.settings-card {
+    box-shadow: inset 0 1px 0 color-mix(in srgb, #fff 6%, transparent);
+}
+.theme-card { position: relative; }
+.theme-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    pointer-events: none;
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--text) 7%, transparent);
+}
+@media (max-width: 980px) {
+    .profile-hero-card,
+    .profile-two-col { grid-template-columns: 1fr !important; }
+    .profile-tabs-nav { overflow-x: auto; flex-wrap: nowrap !important; }
+    .profile-tab-link { flex: 0 0 auto; }
+}
+@media (max-width: 760px) {
+    .music-panel-controls { grid-template-columns: 1fr 1fr !important; }
+    .music-input { grid-column: 1 / -1; }
+}
+
+/* v0.6.10 — poprawka profilu, muzyki i lżejszego arkusza bez wpisu do changeloga */
+.music-hidden-player {
+    position: fixed !important;
+    width: 320px !important;
+    height: 180px !important;
+    left: -420px !important;
+    top: 96px !important;
+    overflow: hidden !important;
+    opacity: 0.01 !important;
+    pointer-events: none !important;
+}
+.music-hidden-player iframe {
+    width: 320px !important;
+    height: 180px !important;
+    border: 0 !important;
+}
+.music-panel-controls {
+    grid-template-columns: minmax(0, 1fr) auto auto auto !important;
+}
+.profile-page {
+    max-width: 1180px;
+    margin-inline: auto;
+}
+.profile-tabs-nav {
+    box-sizing: border-box !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 18px 0 22px !important;
+    padding: 10px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    flex-wrap: wrap !important;
+    gap: 10px !important;
+    border-radius: 20px !important;
+    background: color-mix(in srgb, var(--panel) 82%, transparent) !important;
+    border: 1px solid color-mix(in srgb, var(--primary) 18%, var(--line)) !important;
+    box-shadow: inset 0 1px 0 color-mix(in srgb, #fff 6%, transparent), 0 12px 30px rgba(0,0,0,.12) !important;
+}
+.profile-tab-link {
+    flex: 0 1 auto !important;
+    min-width: 0 !important;
+    padding: 10px 18px !important;
+    border-radius: 16px !important;
+    line-height: 1 !important;
+}
+.profile-section {
+    box-sizing: border-box !important;
+    width: 100% !important;
+    max-width: 100% !important;
+}
+.profile-two-col,
+.profile-hero-card {
+    box-sizing: border-box !important;
+    max-width: 100% !important;
+}
+.avatar-style-grid-large {
+    grid-template-columns: repeat(auto-fit, minmax(86px, 1fr)) !important;
+}
+.avatar-shape-grid,
+.avatar-symbol-grid,
+.theme-grid,
+.shortcut-grid,
+.preferences-grid {
+    max-width: 100% !important;
+}
+@media (max-width: 760px) {
+    .music-panel-controls { grid-template-columns: 1fr 1fr !important; }
+    .music-input { grid-column: 1 / -1 !important; }
+    .profile-tabs-nav { padding: 8px !important; gap: 8px !important; }
+    .profile-tab-link { flex: 1 1 calc(50% - 8px) !important; text-align: center !important; }
+}
+
+/* v0.6.11 — muzyka bez wyskakującego okna + płynniejsze przejścia */
+.music-hidden-player {
+    display: block !important;
+    position: fixed !important;
+    left: -420px !important;
+    bottom: 12px !important;
+    width: 320px !important;
+    height: 180px !important;
+    opacity: 0.01 !important;
+    pointer-events: none !important;
+    overflow: hidden !important;
+    z-index: -1 !important;
+}
+
+.music-hidden-player iframe {
+    width: 320px !important;
+    height: 180px !important;
+    border: 0 !important;
+}
+
+.topbar-music-panel {
+    backdrop-filter: none !important;
+}
+
+.card,
+.panel-card,
+.profile-card {
+    content-visibility: auto;
+    contain-intrinsic-size: 360px;
+}
+
+.quick-access-dock,
+.app-topbar,
+.app-sidebar {
+    content-visibility: visible;
+}
+
+/* v0.6.12 — stabilniejszy odtwarzacz YouTube + postęp utworu */
+.music-progress-card {
+    margin-top: 12px;
+    padding: 12px 13px;
+    border-radius: 15px;
+    border: 1px solid color-mix(in srgb, var(--primary) 24%, var(--line));
+    background: color-mix(in srgb, var(--panel-2) 78%, transparent);
+}
+.music-progress-top,
+.music-progress-meta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    color: var(--muted);
+    font-size: .86rem;
+}
+.music-progress-top strong {
+    color: color-mix(in srgb, #59e3aa 86%, var(--text));
+    font-size: .84rem;
+    white-space: nowrap;
+}
+.music-progress-bar {
+    height: 8px;
+    margin: 10px 0 8px;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--line) 34%, transparent);
+    overflow: hidden;
+}
+.music-progress-bar span {
+    display: block;
+    width: 0%;
+    height: 100%;
+    border-radius: inherit;
+    background: linear-gradient(90deg, var(--primary), color-mix(in srgb, #59e3aa 72%, var(--primary)));
+    transition: width .35s linear;
+}
+.music-hidden-player {
+    display: block !important;
+    position: fixed !important;
+    left: 8px !important;
+    bottom: 8px !important;
+    width: 320px !important;
+    height: 180px !important;
+    opacity: .001 !important;
+    pointer-events: none !important;
+    overflow: hidden !important;
+    z-index: 1 !important;
+}
+.music-hidden-player iframe,
+.music-hidden-player div {
+    width: 320px !important;
+    height: 180px !important;
+    border: 0 !important;
+}
+@media (max-width: 760px) {
+    .music-panel-controls { grid-template-columns: 1fr 1fr !important; }
+    .music-input { grid-column: 1 / -1 !important; }
+    .music-progress-top { align-items: flex-start; flex-direction: column; }
+}
+
+/* v0.7.0 — jaśniejszy, bezpieczniejszy kontrast tekstu we wszystkich motywach */
+:root {
+    --text: #f6f8ff;
+    --muted: #c3cbe0;
+    --line: rgba(255,255,255,.14);
+}
+body[data-theme="midnight-blue"],
+body[data-theme="emerald-night"],
+body[data-theme="graphite"],
+body[data-theme="violet-glow"],
+body[data-theme="rose-dusk"],
+body[data-theme="ocean-cyan"],
+body[data-theme="solar-contrast"] {
+    --line: rgba(255,255,255,.14);
+}
+body[data-theme="midnight-blue"] { --text:#f7f9ff; --muted:#c0c9df; }
+body[data-theme="emerald-night"] { --text:#f2fff9; --muted:#b9e0d0; }
+body[data-theme="graphite"] { --text:#f5f7ff; --muted:#c4cad8; }
+body[data-theme="violet-glow"] { --text:#faf7ff; --muted:#cfc6ee; }
+body[data-theme="rose-dusk"] { --text:#fff7fa; --muted:#ecc6d5; }
+body[data-theme="ocean-cyan"] { --text:#f3fdff; --muted:#bee5ee; }
+body[data-theme="solar-contrast"] { --text:#fff9df; --muted:#f0d98d; }
+body[data-theme="arctic-light"] { --text:#172033; --muted:#44546f; --line:rgba(17,30,54,.16); }
+body[data-theme="sand-light"] { --text:#241807; --muted:#5d4825; --line:rgba(72,47,7,.17); }
+body[data-theme="clean-slate"] { --text:#18283f; --muted:#4d5f78; --line:rgba(38,52,76,.16); }
+body[data-theme] h1,
+body[data-theme] h2,
+body[data-theme] h3,
+body[data-theme] h4,
+body[data-theme] strong,
+body[data-theme] label,
+body[data-theme] .btn,
+body[data-theme] .topbar-title,
+body[data-theme] .profile-tab-link,
+body[data-theme] .theme-title,
+body[data-theme] .sheet-title,
+body[data-theme] .feature-tile strong {
+    color: var(--text) !important;
+}
+body[data-theme] p,
+body[data-theme] small,
+body[data-theme] .muted,
+body[data-theme] .topbar-label,
+body[data-theme] .section-kicker,
+body[data-theme] .profile-preview-meta span,
+body[data-theme] .shortcut-card small,
+body[data-theme] .toggle-card small {
+    color: var(--muted) !important;
+}
+body[data-theme] .settings-card,
+body[data-theme] .profile-section,
+body[data-theme] .panel-card,
+body[data-theme] .sheet-card,
+body[data-theme] .feature-tile,
+body[data-theme] .dashboard-hero-left,
+body[data-theme] .dashboard-hero-right {
+    border-color: var(--line) !important;
+}
+.quick-access-dock {
+    color: var(--text) !important;
+    border-color: color-mix(in srgb, var(--primary) 22%, var(--line)) !important;
+}
+
+/* v0.7.1 — stabilniejsze zachowanie bocznego menu i profilu */
+.profile-dropdown[hidden] { display: none !important; }
+.profile-dropdown {
+    z-index: 6000 !important;
+    max-height: min(72vh, 560px);
+    overflow: auto;
+}
+.app-sidebar {
+    z-index: 3000;
+}
+.app-shell.sidebar-collapsed .profile-dropdown {
+    right: 14px !important;
+}
+@media (max-width: 980px) {
+    .app-shell.sidebar-collapsed .app-sidebar {
+        transform: translateX(-105%);
+        pointer-events: none;
+    }
+    .app-shell:not(.sidebar-collapsed) .app-sidebar {
+        transform: translateX(0);
+        pointer-events: auto;
+        box-shadow: 24px 0 60px rgba(0,0,0,.45);
+    }
+}
+
+/* v0.7.3-hotfix — profil po przejściu z lewego menu nie tworzy bocznych nakładek */
+.profile-page {
+    width: min(1180px, 100%) !important;
+    margin-inline: auto !important;
+    overflow: visible !important;
+}
+.profile-hero-card,
+.profile-tabs-nav,
+.profile-section {
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+}
+.profile-tabs-nav {
+    position: static !important;
+    isolation: isolate;
+}
+.profile-tab-link {
+    flex: 0 1 auto !important;
+}
+@media (min-width: 981px) {
+    .app-shell.sidebar-collapsed .app-content-area {
+        margin-left: var(--sidebar-collapsed-width, 88px);
+    }
+}
+
+/* v0.7.4-hotfix — stabilny lewy panel i menu profilu */
+@media (min-width: 981px) {
+    .app-shell.sidebar-collapsed .app-content-area {
+        margin-left: 0 !important;
+    }
+}
+.app-logo-box {
+    min-height: 68px;
+    align-items: center !important;
+    overflow: hidden;
+}
+.app-logo-box .ares-logo {
+    flex: 0 0 42px;
+    width: 42px !important;
+    height: 42px !important;
+}
+.app-logo-box .sidebar-brand-text {
+    min-width: 0;
+    overflow: hidden;
+}
+.app-logo-box .app-logo-title,
+.app-logo-box .app-logo-subtitle {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.app-shell.sidebar-collapsed .app-logo-box {
+    padding-inline: 0 !important;
+    justify-content: center;
+}
+.profile-menu {
+    position: relative !important;
+}
+.profile-dropdown {
+    left: auto !important;
+    right: 0 !important;
+    transform: translateX(-10px) !important;
+    transform-origin: top right;
+}
+@media (max-width: 720px) {
+    .profile-dropdown {
+        right: -6px !important;
+        transform: none !important;
+        width: min(92vw, 320px) !important;
+    }
+}

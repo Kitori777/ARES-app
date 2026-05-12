@@ -421,6 +421,19 @@ def worksheet_editor_view(request):
     return render(request, 'worksheet_editor.html')
 
 
+def demo_view(request):
+    """Publiczny tryb testowy: działa jak edytor, ale bez zapisu do bazy i bez konta.
+
+    Tryb demo ma być niezależny od zalogowanego profilu. Dzięki temu nawet jeśli
+    użytkownik ma aktywną sesję, pod adresem /demo/ widzi neutralnego gościa demo,
+    a lokalne ustawienia profilu i avatar konta nie mieszają się z testowaniem.
+    """
+    return render(request, 'worksheet_editor.html', {
+        'demo_mode': True,
+        'demo_username': 'Gość demo',
+    })
+
+
 @login_required
 def import_data_view(request):
     return render(request, 'import_data.html')

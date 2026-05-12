@@ -5,19 +5,53 @@
 {% block topbar_title %}Edytor arkusza{% endblock %}
 
 {% block extra_head %}
-<link rel="stylesheet" href="{% static 'css/worksheet_editor.css' %}?v=0.6.6">
+<link rel="stylesheet" href="{% static 'css/worksheet_editor.css' %}?v=0.7.7">
 {% endblock %}
 
 {% block content %}
 <section class="we-page-shell">
+    {% if demo_mode %}
+    <div class="demo-mode-banner">
+        <strong>Tryb demo</strong>
+        <span>Testujesz ARES bez logowania. Możesz zmieniać komórki, formuły, zakładki i wygląd arkusza, ale nic nie zapisuje się na serwerze.</span>
+        <a href="{% url 'register' %}" class="btn btn-primary">Utwórz konto, żeby zapisywać</a>
+    </div>
+    {% endif %}
     <div class="we-toolbar-card">
         <div class="we-toolbar-top">
             <div class="we-sheet-meta">
                 <div class="we-label">ARKUSZ</div>
                 <h1 id="editor-sheet-name">Arkusz</h1>
                 <p id="editor-sheet-meta">Ładowanie danych arkusza...</p>
-                <div id="autosave-badge" class="we-autosave-badge">Brak zmian</div>
-                <div class="we-performance-badge" title="Włączono szybsze zaznaczanie i lżejsze odświeżanie siatki">⚡ Tryb płynnego arkusza</div>
+                <div class="we-header-actions">
+                    <div id="autosave-badge" class="we-autosave-badge">Brak zmian</div>
+                    <button id="add-sheet-tag-btn" class="we-sheet-tag-add" type="button" title="Dodaj krótki tag do arkusza">+ Tag</button>
+                </div>
+                <div id="sheet-tags" class="we-sheet-tags" aria-label="Tagi arkusza"></div>
+            </div>
+
+            <div id="sheet-tag-modal" class="we-modal-backdrop we-sheet-tag-modal" hidden>
+                <div class="we-modal-card we-sheet-tag-card" role="dialog" aria-modal="true" aria-labelledby="sheet-tag-modal-title">
+                    <div class="we-modal-head">
+                        <div>
+                            <h3 id="sheet-tag-modal-title">Dodaj tag arkusza</h3>
+                            <p>Tag pomoże szybko oznaczyć arkusz, np. raport, budżet, test albo ważne.</p>
+                        </div>
+                        <button class="we-modal-close" type="button" data-close-sheet-tag aria-label="Zamknij">×</button>
+                    </div>
+                    <label class="we-sheet-tag-label" for="sheet-tag-input">Nazwa tagu</label>
+                    <input id="sheet-tag-input" class="we-sheet-tag-input" type="text" maxlength="24" placeholder="np. raport" autocomplete="off">
+                    <div class="we-sheet-tag-suggestions" aria-label="Szybkie przykłady tagów">
+                        <button type="button" data-tag-suggestion="ważne">ważne</button>
+                        <button type="button" data-tag-suggestion="raport">raport</button>
+                        <button type="button" data-tag-suggestion="budżet">budżet</button>
+                        <button type="button" data-tag-suggestion="test">test</button>
+                    </div>
+                    <div class="we-modal-actions">
+                        <button class="btn btn-secondary" type="button" data-close-sheet-tag>Anuluj</button>
+                        <button id="sheet-tag-save-btn" class="btn btn-primary" type="button">Dodaj tag</button>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -516,8 +550,8 @@
 
 {% block extra_js %}
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-<script src="{% static 'js/formula_catalog.js' %}?v=0.6.6"></script>
-<script src="{% static 'js/formula_engine.js' %}?v=0.6.6"></script>
-<script src="{% static 'js/worksheet_editor.js' %}?v=0.6.6"></script>
-<script src="{% static 'js/worksheet_chat.js' %}?v=0.6.6"></script>
+<script src="{% static 'js/formula_catalog.js' %}?v=0.7.7"></script>
+<script src="{% static 'js/formula_engine.js' %}?v=0.7.7"></script>
+<script src="{% static 'js/worksheet_editor.js' %}?v=0.7.7"></script>
+<script src="{% static 'js/worksheet_chat.js' %}?v=0.7.7"></script>
 {% endblock %}

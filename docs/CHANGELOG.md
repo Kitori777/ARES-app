@@ -1,5 +1,45 @@
 # Changelog
 
+## [v0.7.0] - 2026-05-12
+
+### Dodano
+- Dodano publiczny tryb demo `/demo/` podobny do testowania aplikacji bez konta: użytkownik może sprawdzić arkusz, formuły, zakładki, wygląd, import, wykresy i narzędzia, ale zmiany nie zapisują się na serwerze.
+- Dodano przycisk „Wypróbuj bez logowania” na ekranie logowania.
+- Dodano osobny stan „Gość demo”, dzięki czemu tryb demo nie miesza się z aktywną sesją zalogowanego użytkownika i nie pokazuje jego nazwy ani avatara.
+- Dodano panel muzyki z YouTube w górnym pasku aplikacji z obsługą linku, wyszukiwania, przycisków „Puść” i „Stop” oraz paskiem postępu utworu/podcastu.
+- Dodano status odtwarzania muzyki z informacją o błędach osadzania, czasie trwania, aktualnym czasie i czasie pozostałym do końca.
+- Dodano zapisywanie nowego avatara jako danych profilu użytkownika w bazie, żeby po wdrożeniu na Renderze obrazek nie znikał po restarcie lub redeployu.
+
+### Zmieniono
+- Uporządkowano logowanie i rejestrację: język jest spójnie polski, formularze są równo ustawione, a użytkownik dostaje krótką instrukcję konta i trybu demo.
+- Przebudowano panel profilu oraz sekcje „Profil / Wygląd / Skróty / Preferencje”, żeby zakładki nie nachodziły na treść, lepiej się zawijały i wyglądały czytelniej na mniejszych ekranach.
+- Wzmocniono obramowania kart profilu, kafelków motywów, ustawień i sekcji wyglądu, żeby kolory były łatwiejsze do odróżnienia.
+- Poprawiono kontrast tekstu we wszystkich motywach, w tym jasnych i ciemnych, tak aby opisy, przyciski, nagłówki i metadane były wyraźniej widoczne.
+- Poprawiono nagłówek edytora arkusza: metadane arkusza są teraz bezpiecznie formatowane i nie powinny już pokazywać wartości typu `undefined` ani błędnych nazw zakładek pobranych ze starych zapisów.
+- Zmieniono sposób prezentacji komórek po optymalizacjach, żeby arkusz nadal wyglądał estetycznie i czytelnie, a nie „technicznie”.
+
+### Poprawiono wydajność
+- Przyspieszono renderowanie arkusza przez lżejsze ustawianie szerokości kolumn z użyciem `colgroup`, zamiast nadpisywania stylu każdej komórki osobno.
+- Ograniczono liczbę ciężkich operacji DOM podczas zaznaczania komórek i dużych zakresów.
+- Ograniczono zbędne animacje, przejścia, cienie i efekty `backdrop-filter` w najcięższych częściach arkusza.
+- Zmieniono aktualizowanie komórek wyliczanych tak, żeby część pracy była odkładana na chwilę bezczynności przeglądarki.
+- Usprawniono wpisywanie do komórek: pisanie nie uruchamia zapisu ani pełnego odświeżenia przy każdej literze.
+- W trybie demo edytor nie wykonuje żadnych sieciowych zapisów arkusza ani historii.
+- Dodano lżejszą obsługę zwykłych komórek tekstowych podczas renderowania, aby nie używać kosztownego HTML tam, gdzie wystarczy zwykły tekst.
+- Usunięto zbyt agresywny automatyczny prefetch stron, który na wolniejszym hostingu mógł pogarszać płynność.
+
+### Naprawiono
+- Naprawiono przekierowanie `/accounts/login/`, które mogło pojawiać się przy wejściu w chronione strony bez zalogowania i kończyć się błędem 404.
+- Naprawiono przypadek, w którym tryb demo mógł pokazywać konto zalogowanego użytkownika.
+- Naprawiono widoczność części tekstów w motywach, gdzie niektóre opisy były zbyt ciemne lub zbyt słabo kontrastowe.
+- Naprawiono ryzyko nachodzenia elementów profilu i zakładek profilu na treść po przewinięciu strony.
+- Naprawiono problem z nagłówkiem arkusza, gdzie liczba kolumn mogła być wyświetlana jako `undefined`.
+
+### Techniczne / Render
+- Podniesiono wersję aplikacji do `0.7.0`.
+- Odświeżono wersjonowanie statycznych plików CSS/JS do `?v=0.7.0`, żeby po wdrożeniu Render/WhiteNoise i przeglądarka nie trzymały starego wyglądu.
+- Zachowano zgodność z Renderem: statyczne pliki nadal działają przez WhiteNoise, baza przez `DATABASE_URL`, a avatar nie opiera się na nietrwałym katalogu `media/`.
+
 ## [v0.6.0] - 2026-05-06
 
 ### Dodano

@@ -97,12 +97,17 @@ class UserProfile(models.Model):
         return filename, ContentFile(raw, name=filename)
 
     def avatar_url(self):
+        # Na Renderze katalog media/ jest nietrwały i zwykle nie jest serwowany przez WhiteNoise.
+        # Dlatego nowo wgrywane avatary trzymamy jako data URI w bazie, a plik zostaje tylko
+        # jako zgodność wsteczna dla starszych instalacji lokalnych.
+        if self.avatar_image:
+            return self.avatar_image
         if self.avatar_file:
             try:
                 return self.avatar_file.url
             except Exception:
                 return ''
-        return self.avatar_image or ''
+        return ''
 
     def is_default_profile(self):
         defaults = self.defaults_for_user(self.user)
@@ -188,14 +193,13 @@ class UserProfile(models.Model):
             raw_avatar = str(profile.get('avatarImage') or '')
             decoded = self._decode_avatar_data_uri(raw_avatar)
             if decoded:
-                filename, content = decoded
+                # Produkcja na Renderze: nie zapisujemy avatara do media/, bo filesystem
+                # jest nietrwały i po restarcie/deployu plik może zniknąć. Trzymamy data URI
+                # w polu TextField, dzięki czemu avatar wraca po ponownym zalogowaniu.
                 if self.avatar_file:
                     self.avatar_file.delete(save=False)
-                self.avatar_file.save(filename, content, save=False)
-                self.avatar_image = ''
+                self.avatar_image = raw_avatar[:3_000_000]
             elif raw_avatar:
-                # Zewnętrzny URL albo istniejąca ścieżka /media/ zostaje jako tekst.
-                # Plik wgrany wcześniej zostawiamy tylko wtedy, gdy frontend zwraca tę samą ścieżkę.
                 if self.avatar_file and raw_avatar == self.avatar_url():
                     pass
                 else:
