@@ -4932,3 +4932,80 @@ body[data-theme] .dashboard-hero-right {
         width: min(92vw, 320px) !important;
     }
 }
+
+
+/* v0.7.9-hotfix — Render: stabilne menu profilu + czytelniejsze akcenty zamiast bladego błękitu */
+.profile-menu {
+    position: relative !important;
+    z-index: 50000 !important;
+}
+.profile-dropdown[hidden] {
+    display: none !important;
+}
+.profile-dropdown {
+    position: fixed !important;
+    right: auto !important;
+    transform: none !important;
+    z-index: 999999 !important;
+    box-sizing: border-box !important;
+    overscroll-behavior: contain;
+}
+.profile-dropdown-links a,
+.profile-dropdown-footer a {
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+}
+body[data-theme="sand-light"] .profile-dropdown,
+body[data-theme="arctic-light"] .profile-dropdown,
+body[data-theme="clean-slate"] .profile-dropdown {
+    background: linear-gradient(180deg, color-mix(in srgb, var(--panel) 96%, #ffffff 4%), color-mix(in srgb, var(--panel-2) 96%, #ffffff 4%)) !important;
+    color: var(--text) !important;
+}
+
+/* Usunięcie zbyt jasnego niebieskiego z pulpitu startowego */
+body[data-theme="sand-light"] .module-pills span,
+body[data-theme="arctic-light"] .module-pills span,
+body[data-theme="clean-slate"] .module-pills span {
+    color: color-mix(in srgb, var(--primary) 82%, #1f1609 18%) !important;
+    background: color-mix(in srgb, var(--primary) 11%, var(--panel) 89%) !important;
+    border-color: color-mix(in srgb, var(--primary) 32%, var(--line) 68%) !important;
+}
+body[data-theme="sand-light"] .timeline-list time,
+body[data-theme="arctic-light"] .timeline-list time,
+body[data-theme="clean-slate"] .timeline-list time,
+body[data-theme="sand-light"] .action-list a > span,
+body[data-theme="arctic-light"] .action-list a > span,
+body[data-theme="clean-slate"] .action-list a > span {
+    color: color-mix(in srgb, var(--primary) 82%, #1f1609 18%) !important;
+}
+body[data-theme="sand-light"] .action-list a > span,
+body[data-theme="arctic-light"] .action-list a > span,
+body[data-theme="clean-slate"] .action-list a > span {
+    background: color-mix(in srgb, var(--primary) 12%, var(--panel) 88%) !important;
+    border: 1px solid color-mix(in srgb, var(--primary) 30%, var(--line) 70%) !important;
+}
+
+
+/* v0.7.9-hotfix — profil rzeczywiście otwierany po kliknięciu na Renderze */
+.profile-trigger {
+    cursor: pointer !important;
+    pointer-events: auto !important;
+    user-select: none;
+}
+.profile-trigger,
+.profile-trigger * {
+    touch-action: manipulation;
+}
+.profile-dropdown.is-open {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    pointer-events: auto !important;
+}
+.profile-dropdown[hidden]:not(.is-open) {
+    display: none !important;
+}
+body.profile-menu-open .profile-dropdown.is-open {
+    display: block !important;
+}
