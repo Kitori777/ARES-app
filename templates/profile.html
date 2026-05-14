@@ -364,8 +364,11 @@
                     },
                     body: JSON.stringify(payload),
                 });
-                if (!response.ok) throw new Error('Błąd zapisu profilu');
-                const data = await response.json();
+                let data = null;
+                try { data = await response.json(); } catch (jsonError) { data = null; }
+                if (!response.ok || data?.ok === false) {
+                    throw new Error(data?.error || 'Błąd zapisu profilu');
+                }
                 if (data.profile) saveJSON(profileKey, data.profile);
                 if (data.shortcuts) saveJSON(shortcutsKey, data.shortcuts);
                 if (data.preferences) saveJSON(prefKey, data.preferences);
@@ -374,9 +377,12 @@
                     savedTheme = data.theme;
                 }
                 localStorage.setItem('ares_profile_db_synced', '1');
+                window.ARES_APPLY_PROFILE_SETTINGS?.(data);
+                window.dispatchEvent(new CustomEvent('ares:profile-updated', { detail: data }));
                 return data;
             } catch (error) {
                 console.warn('Nie udało się zapisać ustawień profilu w bazie.', error);
+                showProfileToast('Nie udało się zapisać profilu na serwerze. Spróbuj ponownie albo wybierz mniejszy obraz.', 'error', 'Błąd zapisu');
                 return null;
             }
         }
@@ -612,7 +618,8 @@
         });
 
         document.getElementById('save-appearance-btn')?.addEventListener('click', async () => {
-            await saveServerSettings({ theme: currentTheme, profile: renderProfilePreview(), shortcuts, preferences: prefs });
+            const saved = await saveServerSettings({ theme: currentTheme, profile: renderProfilePreview(), shortcuts, preferences: prefs });
+            if (!saved) return;
             showProfileToast('Wygląd został zapisany na koncie użytkownika.', 'success', 'Zapisano wygląd');
         });
 
@@ -624,13 +631,16 @@
             const state = renderProfilePreview();
             const payloadProfile = { ...state, avatarImage: uploadedAvatarDataUri || (avatarImageInput.value || '').trim() };
             const saved = await saveServerSettings({ profile: payloadProfile, theme: currentTheme, shortcuts, preferences: prefs });
-            profile = { ...payloadProfile, ...(saved?.profile || {}) };
+            if (!saved) return;
+            profile = { ...payloadProfile, ...(saved.profile || {}) };
+            saveJSON(profileKey, profile);
+            window.ARES_APPLY_PROFILE_SETTINGS?.({ profile, theme: currentTheme, shortcuts, preferences: prefs });
+            window.dispatchEvent(new CustomEvent('ares:profile-updated', { detail: { profile, theme: currentTheme, shortcuts, preferences: prefs } }));
             if (uploadedAvatarObjectUrl) URL.revokeObjectURL(uploadedAvatarObjectUrl);
             uploadedAvatarObjectUrl = '';
             uploadedAvatarDataUri = '';
-            saveJSON(profileKey, profile);
             hydrateProfileForm();
-            showProfileToast('Profil został zapisany.', 'success', 'Zapisano profil');
+            showProfileToast('Profil został zapisany i od razu zaktualizowany w prawym górnym rogu.', 'success', 'Zapisano profil');
         });
 
         document.getElementById('clear-avatar-image-btn').addEventListener('click', () => {
@@ -648,7 +658,8 @@
             saveJSON(shortcutsKey, data);
             renderProfilePreview();
             updateQuickDockPreview();
-            await saveServerSettings({ shortcuts: data, profile: renderProfilePreview(), theme: currentTheme, preferences: prefs });
+            const saved = await saveServerSettings({ shortcuts: data, profile: renderProfilePreview(), theme: currentTheme, preferences: prefs });
+            if (!saved) return;
             showProfileToast(window.ARES_I18N?.t('Skróty zostały zapisane na koncie użytkownika.') || 'Skróty zostały zapisane na koncie użytkownika.', 'success', 'Zapisano skróty');
         });
 
@@ -667,7 +678,8 @@
             prefs = data;
             saveJSON(prefKey, data);
             updateQuickDockPreview();
-            await saveServerSettings({ preferences: data, profile: renderProfilePreview(), theme: currentTheme, shortcuts });
+            const saved = await saveServerSettings({ preferences: data, profile: renderProfilePreview(), theme: currentTheme, shortcuts });
+            if (!saved) return;
             showProfileToast('Preferencje zostały zapisane na koncie użytkownika.', 'success', 'Zapisano preferencje');
             window.ARES_I18N?.refresh?.();
         });

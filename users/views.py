@@ -16,6 +16,7 @@ from django.http import JsonResponse
 from django.shortcuts import redirect, render
 from django.template.loader import render_to_string
 from django.utils import timezone
+from django.views.decorators.csrf import ensure_csrf_cookie
 from django.views.decorators.http import require_http_methods, require_POST
 
 from .forms import RegisterForm, BugReportForm, AccountUpdateForm
@@ -456,6 +457,7 @@ def helpdesk_view(request):
 
 
 @login_required
+@ensure_csrf_cookie
 def profile_view(request):
     account_form = AccountUpdateForm(user=request.user, initial={
         'first_name': request.user.first_name,

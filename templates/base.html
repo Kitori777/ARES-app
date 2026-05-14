@@ -780,6 +780,12 @@
             }
         }
 
+        window.ARES_APPLY_PROFILE_SETTINGS = applyServerProfileSettings;
+
+        window.addEventListener('ares:profile-updated', function (event) {
+            applyServerProfileSettings(event.detail || null);
+        });
+
         if (!demoMode) {
             fetch('{% url "profile_settings_api" %}', { credentials: 'same-origin' })
                 .then(response => response.ok ? response.json() : null)
