@@ -4610,18 +4610,53 @@ document.addEventListener("DOMContentLoaded", function () {
         else setRibbonFloating("start");
     }
 
+    function getRibbonInteractionMode() {
+        try {
+            const prefs = JSON.parse(localStorage.getItem("ares_preferences") || "{}");
+            return prefs.ribbonMode === "click" ? "click" : "hover";
+        } catch (error) {
+            return "hover";
+        }
+    }
+
     function initializeTabs() {
+        const ribbonMode = getRibbonInteractionMode();
+        if (toolbarCard) toolbarCard.dataset.ribbonMode = ribbonMode;
         tabs.forEach(tab => {
-            tab.addEventListener("click", () => activateRibbonTab(tab));
-            tab.addEventListener("mouseenter", () => activateRibbonTab(tab));
+            tab.addEventListener("click", event => {
+                if (ribbonMode === "click") {
+                    event.preventDefault();
+                    activateRibbonTab(tab, true);
+                    return;
+                }
+                activateRibbonTab(tab);
+            });
+            tab.addEventListener("mouseenter", () => {
+                if (ribbonMode === "hover") activateRibbonTab(tab);
+            });
             tab.addEventListener("focus", () => activateRibbonTab(tab));
-            tab.addEventListener("mouseleave", closeRibbonSoon);
-            tab.addEventListener("blur", closeRibbonSoon);
+            tab.addEventListener("mouseleave", () => {
+                if (ribbonMode === "hover") closeRibbonSoon();
+            });
+            tab.addEventListener("blur", () => {
+                if (ribbonMode === "hover") closeRibbonSoon();
+            });
         });
-        ribbonEl?.addEventListener("mouseenter", openRibbon);
-        ribbonEl?.addEventListener("mouseleave", closeRibbonSoon);
+        ribbonEl?.addEventListener("mouseenter", () => {
+            if (ribbonMode === "hover") openRibbon();
+        });
+        ribbonEl?.addEventListener("mouseleave", () => {
+            if (ribbonMode === "hover") closeRibbonSoon();
+        });
         ribbonEl?.addEventListener("focusin", openRibbon);
-        ribbonEl?.addEventListener("focusout", closeRibbonSoon);
+        ribbonEl?.addEventListener("focusout", () => {
+            if (ribbonMode === "hover") closeRibbonSoon();
+        });
+        document.addEventListener("click", event => {
+            if (ribbonMode !== "click") return;
+            if (event.target.closest(".we-tabs") || event.target.closest(".we-ribbon")) return;
+            activateStartRibbon();
+        });
     }
     function initializeModals() {
         modalCloseButtons.forEach(button => {

@@ -43,6 +43,41 @@ class RegisterForm(UserCreationForm):
         return email
 
 
+class AccountUpdateForm(forms.Form):
+    """Prosta edycja podstawowych danych konta bez zmiany modelu User."""
+
+    first_name = forms.CharField(
+        required=False,
+        label='Imię',
+        max_length=150,
+        widget=forms.TextInput(attrs={'class': 'settings-input', 'autocomplete': 'given-name'}),
+    )
+    last_name = forms.CharField(
+        required=False,
+        label='Nazwisko',
+        max_length=150,
+        widget=forms.TextInput(attrs={'class': 'settings-input', 'autocomplete': 'family-name'}),
+    )
+    email = forms.EmailField(
+        required=True,
+        label='Adres e-mail',
+        widget=forms.EmailInput(attrs={'class': 'settings-input', 'autocomplete': 'email'}),
+    )
+
+    def __init__(self, *args, user=None, **kwargs):
+        self.user = user
+        super().__init__(*args, **kwargs)
+
+    def clean_email(self):
+        email = self.cleaned_data['email'].strip().lower()
+        qs = User.objects.filter(email__iexact=email)
+        if self.user is not None:
+            qs = qs.exclude(pk=self.user.pk)
+        if qs.exists():
+            raise forms.ValidationError('Ten adres e-mail jest już używany przez inne konto.')
+        return email
+
+
 from .models import BugReport
 
 

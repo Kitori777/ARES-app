@@ -33,13 +33,16 @@
         </aside>
     </div>
 
-    <div class="profile-tabs-nav">
-        <a href="#profile" class="profile-tab-link active">Profil</a>
-        <a href="#appearance" class="profile-tab-link">Wygląd</a>
-        <a href="#shortcuts" class="profile-tab-link">Skróty</a>
-        <a href="#preferences" class="profile-tab-link">Preferencje</a>
-    </div>
+    <div class="profile-content-layout">
+        <aside class="profile-tabs-nav" aria-label="Szybka nawigacja profilu">
+            <a href="#profile" class="profile-tab-link active">Profil</a>
+            <a href="#security" class="profile-tab-link">Konto i hasło</a>
+            <a href="#appearance" class="profile-tab-link">Wygląd</a>
+            <a href="#shortcuts" class="profile-tab-link">Skróty</a>
+            <a href="#preferences" class="profile-tab-link">Preferencje</a>
+        </aside>
 
+        <div class="profile-sections-stack">
     <section class="profile-section" id="profile">
         <div class="profile-section-head">
             <span class="section-kicker">Profil</span>
@@ -117,6 +120,43 @@
                 <h3 id="profile-live-name">{{ request.user.username }}</h3>
                 <p>Tak będzie wyglądał Twój profil w górnym pasku i w ustawieniach konta.</p>
             </div>
+        </div>
+    </section>
+
+    <section class="profile-section" id="security">
+        <div class="profile-section-head">
+            <span class="section-kicker">Konto i hasło</span>
+            <h2>Bezpieczeństwo konta</h2>
+        </div>
+        <div class="profile-two-col security-grid">
+            <form class="settings-card security-form" method="post" action="{% url 'account_settings' %}">
+                {% csrf_token %}
+                <h3>Dane konta</h3>
+                <p class="field-subtext">Tutaj użytkownik może poprawić podstawowe dane przypisane do konta.</p>
+                {% for field in account_form %}
+                    <label class="field-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+                    {{ field }}
+                    {% for error in field.errors %}<div class="form-error">{{ error }}</div>{% endfor %}
+                {% endfor %}
+                <div class="settings-actions">
+                    <button class="btn btn-primary" type="submit">Zapisz dane konta</button>
+                </div>
+            </form>
+
+            <form class="settings-card security-form" method="post" action="{% url 'change_password' %}">
+                {% csrf_token %}
+                <h3>Zmiana hasła</h3>
+                <p class="field-subtext">Po zmianie hasła sesja zostaje utrzymana, więc użytkownik nie zostanie wyrzucony z aplikacji.</p>
+                {% for field in password_form %}
+                    <label class="field-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+                    {{ field }}
+                    {% if field.help_text %}<div class="field-subtext password-help">{{ field.help_text|safe }}</div>{% endif %}
+                    {% for error in field.errors %}<div class="form-error">{{ error }}</div>{% endfor %}
+                {% endfor %}
+                <div class="settings-actions">
+                    <button class="btn btn-primary" type="submit">Zmień hasło</button>
+                </div>
+            </form>
         </div>
     </section>
 
@@ -208,6 +248,16 @@
             <label class="toggle-card"><input type="checkbox" id="pref-show-quick-dock" checked><strong>Pokazuj dolny pasek szybkiego dostępu</strong><small>Mały pasek z najważniejszymi przejściami na dole ekranu.</small></label>
             <label class="toggle-card language-card">
                 <span class="language-card-main">
+                    <strong>Zachowanie menu w arkuszu</strong>
+                    <small>Wybierz, czy górne zakładki arkusza mają otwierać się po najechaniu, czy dopiero po kliknięciu i zostać otwarte do kliknięcia poza nimi.</small>
+                </span>
+                <select id="pref-ribbon-mode" class="settings-input language-select">
+                    <option value="hover">Najechanie myszką</option>
+                    <option value="click">Kliknięcie</option>
+                </select>
+            </label>
+            <label class="toggle-card language-card">
+                <span class="language-card-main">
                     <strong>Język aplikacji</strong>
                     <small>Domyślnie zostaje polski. Po zmianie interfejs przełącza się od razu na wybrany język.</small>
                 </span>
@@ -223,6 +273,8 @@
             <button class="btn btn-secondary" id="reset-profile-btn" type="button">Przywróć ustawienia domyślne</button>
         </div>
     </section>
+        </div>
+    </div>
 </section>
 {% endblock %}
 
@@ -286,6 +338,7 @@
             confirmActions: true,
             showTips: true,
             showQuickDock: true,
+            ribbonMode: 'hover',
             language: localStorage.getItem(languageKey) || 'pl',
         };
 
@@ -355,6 +408,8 @@
             document.getElementById('pref-confirm-actions').checked = !!prefs.confirmActions;
             document.getElementById('pref-show-tips').checked = !!prefs.showTips;
             document.getElementById('pref-show-quick-dock').checked = prefs.showQuickDock !== false;
+            const ribbonModeSelect = document.getElementById('pref-ribbon-mode');
+            if (ribbonModeSelect) ribbonModeSelect.value = prefs.ribbonMode || 'hover';
             const languageSelect = document.getElementById('pref-language');
             if (languageSelect) languageSelect.value = prefs.language || localStorage.getItem(languageKey) || 'pl';
 
@@ -392,6 +447,8 @@
         document.getElementById('pref-confirm-actions').checked = !!prefs.confirmActions;
         document.getElementById('pref-show-tips').checked = !!prefs.showTips;
         document.getElementById('pref-show-quick-dock').checked = prefs.showQuickDock !== false;
+        const ribbonModeSelectInit = document.getElementById('pref-ribbon-mode');
+        if (ribbonModeSelectInit) ribbonModeSelectInit.value = prefs.ribbonMode || 'hover';
         const languageSelectInit = document.getElementById('pref-language');
         if (languageSelectInit) languageSelectInit.value = prefs.language || localStorage.getItem(languageKey) || 'pl';
 
@@ -602,6 +659,7 @@
                 confirmActions: document.getElementById('pref-confirm-actions').checked,
                 showTips: document.getElementById('pref-show-tips').checked,
                 showQuickDock: document.getElementById('pref-show-quick-dock').checked,
+                ribbonMode: document.getElementById('pref-ribbon-mode')?.value || 'hover',
                 language: document.getElementById('pref-language')?.value || 'pl',
             };
             localStorage.setItem(languageKey, data.language);

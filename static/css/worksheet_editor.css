@@ -4781,3 +4781,83 @@ body.we-resizing-columns .we-col-resize-handle::after,
 .we-sheet-table th::after {
     pointer-events: none;
 }
+
+/* === Mobile worksheet layout + click/hover ribbon preference === */
+.we-toolbar-card[data-ribbon-mode="click"] .we-tab:hover {
+    background: rgba(255,255,255,0.04);
+}
+.we-toolbar-card[data-ribbon-mode="click"].ribbon-open .we-ribbon {
+    box-shadow: 0 18px 38px rgba(0,0,0,0.28);
+}
+
+@media (max-width: 900px) {
+    .we-page-shell { gap: 12px; }
+    .we-toolbar-card,
+    .we-sheet-card,
+    .we-objects-card {
+        border-radius: 18px;
+    }
+    .we-toolbar-card { padding: 12px; }
+    .we-toolbar-top { display: grid; grid-template-columns: 1fr; }
+    .we-sheet-meta h1 { font-size: 1.45rem; }
+    .we-formula-bar {
+        grid-template-columns: 58px 1fr;
+        gap: 8px;
+    }
+    .we-formula-bar .btn { grid-column: 1 / -1; width: 100%; }
+    .we-tabs,
+    .we-menu-bar,
+    .we-ribbon-panel.active {
+        overflow-x: auto;
+        flex-wrap: nowrap;
+        scrollbar-width: thin;
+    }
+    .we-tab,
+    .we-menu-bar button,
+    .we-ribbon-group,
+    .we-ribbon-action {
+        min-width: max-content;
+    }
+    .we-sheet-card { padding: 10px; }
+    .we-grid-wrapper,
+    .we-sheet-scroll,
+    .sheet-scroll-area {
+        max-width: 100%;
+        overflow: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+    .we-menu-popover,
+    #we-menu-popover {
+        position: fixed !important;
+        left: 12px !important;
+        right: 12px !important;
+        top: auto !important;
+        bottom: 14px !important;
+        width: auto !important;
+        max-height: 55vh;
+        overflow: auto;
+        z-index: 200;
+    }
+    .modal-card,
+    .smart-insert-card,
+    .chart-modal-card,
+    .pivot-modal-card,
+    .solver-modal-card {
+        width: min(96vw, 760px);
+        max-height: 86vh;
+        overflow: auto;
+    }
+}
+
+@media (max-width: 560px) {
+    .we-sheet-meta p,
+    .we-autosave-badge { font-size: 0.82rem; }
+    .we-ribbon { padding: 10px; border-radius: 16px; }
+    .we-ribbon-panel.active { gap: 8px; }
+    .we-ribbon-group { padding: 8px; }
+    .we-ribbon-action,
+    .we-tab,
+    .we-menu-bar button { padding: 9px 11px; }
+    .generated-object-card,
+    .we-object-card { min-width: 260px; }
+}

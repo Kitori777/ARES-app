@@ -145,6 +145,7 @@ class UserProfile(models.Model):
             'confirmActions': True,
             'showTips': True,
             'showQuickDock': True,
+            'ribbonMode': 'hover',
         }
 
     @classmethod

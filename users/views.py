@@ -4,9 +4,10 @@ import random
 
 from django.conf import settings
 from django.contrib import messages
-from django.contrib.auth import authenticate, login, logout
+from django.contrib.auth import authenticate, login, logout, update_session_auth_hash
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib.auth.hashers import check_password, make_password
+from django.contrib.auth.forms import PasswordChangeForm
 from django.contrib.auth.models import User
 from django.core.mail import EmailMultiAlternatives
 from django.core.exceptions import ImproperlyConfigured
@@ -17,7 +18,7 @@ from django.template.loader import render_to_string
 from django.utils import timezone
 from django.views.decorators.http import require_http_methods, require_POST
 
-from .forms import RegisterForm, BugReportForm
+from .forms import RegisterForm, BugReportForm, AccountUpdateForm
 from .models import EmailVerification, PendingRegistration, UserProfile, BugReport
 
 logger = logging.getLogger(__name__)
@@ -456,7 +457,56 @@ def helpdesk_view(request):
 
 @login_required
 def profile_view(request):
-    return render(request, 'profile.html')
+    account_form = AccountUpdateForm(user=request.user, initial={
+        'first_name': request.user.first_name,
+        'last_name': request.user.last_name,
+        'email': request.user.email,
+    })
+    password_form = PasswordChangeForm(request.user)
+    return render(request, 'profile.html', {
+        'account_form': account_form,
+        'password_form': password_form,
+    })
+
+
+@login_required
+@require_POST
+def account_settings_view(request):
+    form = AccountUpdateForm(request.POST, user=request.user)
+    if form.is_valid():
+        request.user.first_name = form.cleaned_data['first_name'].strip()
+        request.user.last_name = form.cleaned_data['last_name'].strip()
+        request.user.email = form.cleaned_data['email'].strip().lower()
+        request.user.save(update_fields=['first_name', 'last_name', 'email'])
+        messages.success(request, 'Dane konta zostały zaktualizowane.')
+        return redirect('profile')
+    password_form = PasswordChangeForm(request.user)
+    messages.error(request, 'Nie udało się zapisać danych konta. Sprawdź pola formularza.')
+    return render(request, 'profile.html', {
+        'account_form': form,
+        'password_form': password_form,
+    })
+
+
+@login_required
+@require_POST
+def change_password_view(request):
+    form = PasswordChangeForm(request.user, request.POST)
+    if form.is_valid():
+        user = form.save()
+        update_session_auth_hash(request, user)
+        messages.success(request, 'Hasło zostało zmienione. Nadal jesteś zalogowany.')
+        return redirect('profile')
+    account_form = AccountUpdateForm(user=request.user, initial={
+        'first_name': request.user.first_name,
+        'last_name': request.user.last_name,
+        'email': request.user.email,
+    })
+    messages.error(request, 'Nie udało się zmienić hasła. Sprawdź obecne i nowe hasło.')
+    return render(request, 'profile.html', {
+        'account_form': account_form,
+        'password_form': form,
+    })
 
 
 @login_required

@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}ARES{% endblock %}</title>
-    <link rel="stylesheet" href="{% static 'css/style.css' %}?v=0.7.9">
+    <link rel="stylesheet" href="{% static 'css/style.css' %}?v=0.7.9-profilefix">
     {% block extra_head %}{% endblock %}
 </head>
 <body class="ares-body" data-theme="midnight-blue"{% if demo_mode %} data-demo-mode="1"{% endif %}>
@@ -80,6 +80,7 @@
                             <a href="{% url 'demo' %}">Wyczyść i uruchom demo od nowa</a>
                             {% else %}
                             <a href="{% url 'profile' %}">Profil użytkownika</a>
+                            <a href="{% url 'profile' %}#security">Konto i hasło</a>
                             <a href="{% url 'profile' %}#appearance">Wygląd i motywy</a>
                             <a href="{% url 'profile' %}#shortcuts">Skróty</a>
                             <a href="{% url 'profile' %}#preferences">Preferencje</a>
@@ -285,23 +286,19 @@
         const dropdown = document.getElementById('profile-dropdown');
         if (menu && trigger && dropdown) {
             function isProfileDropdownOpen() {
-                return dropdown.classList.contains('is-open') && !dropdown.hidden && !dropdown.hasAttribute('hidden');
+                return dropdown.classList.contains('is-open') && dropdown.getAttribute('aria-hidden') !== 'true';
             }
             function placeProfileDropdown() {
-                // Najpierw pokazujemy menu niewidocznie, bo inaczej offsetWidth bywa 0 po deployu na Renderze.
-                const previousVisibility = dropdown.style.visibility;
-                if (dropdown.hidden || dropdown.hasAttribute('hidden')) {
-                    dropdown.hidden = false;
-                    dropdown.removeAttribute('hidden');
-                    dropdown.style.visibility = 'hidden';
-                    dropdown.classList.add('is-open');
-                }
+                dropdown.hidden = false;
+                dropdown.removeAttribute('hidden');
+                dropdown.style.visibility = 'hidden';
+                dropdown.classList.add('is-open');
 
                 const rect = trigger.getBoundingClientRect();
                 const gap = 12;
-                const width = Math.min(340, Math.max(300, Math.min(window.innerWidth - 24, dropdown.offsetWidth || 320)));
+                const width = Math.min(360, Math.max(300, Math.min(window.innerWidth - (gap * 2), dropdown.offsetWidth || 320)));
                 const left = Math.max(gap, Math.min(rect.right - width, window.innerWidth - width - gap));
-                const top = Math.max(gap, Math.min(rect.bottom + gap, window.innerHeight - 96));
+                const top = Math.max(gap, Math.min(rect.bottom + gap, window.innerHeight - 120));
                 const maxHeight = Math.max(220, window.innerHeight - top - gap);
 
                 dropdown.style.setProperty('position', 'fixed', 'important');
@@ -312,11 +309,12 @@
                 dropdown.style.setProperty('max-height', Math.min(560, maxHeight) + 'px', 'important');
                 dropdown.style.setProperty('overflow-y', 'auto', 'important');
                 dropdown.style.setProperty('transform', 'none', 'important');
-                dropdown.style.visibility = previousVisibility || 'visible';
+                dropdown.style.visibility = 'visible';
             }
             function openProfileDropdown() {
                 dropdown.hidden = false;
                 dropdown.removeAttribute('hidden');
+                dropdown.removeAttribute('aria-hidden');
                 dropdown.classList.add('is-open');
                 menu.classList.add('profile-menu-open');
                 document.body.classList.add('profile-menu-open');
@@ -328,6 +326,7 @@
                 dropdown.classList.remove('is-open');
                 dropdown.hidden = true;
                 dropdown.setAttribute('hidden', 'hidden');
+                dropdown.setAttribute('aria-hidden', 'true');
                 menu.classList.remove('profile-menu-open');
                 document.body.classList.remove('profile-menu-open');
                 trigger.setAttribute('aria-expanded', 'false');
@@ -338,28 +337,20 @@
                 isProfileDropdownOpen() ? closeProfileDropdown() : openProfileDropdown();
             }
 
-            // Podwójne zabezpieczenie: pointerup otwiera profil, a click jest ignorowany tuż po nim,
-            // żeby menu nie otwierało się i nie zamykało w jednym kliknięciu.
-            let lastProfilePointerToggle = 0;
-            trigger.addEventListener('pointerup', function (event) {
-                lastProfilePointerToggle = Date.now();
-                toggleProfileDropdown(event);
-            }, true);
-            trigger.addEventListener('click', function (event) {
-                if (Date.now() - lastProfilePointerToggle < 450) {
-                    event.preventDefault();
-                    event.stopPropagation();
-                    return;
-                }
-                toggleProfileDropdown(event);
+            trigger.addEventListener('click', toggleProfileDropdown);
+            trigger.addEventListener('pointerdown', function (event) {
+                event.stopPropagation();
             });
             trigger.addEventListener('keydown', function (event) {
                 if (event.key === 'Enter' || event.key === ' ') toggleProfileDropdown(event);
                 if (event.key === 'Escape') closeProfileDropdown();
             });
-            document.addEventListener('pointerup', function (event) {
+            dropdown.addEventListener('click', function (event) {
+                event.stopPropagation();
+            });
+            document.addEventListener('click', function (event) {
                 if (!trigger.contains(event.target) && !dropdown.contains(event.target)) closeProfileDropdown();
-            }, true);
+            });
             window.addEventListener('resize', function () {
                 if (isProfileDropdownOpen()) placeProfileDropdown();
             });
@@ -392,8 +383,11 @@
             document.body.classList.remove('sidebar-is-open');
         }
 
-        document.querySelectorAll('.app-sidebar .app-menu-link, .quick-access-dock a, .profile-dropdown a').forEach(link => {
+        document.querySelectorAll('.app-sidebar .app-menu-link, .quick-access-dock a').forEach(link => {
             link.addEventListener('pointerdown', () => closeAllFloatingMenusBeforeNavigation(link), { passive: true });
+            link.addEventListener('click', () => closeAllFloatingMenusBeforeNavigation(link));
+        });
+        document.querySelectorAll('.profile-dropdown a').forEach(link => {
             link.addEventListener('click', () => closeAllFloatingMenusBeforeNavigation(link));
         });
 
