@@ -145,6 +145,8 @@ class UserProfile(models.Model):
             'confirmActions': True,
             'showTips': True,
             'showQuickDock': True,
+            'showProfileCats': False,
+            'profileCatVariant': 'theme',
             'ribbonMode': 'hover',
         }
 
@@ -292,4 +294,3 @@ class BugReport(models.Model):
             self.resolved_at = timezone.now()
         if self.status not in {self.STATUS_DONE, self.STATUS_REJECTED}:
             self.resolved_at = None
-

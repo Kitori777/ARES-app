@@ -1,173 +1,99 @@
 {% extends 'base.html' %}
+{% load static %}
 
 {% block title %}ARES | Start{% endblock %}
-{% block topbar_title %}Panel główny{% endblock %}
+{% block topbar_title %}Start{% endblock %}
 {% block history_module_name %}Start{% endblock %}
 
 {% block content %}
-<section class="dashboard-clean">
-    <div class="dashboard-intro-card">
-        <div class="intro-copy">
-            <span class="hero-badge">ARES WORKSPACE</span>
-            <h1>Centrum pracy z arkuszami</h1>
-            <p>
-                Importuj dane, twórz arkusze, buduj tabele, wykresy i modele obliczeniowe w jednym miejscu.
-                Zacznij od szybkiej akcji albo przejdź do ostatnich zmian w systemie.
-            </p>
-            <div class="hero-buttons">
-                <a href="{% url 'worksheets' %}" class="btn btn-primary">Otwórz arkusze</a>
-                <a href="{% url 'import_data' %}" class="btn btn-secondary">Import danych</a>
-                <a href="{% url 'reports' %}" class="btn btn-secondary">Raporty</a>
+<section class="dashboard-rework">
+    <header class="dashboard-rework-hero">
+        <div class="dashboard-brand-block">
+            <img src="{% static 'img/ares-logo.svg' %}" alt="ARES">
+            <div>
+                <span class="section-kicker">ARES</span>
+                <h1>Centrum pracy z arkuszami</h1>
+                <p>
+                    Wybierz, co chcesz zrobić: otworzyć arkusz, zaimportować dane,
+                    sprawdzić raport albo wrócić do historii pracy.
+                </p>
             </div>
         </div>
-        <div class="intro-side">
-            <div class="system-state">
-                <span class="state-dot"></span>
-                <div>
-                    <strong>System aktywny</strong>
-                    <small>Arkusze, formuły, wykresy i solver gotowe do pracy</small>
-                </div>
-            </div>
-            <div class="mini-metrics">
-                <div><span>Tryb</span><strong>analiza</strong></div>
-                <div><span>Moduł</span><strong>ARES</strong></div>
-                <div><span>Użytkownik</span><strong>{{ request.user.username }}</strong></div>
-            </div>
+        <div class="dashboard-hero-actions">
+            <a href="{% url 'worksheets' %}" class="btn btn-primary">Otwórz arkusze</a>
+            <a href="{% url 'import_data' %}" class="btn btn-secondary">Importuj dane</a>
+            <a href="{% url 'worksheet_editor' %}" class="btn btn-secondary">Nowa analiza</a>
         </div>
-    </div>
+    </header>
 
-    <div class="quick-strip" id="user-shortcuts">
-        <a href="{% url 'worksheets' %}" class="strip-card" data-shortcut-item="worksheets">
-            <span class="strip-icon">▦</span>
+    <div class="dashboard-work-grid">
+        <a href="{% url 'worksheets' %}" class="work-card work-card-primary">
+            <span>01</span>
             <strong>Arkusze</strong>
-            <small>zakładki, formuły, F4</small>
+            <p>Twórz, otwieraj i porządkuj zapisane arkusze.</p>
         </a>
-        <a href="{% url 'import_data' %}" class="strip-card" data-shortcut-item="import">
-            <span class="strip-icon">⇩</span>
-            <strong>Import</strong>
-            <small>CSV / XLSX / dane</small>
+        <a href="{% url 'import_data' %}" class="work-card">
+            <span>02</span>
+            <strong>Import danych</strong>
+            <p>Wczytaj pliki CSV, TXT, TSV, XLSX lub XLS.</p>
         </a>
-        <a href="{% url 'reports' %}" class="strip-card" data-shortcut-item="reports">
-            <span class="strip-icon">◫</span>
+        <a href="{% url 'reports' %}" class="work-card">
+            <span>03</span>
             <strong>Raporty</strong>
-            <small>podsumowania i eksport</small>
+            <p>Przejrzyj podsumowania i wyniki pracy.</p>
         </a>
-        <a href="{% url 'history' %}" class="strip-card" data-shortcut-item="history">
-            <span class="strip-icon">⏱</span>
+        <a href="{% url 'history' %}" class="work-card">
+            <span>04</span>
             <strong>Historia</strong>
-            <small>operacje i zapisy</small>
-        </a>
-        <a href="{% url 'worksheets' %}" class="strip-card" data-shortcut-item="charts">
-            <span class="strip-icon">◈</span>
-            <strong>Wykresy</strong>
-            <small>serie, osie, style</small>
-        </a>
-        <a href="{% url 'worksheets' %}" class="strip-card" data-shortcut-item="solver">
-            <span class="strip-icon">∑</span>
-            <strong>Solver</strong>
-            <small>ograniczenia i maksimum</small>
-        </a>
-        <a href="{% url 'worksheets' %}" class="strip-card" data-shortcut-item="math">
-            <span class="strip-icon">ƒ</span>
-            <strong>Matematyka</strong>
-            <small>całki, pochodne, statystyka</small>
-        </a>
-        <a href="{% url 'worksheets' %}" class="strip-card" data-shortcut-item="merge">
-            <span class="strip-icon">⇄</span>
-            <strong>Scalanie</strong>
-            <small>łączenie danych i kolumn</small>
+            <p>Sprawdź ostatnie działania i zapisane zmiany.</p>
         </a>
     </div>
 
-    <div class="dashboard-main-grid">
-        <section class="clean-panel">
-            <div class="clean-panel-head">
+    <div class="dashboard-rework-main">
+        <section class="dashboard-task-panel">
+            <div class="panel-heading-row">
                 <div>
-                    <span class="section-kicker">Szybki start</span>
-                    <h2>Co chcesz zrobić?</h2>
+                    <span class="section-kicker">Narzędzia</span>
+                    <h2>Najczęstsze zadania</h2>
                 </div>
-                <a href="{% url 'worksheets' %}" class="small-link">Przejdź do arkuszy →</a>
             </div>
-            <div class="action-list">
+            <div class="task-list">
                 <a href="{% url 'worksheets' %}">
-                    <span>01</span>
-                    <div><strong>Utwórz albo otwórz arkusz</strong><small>Praca na wielu zakładkach, kopiowanie formuł i formatowanie.</small></div>
+                    <strong>Praca na arkuszu</strong>
+                    <span>Komórki, zakładki, formuły, formatowanie i zapis.</span>
                 </a>
-                <a href="{% url 'import_data' %}">
-                    <span>02</span>
-                    <div><strong>Zaimportuj dane</strong><small>Wgraj plik, przygotuj nagłówki i uporządkuj zakres danych.</small></div>
+                <a href="{% url 'worksheet_editor' %}?open=charts">
+                    <strong>Wykresy i analiza</strong>
+                    <span>Serie danych, tabele przestawne i podgląd wyników.</span>
                 </a>
-                <a href="{% url 'worksheets' %}">
-                    <span>03</span>
-                    <div><strong>Zbuduj analizę</strong><small>Tabele przestawne, wykresy, solver i matematyka akademicka.</small></div>
+                <a href="{% url 'worksheet_editor' %}?open=solver">
+                    <strong>Solver</strong>
+                    <span>Optymalizacja, komórka celu, zmienne i ograniczenia.</span>
+                </a>
+                <a href="{% url 'worksheet_editor' %}?open=merge">
+                    <strong>Scalanie danych</strong>
+                    <span>Łączenie arkuszy i dopisywanie nowych kolumn.</span>
                 </a>
             </div>
         </section>
 
-        <section class="clean-panel changelog-panel">
-            <div class="clean-panel-head compact">
-                <div>
-                    <span class="section-kicker">Changelog</span>
-                    <h2>Ostatnie zmiany</h2>
+        <aside class="dashboard-side-panel">
+            <div class="account-card">
+                <span class="section-kicker">Konto</span>
+                <strong>{{ request.user.username }}</strong>
+                <p>Zarządzaj profilem, motywem, językiem i skrótami aplikacji.</p>
+                <a href="{% url 'profile' %}" class="btn btn-secondary btn-full">Ustawienia profilu</a>
+            </div>
+            <div class="support-card">
+                <span class="section-kicker">Pomoc</span>
+                <h2>Potrzebujesz wsparcia?</h2>
+                <p>Helpdesk wyjaśnia działanie modułów. Błąd możesz zgłosić bezpośrednio z aplikacji.</p>
+                <div class="support-actions">
+                    <a href="{% url 'helpdesk' %}" class="btn btn-secondary">Helpdesk</a>
+                    <a href="{% url 'bug_report' %}" class="btn btn-secondary">Zgłoś błąd</a>
                 </div>
-                <span class="pill-soft">robocze</span>
             </div>
-            <div class="timeline-list">
-                <article>
-                    <time>Dzisiaj</time>
-                    <strong>Poprawiony pulpit startowy</strong>
-                    <p>Czytelniejszy układ, mniej chaosu i lepszy podział na najważniejsze akcje.</p>
-                </article>
-                <article>
-                    <time>Ostatnio</time>
-                    <strong>Matematyka akademicka</strong>
-                    <p>Osobny obszar pod całki, pochodne, statystykę, optymalizację i badania operacyjne.</p>
-                </article>
-                <article>
-                    <time>Ostatnio</time>
-                    <strong>Scalanie arkuszy</strong>
-                    <p>Łączenie danych po nagłówkach oraz dopisywanie nowych kolumn w wolnym miejscu.</p>
-                </article>
-            </div>
-        </section>
-    </div>
-
-    <div class="dashboard-bottom-grid">
-        <section class="clean-panel module-panel">
-            <span class="section-kicker">Moduły</span>
-            <h2>Narzędzia w systemie</h2>
-            <div class="module-pills">
-                <span>Formuły finansowe</span>
-                <span>Tabele przestawne</span>
-                <span>Wykresy</span>
-                <span>Solver</span>
-                <span>Matematyka akademicka</span>
-                <span>Scalanie danych</span>
-            </div>
-        </section>
-
-        <section class="clean-panel tip-card">
-            <span class="section-kicker">Podpowiedź</span>
-            <h2>Najprostszy workflow</h2>
-            <p>Import danych → uporządkowanie arkusza → tabela / wykres / solver → zapis wyniku.</p>
-        </section>
+        </aside>
     </div>
 </section>
-{% endblock %}
-
-{% block extra_js %}
-<script>
-    (function () {
-        function loadJSON(key, fallback) {
-            try { return JSON.parse(localStorage.getItem(key)) ?? fallback; } catch (e) { return fallback; }
-        }
-        const shortcuts = loadJSON('ares_shortcuts', {});
-        document.querySelectorAll('[data-shortcut-item]').forEach(el => {
-            const key = el.dataset.shortcutItem;
-            if (shortcuts[key] === false) {
-                el.style.display = 'none';
-            }
-        });
-    })();
-</script>
 {% endblock %}

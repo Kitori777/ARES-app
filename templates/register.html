@@ -6,14 +6,14 @@
 <section class="auth-landing auth-landing-compact">
     <div class="auth-showcase">
         <span class="auth-kicker">NOWE KONTO</span>
-        <h1>Załóż konto i potwierdź adres e-mail</h1>
+        <h1>Załóż konto. Potwierdź adres e-mail.</h1>
         <p>
-            Konto zostanie utworzone dopiero po poprawnym wpisaniu kodu
-            weryfikacyjnego wysłanego na podany adres e-mail.
+            Konto zostanie aktywowane po wpisaniu kodu weryfikacyjnego
+            wysłanego na podany adres e-mail.
         </p>
         <div class="auth-steps">
             <div><b>1</b><span>Wypełnij formularz</span></div>
-            <div><b>2</b><span>Odbierz kod e-mail</span></div>
+            <div><b>2</b><span>Odbierz kod z wiadomości e-mail</span></div>
             <div><b>3</b><span>Aktywuj konto</span></div>
         </div>
     </div>
@@ -24,7 +24,7 @@
                 <span class="auth-card-icon">＋</span>
                 <div>
                     <h2>Rejestracja</h2>
-                    <p>Podaj dane do nowego konta.</p>
+                    <p>Podaj dane potrzebne do utworzenia konta.</p>
                 </div>
             </div>
 
@@ -56,7 +56,7 @@
                 {% if form.password2.errors %}<div class="field-error">{% for error in form.password2.errors %}<div>{{ error }}</div>{% endfor %}</div>{% endif %}
 
                 <div class="auth-info-note">
-                    Konto nie zostanie utworzone, dopóki nie potwierdzisz kodu z wiadomości e-mail.
+                    Konto zostanie aktywowane dopiero po potwierdzeniu kodu z wiadomości e-mail.
                 </div>
 
                 <button type="submit" class="btn btn-primary btn-full">Wyślij kod weryfikacyjny</button>

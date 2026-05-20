@@ -5,10 +5,20 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}ARES{% endblock %}</title>
-    <link rel="stylesheet" href="{% static 'css/style.css' %}?v=0.7.9-profilefix">
+    <link rel="stylesheet" href="{% static 'css/style.css' %}?v=0.8.0">
     {% block extra_head %}{% endblock %}
 </head>
 <body class="ares-body" data-theme="midnight-blue"{% if demo_mode %} data-demo-mode="1"{% endif %}>
+<script>
+    (function () {
+        try {
+            const savedTheme = localStorage.getItem('ares_theme') || 'midnight-blue';
+            const lightThemes = new Set(['arctic-light', 'sand-light', 'clean-slate']);
+            document.body.setAttribute('data-theme', savedTheme);
+            document.body.dataset.loginTheme = lightThemes.has(savedTheme) ? 'light' : 'dark';
+        } catch (error) {}
+    })();
+</script>
 
 {% if request.user.is_authenticated or demo_mode %}
 <div class="app-shell" id="app-shell">
@@ -136,6 +146,20 @@
                     </div>
                 {% endif %}
 
+                {% if not demo_mode %}
+                <section class="app-update-banner" id="app-update-banner" hidden aria-label="Co nowego w ARES">
+                    <div>
+                        <span class="section-kicker">ARES v0.8.0</span>
+                        <h2>Nowy start pracy w aplikacji</h2>
+                        <p>Odświeżony pulpit, publiczny Helpdesk, lepszy ekran logowania i motywy, które obejmują teraz także logo.</p>
+                    </div>
+                    <div class="app-update-actions">
+                        <a class="btn btn-secondary" href="{% url 'helpdesk' %}">Zobacz pomoc</a>
+                        <button class="btn btn-primary" type="button" id="app-update-dismiss">Rozumiem</button>
+                    </div>
+                </section>
+                {% endif %}
+
                 {% block content %}{% endblock %}
             </div>
         </main>
@@ -189,6 +213,8 @@
         const prefKey = 'ares_preferences';
         const shortcutKey = 'ares_shortcuts';
         const languageKey = 'ares_language';
+        const appVersion = '0.8.0';
+        const seenVersionKey = 'ares_seen_app_version';
 
         function loadJSON(key, fallback) {
             try { return JSON.parse(localStorage.getItem(key)) ?? fallback; } catch (e) { return fallback; }
@@ -201,7 +227,7 @@
             document.body.classList.toggle('sidebar-is-open', !collapsed);
         }
 
-        let prefs = loadJSON(prefKey, { showClock: true, compactSidebar: false, showQuickDock: true, language: localStorage.getItem(languageKey) || 'pl' });
+        let prefs = loadJSON(prefKey, { showClock: true, compactSidebar: false, showQuickDock: true, showProfileCats: false, profileCatVariant: 'theme', language: localStorage.getItem(languageKey) || 'pl' });
         let shortcuts = loadJSON(shortcutKey, {});
         const compactShortcutFlag = 'ares_shortcuts_compact_v2';
         const compactShortcutDefaults = {
@@ -414,6 +440,56 @@
         }
         renderClock();
         setInterval(renderClock, 1000 * 30);
+
+        const updateBanner = document.getElementById('app-update-banner');
+        const updateDismiss = document.getElementById('app-update-dismiss');
+        if (updateBanner && !demoMode && localStorage.getItem(seenVersionKey) !== appVersion) {
+            updateBanner.hidden = false;
+        }
+        updateDismiss?.addEventListener('click', () => {
+            localStorage.setItem(seenVersionKey, appVersion);
+            if (updateBanner) updateBanner.hidden = true;
+        });
+
+        function renderProfileCats(nextPrefs) {
+            const activePrefs = nextPrefs || prefs || {};
+            document.querySelectorAll('.profile-cat-layer').forEach(node => node.remove());
+            if (!activePrefs.showProfileCats || !window.location.pathname.includes('/profile')) return;
+            const layer = document.createElement('div');
+            layer.className = 'profile-cat-layer';
+            layer.dataset.catVariant = activePrefs.profileCatVariant || 'theme';
+            layer.setAttribute('aria-hidden', 'true');
+            layer.innerHTML = `
+                <span class="ares-running-cat ares-running-cat-one">
+                    <i class="run-cat-tail"></i>
+                    <i class="run-cat-body"></i>
+                    <i class="run-cat-head"></i>
+                    <i class="run-cat-ear run-cat-ear-left"></i>
+                    <i class="run-cat-ear run-cat-ear-right"></i>
+                    <i class="run-cat-eye"></i>
+                    <i class="run-cat-leg run-cat-leg-front"></i>
+                    <i class="run-cat-leg run-cat-leg-back"></i>
+                    <i class="run-cat-leg run-cat-leg-front-alt"></i>
+                    <i class="run-cat-leg run-cat-leg-back-alt"></i>
+                    <i class="run-cat-shadow"></i>
+                </span>
+                <span class="ares-running-cat ares-running-cat-two">
+                    <i class="run-cat-tail"></i>
+                    <i class="run-cat-body"></i>
+                    <i class="run-cat-head"></i>
+                    <i class="run-cat-ear run-cat-ear-left"></i>
+                    <i class="run-cat-ear run-cat-ear-right"></i>
+                    <i class="run-cat-eye"></i>
+                    <i class="run-cat-leg run-cat-leg-front"></i>
+                    <i class="run-cat-leg run-cat-leg-back"></i>
+                    <i class="run-cat-leg run-cat-leg-front-alt"></i>
+                    <i class="run-cat-leg run-cat-leg-back-alt"></i>
+                    <i class="run-cat-shadow"></i>
+                </span>`;
+            document.body.appendChild(layer);
+        }
+        window.ARES_RENDER_PROFILE_CATS = renderProfileCats;
+        renderProfileCats(prefs);
 
         const musicTrigger = document.getElementById('topbar-music-trigger');
         const musicPanel = document.getElementById('topbar-music-panel');
@@ -763,6 +839,7 @@
                     shell.classList.toggle('sidebar-collapsed', shouldCollapse);
                 }
                 renderClock();
+                renderProfileCats(prefs);
                 if (dock) dock.hidden = payload.preferences.showQuickDock === false;
             }
             if (payload.shortcuts) {

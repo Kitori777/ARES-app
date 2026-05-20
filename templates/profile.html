@@ -246,6 +246,21 @@
             <label class="toggle-card"><input type="checkbox" id="pref-confirm-actions" checked><strong>Wymagaj potwierdzeń dla ważnych akcji</strong><small>Do wykorzystania przy usuwaniu i nadpisywaniu danych.</small></label>
             <label class="toggle-card"><input type="checkbox" id="pref-show-tips" checked><strong>Pokazuj komunikaty i podpowiedzi</strong><small>Drobne wskazówki w pulpicie i modułach.</small></label>
             <label class="toggle-card"><input type="checkbox" id="pref-show-quick-dock" checked><strong>Pokazuj dolny pasek szybkiego dostępu</strong><small>Mały pasek z najważniejszymi przejściami na dole ekranu.</small></label>
+            <label class="toggle-card"><input type="checkbox" id="pref-profile-cats"><strong>Pokazuj biegającego kota na profilu</strong><small>Lekka animacja inspirowana RunCat. Działa tylko na stronie profilu i możesz ją w każdej chwili wyłączyć.</small></label>
+            <label class="toggle-card language-card">
+                <span class="language-card-main">
+                    <strong>Kolor biegającego kota</strong>
+                    <small>Wybierz umaszczenie. Wariant motywowy dopasowuje kota do aktualnego motywu aplikacji.</small>
+                </span>
+                <select id="pref-profile-cat-variant" class="settings-input language-select">
+                    <option value="theme">Dopasowany do motywu</option>
+                    <option value="cocoa">Czekoladowy</option>
+                    <option value="black">Czarny</option>
+                    <option value="ginger">Rudy</option>
+                    <option value="cream">Kremowy</option>
+                    <option value="calico">Łaciaty</option>
+                </select>
+            </label>
             <label class="toggle-card language-card">
                 <span class="language-card-main">
                     <strong>Zachowanie menu w arkuszu</strong>
@@ -338,6 +353,8 @@
             confirmActions: true,
             showTips: true,
             showQuickDock: true,
+            showProfileCats: false,
+            profileCatVariant: 'theme',
             ribbonMode: 'hover',
             language: localStorage.getItem(languageKey) || 'pl',
         };
@@ -414,6 +431,8 @@
             document.getElementById('pref-confirm-actions').checked = !!prefs.confirmActions;
             document.getElementById('pref-show-tips').checked = !!prefs.showTips;
             document.getElementById('pref-show-quick-dock').checked = prefs.showQuickDock !== false;
+            document.getElementById('pref-profile-cats').checked = !!prefs.showProfileCats;
+            document.getElementById('pref-profile-cat-variant').value = prefs.profileCatVariant || 'theme';
             const ribbonModeSelect = document.getElementById('pref-ribbon-mode');
             if (ribbonModeSelect) ribbonModeSelect.value = prefs.ribbonMode || 'hover';
             const languageSelect = document.getElementById('pref-language');
@@ -453,6 +472,8 @@
         document.getElementById('pref-confirm-actions').checked = !!prefs.confirmActions;
         document.getElementById('pref-show-tips').checked = !!prefs.showTips;
         document.getElementById('pref-show-quick-dock').checked = prefs.showQuickDock !== false;
+        document.getElementById('pref-profile-cats').checked = !!prefs.showProfileCats;
+        document.getElementById('pref-profile-cat-variant').value = prefs.profileCatVariant || 'theme';
         const ribbonModeSelectInit = document.getElementById('pref-ribbon-mode');
         if (ribbonModeSelectInit) ribbonModeSelectInit.value = prefs.ribbonMode || 'hover';
         const languageSelectInit = document.getElementById('pref-language');
@@ -670,6 +691,8 @@
                 confirmActions: document.getElementById('pref-confirm-actions').checked,
                 showTips: document.getElementById('pref-show-tips').checked,
                 showQuickDock: document.getElementById('pref-show-quick-dock').checked,
+                showProfileCats: document.getElementById('pref-profile-cats').checked,
+                profileCatVariant: document.getElementById('pref-profile-cat-variant')?.value || 'theme',
                 ribbonMode: document.getElementById('pref-ribbon-mode')?.value || 'hover',
                 language: document.getElementById('pref-language')?.value || 'pl',
             };
@@ -678,6 +701,7 @@
             prefs = data;
             saveJSON(prefKey, data);
             updateQuickDockPreview();
+            window.ARES_RENDER_PROFILE_CATS?.(data);
             const saved = await saveServerSettings({ preferences: data, profile: renderProfilePreview(), theme: currentTheme, shortcuts });
             if (!saved) return;
             showProfileToast('Preferencje zostały zapisane na koncie użytkownika.', 'success', 'Zapisano preferencje');

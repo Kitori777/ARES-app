@@ -1,5 +1,28 @@
 # Changelog
 
+## [v0.8.0] - 2026-05-20
+
+### Dodano
+- Dodano publiczny dostęp do Helpdesku i formularza zgłoszenia błędu dla osób, które nie są zalogowane.
+- Dodano panel „Co nowego w ARES”, który informuje użytkownika o najważniejszych zmianach po aktualizacji aplikacji.
+- Dodano opcjonalnego, biegającego kota na stronie profilu. Użytkownik może go włączyć, wyłączyć oraz wybrać umaszczenie w preferencjach.
+- Dodano dopasowanie kolorów logo ARES do wybranego motywu aplikacji.
+
+### Zmieniono
+- Przebudowano ekran logowania: usunięto zbędne linki z nagłówka, poprawiono treść, dodano wybór języka, wybór motywu oraz wyraźniejsze logo.
+- Przebudowano pulpit startowy aplikacji, aby skupiał się na najważniejszych akcjach: arkuszach, imporcie danych, raportach, historii, profilu i pomocy.
+- Uporządkowano treści na ekranach rejestracji, pomocy i zgłaszania błędów, żeby były zgodne z polskimi zasadami stylistycznymi i językowymi.
+- Uproszczono układ aplikacji przez usunięcie widoku prezentacyjnego `/presentation/`.
+
+### Naprawiono
+- Naprawiono link „Pomoc”, aby prowadził bezpośrednio do Helpdesku.
+- Naprawiono dostęp do Helpdesku dla użytkowników niezalogowanych.
+- Poprawiono zachowanie motywów na stronach publicznych, tak aby kolor wybrany podczas logowania był zachowany także na kolejnych ekranach.
+
+### Techniczne
+- Podniesiono wersję aplikacji do `0.8.0`.
+- Odświeżono wersjonowanie statycznych plików do `?v=0.8.0`.
+
 ## [v0.7.0] - 2026-05-12
 
 ### Dodano

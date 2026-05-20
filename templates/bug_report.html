@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load static %}
 
 {% block title %}ARES | Zgłoś problem{% endblock %}
 {% block topbar_title %}Zgłoś problem{% endblock %}
@@ -15,8 +16,8 @@
             </p>
             <div class="hero-note-grid">
                 <div class="hero-note-tile"><strong>1</strong><small>Opisz problem</small></div>
-                <div class="hero-note-tile"><strong>2</strong><small>Dodaj link lub screen</small></div>
-                <div class="hero-note-tile"><strong>3</strong><small>Administrator odczyta zgłoszenie</small></div>
+                <div class="hero-note-tile"><strong>2</strong><small>Dodaj link lub zrzut ekranu</small></div>
+                <div class="hero-note-tile"><strong>3</strong><small>Administrator sprawdzi zgłoszenie</small></div>
             </div>
         </div>
     </div>
@@ -74,5 +75,72 @@
             <div class="settings-card">Nie masz jeszcze żadnych zgłoszeń.</div>
         {% endif %}
     </section>
+</section>
+{% endblock %}
+
+{% block guest_content %}
+<section class="login-page">
+    <header class="login-topbar">
+        <a class="login-logo" href="{% url 'login' %}" aria-label="ARES">
+            <span class="login-logo-mark"><img src="{% static 'img/ares-logo.svg' %}" alt=""></span>
+            <span>
+                <strong>ARES</strong>
+                <small>Pomoc techniczna</small>
+            </span>
+        </a>
+        <div class="login-window-tools" aria-label="Nawigacja pomocy">
+            <a href="{% url 'login' %}">Logowanie</a>
+        </div>
+    </header>
+
+    <div class="login-shell">
+        <section class="login-info-panel" aria-labelledby="guest-report-title">
+            <div class="login-info-copy">
+                <span class="login-eyebrow">Zgłoszenie problemu</span>
+                <h1 id="guest-report-title">Opisz błąd albo problem z logowaniem.</h1>
+                <p>
+                    Formularz jest dostępny także bez konta. Jeśli możesz, podaj adres strony,
+                    opisz kroki prowadzące do problemu i dołącz zrzut ekranu.
+                </p>
+            </div>
+            <div class="login-alert">
+                <strong>Informacja o danych</strong>
+                <span>Zgłoszenie techniczne obejmuje treść formularza, opcjonalny plik oraz podstawowe informacje o przeglądarce. Dane służą wyłącznie do obsługi opisanego problemu.</span>
+            </div>
+        </section>
+
+        <section class="login-form-zone" aria-label="Formularz zgłoszenia">
+            <form method="post" enctype="multipart/form-data" class="login-form-card login-report-form">
+                {% csrf_token %}
+                <div class="login-card-head">
+                    <span class="login-card-mark">!</span>
+                    <div>
+                        <h2>Nowe zgłoszenie</h2>
+                        <p>Wypełnij pola i wyślij zgłoszenie do administratora.</p>
+                    </div>
+                </div>
+
+                <div class="login-form">
+                    <label for="{{ form.title.id_for_label }}">Tytuł zgłoszenia</label>
+                    {{ form.title }}
+
+                    <label for="{{ form.description.id_for_label }}">Opis problemu</label>
+                    {{ form.description }}
+
+                    <label for="{{ form.page_url.id_for_label }}">Adres strony lub modułu</label>
+                    {{ form.page_url }}
+
+                    <label for="{{ form.screenshot.id_for_label }}">Zrzut ekranu, opcjonalnie</label>
+                    {{ form.screenshot }}
+
+                    {% if form.errors %}
+                        <div class="alert alert-error">Sprawdź formularz. Część pól wymaga poprawienia.</div>
+                    {% endif %}
+
+                    <button type="submit" class="login-primary-btn">Wyślij zgłoszenie</button>
+                </div>
+            </form>
+        </section>
+    </div>
 </section>
 {% endblock %}

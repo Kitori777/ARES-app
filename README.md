@@ -469,3 +469,9 @@ python manage.py migrate
 ```
 
 Na Renderze migracja wykona się automatycznie, jeśli w komendzie build/start nadal jest `manage.py migrate`.
+
+```powershell
+uv sync
+uv run python manage.py migrate
+uv run python manage.py runserver
+```

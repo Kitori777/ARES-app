@@ -1,0 +1,56 @@
+<section class="helpdesk-page">
+    <div class="helpdesk-hero">
+        <div>
+            <div class="eyebrow">CENTRUM POMOCY</div>
+            <h1>Helpdesk ARES</h1>
+            <p>
+                Tu znajdziesz szybkie odpowiedzi dotyczące logowania, arkuszy,
+                importu danych, formuł, wykresów, Solvera, profilu i zgłoszeń.
+            </p>
+            <div class="hero-buttons">
+                <a href="{% url 'login' %}" class="btn btn-secondary">Wróć do logowania</a>
+                <a href="{% url 'bug_report' %}" class="btn btn-primary">Zgłoś błąd</a>
+            </div>
+        </div>
+        <div class="helpdesk-hero-card">
+            <strong>Pomoc bez logowania</strong>
+            <span>Możesz sprawdzić informacje o logowaniu i zgłosić problem jeszcze przed wejściem na konto.</span>
+        </div>
+    </div>
+
+    <div class="helpdesk-layout">
+        <section class="helpdesk-chat-card">
+            <div class="helpdesk-chat-head">
+                <div>
+                    <strong>Zapytaj o aplikację</strong>
+                    <p>Przykład: „Jak zaimportować XLSX?”, „Jak działa Solver?”, „Jak zgłosić problem z logowaniem?”.</p>
+                </div>
+            </div>
+            <div class="helpdesk-question-row">
+                <input id="helpdesk-question" type="search" placeholder="Wpisz pytanie o ARES..." autocomplete="off">
+                <button id="helpdesk-answer-btn" class="btn btn-primary" type="button">Odpowiedz</button>
+                <button id="helpdesk-speak-btn" class="btn btn-secondary" type="button">Odpowiedz głosowo</button>
+            </div>
+            <div id="helpdesk-answer" class="helpdesk-answer">
+                Wpisz pytanie albo wybierz temat z listy poniżej.
+            </div>
+        </section>
+
+        <aside class="helpdesk-topics-card">
+            <strong>Najczęstsze tematy</strong>
+            <div id="helpdesk-topic-list" class="helpdesk-topic-list"></div>
+        </aside>
+    </div>
+
+    <section class="helpdesk-knowledge">
+        <h2>Co potrafi ARES?</h2>
+        <div class="helpdesk-grid">
+            <article><h3>Logowanie</h3><p>ARES obsługuje logowanie loginem lub adresem e-mail. Konto wymagające potwierdzenia kieruje użytkownika do wpisania kodu weryfikacyjnego.</p></article>
+            <article><h3>Arkusze</h3><p>Możesz edytować komórki, zaznaczać zakresy, korzystać ze skrótów, formatowania, komentarzy i wielu zakładek.</p></article>
+            <article><h3>Formuły</h3><p>Formuły rozpoczynają się znakiem równości. Katalog funkcji pomaga dobrać składnię i zobaczyć przykład użycia.</p></article>
+            <article><h3>Dane</h3><p>Import obejmuje pliki CSV, TXT, TSV, XLSX i XLS. Dane można sortować, czyścić, analizować i eksportować.</p></article>
+            <article><h3>Analiza</h3><p>ARES zawiera wykresy, tabele przestawne, formatowanie warunkowe, Solver oraz układy pomocne w pracy akademickiej.</p></article>
+            <article><h3>Zgłoszenia</h3><p>Problem możesz zgłosić z poziomu Helpdesku albo z panelu po zalogowaniu. Warto dodać opis kroków i zrzut ekranu.</p></article>
+        </div>
+    </section>
+</section>

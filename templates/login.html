@@ -1,56 +1,269 @@
 {% extends 'base.html' %}
+{% load static %}
 
 {% block title %}ARES | Logowanie{% endblock %}
 
 {% block guest_content %}
-<section class="auth-landing">
-    <div class="auth-showcase">
-        <span class="auth-kicker">ARES SYSTEM</span>
-        <h1>Twoje arkusze, raporty i analizy w jednym miejscu</h1>
-        <p>
-            Zaloguj się do środowiska roboczego ARES i pracuj na arkuszach,
-            danych, wykresach, solverze oraz historii aktywności użytkownika.
-        </p>
+<section class="login-page">
+    <header class="login-topbar">
+        <a class="login-logo" href="{% url 'login' %}" aria-label="ARES">
+            <span class="login-logo-mark"><img src="{% static 'img/ares-logo.svg' %}" alt=""></span>
+            <span>
+                <strong>ARES</strong>
+                <small>System arkuszy</small>
+            </span>
+        </a>
 
-        <div class="auth-feature-grid">
-            <div class="auth-feature-card"><strong>Arkusze online</strong><span>Formuły, tabele, wykresy i dane.</span></div>
-            <div class="auth-feature-card"><strong>Tryb demo</strong><span>Możesz potestować edytor bez konta i bez zapisu zmian.</span></div>
-            <div class="auth-feature-card"><strong>Bezpieczny dostęp</strong><span>Konto aktywowane dopiero po e-mailu.</span></div>
+        <div class="login-window-tools" aria-label="Ustawienia strony logowania">
+            <a href="{% url 'helpdesk' %}" data-i18n="topHelp">Pomoc</a>
+            <a href="{% url 'bug_report' %}" data-i18n="topReport">Zgłoś błąd</a>
+            <label>
+                <span data-i18n="languageLabel">Język</span>
+                <select id="login-language" aria-label="Język strony">
+                    <option value="pl">polski</option>
+                    <option value="en">english</option>
+                    <option value="de">deutsch</option>
+                </select>
+            </label>
+            <label>
+                <span data-i18n="themeLabel">Motyw</span>
+                <select id="login-theme-select" aria-label="Motyw kolorystyczny">
+                    <option value="midnight-blue">Midnight Blue</option>
+                    <option value="arctic-light">Arctic Light</option>
+                    <option value="emerald-night">Emerald Night</option>
+                    <option value="graphite">Graphite Pro</option>
+                    <option value="violet-glow">Violet Glow</option>
+                    <option value="sand-light">Sand Light</option>
+                    <option value="rose-dusk">Rose Dusk</option>
+                    <option value="ocean-cyan">Ocean Cyan</option>
+                    <option value="solar-contrast">Solar Contrast</option>
+                    <option value="clean-slate">Clean Slate</option>
+                </select>
+            </label>
         </div>
-    </div>
+    </header>
 
-    <div class="auth-form-panel">
-        <div class="auth-card app-card auth-card-polished">
-            <div class="auth-card-head">
-                <span class="auth-card-icon">⌂</span>
+    <div class="login-shell" id="login-shell">
+        <section class="login-info-panel" aria-labelledby="login-title">
+            <div class="login-info-copy">
+                <span class="login-eyebrow" data-i18n="eyebrow">Centrum pracy z danymi</span>
+                <h1 id="login-title" data-i18n="title">Arkusze, raporty oraz historia pracy. Wszystko w jednym miejscu.</h1>
+                <p data-i18n="lead">
+                    ARES pomaga porządkować importy, edytować arkusze i wracać do zapisanych zmian bez szukania plików na dysku.
+                </p>
+            </div>
+
+            <div class="login-alert">
+                <strong data-i18n="noticeTitle">Informacja o dostępie</strong>
+                <span data-i18n="noticeBody">Do zapisywania arkuszy, historii oraz ustawień profilu wymagane jest zalogowanie. Tryb demo pozwala sprawdzić edytor bez zapisywania danych na koncie.</span>
+            </div>
+
+            <div class="login-feature-row">
                 <div>
-                    <h2>Logowanie</h2>
-                    <p>Wpisz dane konta ARES.</p>
+                    <strong data-i18n="featureSheetsTitle">Arkusze online</strong>
+                    <span data-i18n="featureSheetsBody">Edycja danych, formuły oraz import plików CSV i XLSX.</span>
+                </div>
+                <div>
+                    <strong data-i18n="featureReportsTitle">Raporty</strong>
+                    <span data-i18n="featureReportsBody">Podsumowania pracy i szybki dostęp do wyników.</span>
+                </div>
+                <div>
+                    <strong data-i18n="featureHistoryTitle">Historia</strong>
+                    <span data-i18n="featureHistoryBody">Przegląd działań przypisanych do konta użytkownika.</span>
                 </div>
             </div>
+        </section>
 
-            <form method="post" class="auth-form">
-                {% csrf_token %}
-                <label for="login-username">Login lub e-mail</label>
-                <input id="login-username" type="text" name="username" placeholder="np. stasi" autocomplete="username" required>
+        <section class="login-form-zone" aria-label="Logowanie">
+            <div class="login-form-card">
+                <div class="login-card-head">
+                    <span class="login-card-mark"><img src="{% static 'img/ares-logo.svg' %}" alt=""></span>
+                    <div>
+                        <h2 data-i18n="formTitle">Zaloguj się</h2>
+                        <p data-i18n="formLead">Wpisz dane konta ARES.</p>
+                    </div>
+                </div>
 
-                <label for="login-password">Hasło</label>
-                <input id="login-password" type="password" name="password" placeholder="Twoje hasło" autocomplete="current-password" required>
+                <form method="post" class="login-form">
+                    {% csrf_token %}
 
-                <button type="submit" class="btn btn-primary btn-full">Zaloguj się</button>
-            </form>
+                    <label for="login-username" data-i18n="loginLabel">Login lub e-mail</label>
+                    <input id="login-username" type="text" name="username" data-i18n-placeholder="loginPlaceholder" placeholder="np. stasi" autocomplete="username" required autofocus>
 
-            <div class="auth-demo-box">
-                <strong>Chcesz tylko sprawdzić aplikację?</strong>
-                <span>Uruchom tryb testowy — zmiany działają tylko w bieżącej sesji i nie zapisują się na serwerze.</span>
-                <a href="{% url 'demo' %}" class="btn btn-secondary btn-full">Wypróbuj bez logowania</a>
+                    <label for="login-password" data-i18n="passwordLabel">Hasło</label>
+                    <input id="login-password" type="password" name="password" data-i18n-placeholder="passwordPlaceholder" placeholder="Wpisz hasło" autocomplete="current-password" required>
+
+                    <button type="submit" class="login-primary-btn" data-i18n="submit">Zaloguj się</button>
+                </form>
+
+                <div class="login-secondary-actions">
+                    <a href="{% url 'demo' %}" data-i18n="demo">Otwórz demo</a>
+                    <a href="{% url 'register' %}" data-i18n="register">Utwórz konto</a>
+                </div>
             </div>
+        </section>
 
-            <div class="auth-switch-box">
-                <span>Nie masz konta?</span>
-                <a href="{% url 'register' %}">Utwórz konto</a>
-            </div>
-        </div>
+        <section class="login-support-panel" id="login-help" aria-label="Pomoc i informacje">
+            <article>
+                <strong data-i18n="helpTitle">Pomoc przy logowaniu</strong>
+                <p data-i18n="helpBody">Jeżeli konto oczekuje na potwierdzenie, zalogowanie przekieruje Cię do wpisania kodu z wiadomości e-mail. Jeśli nie pamiętasz danych, skontaktuj się z administratorem systemu.</p>
+            </article>
+            <article>
+                <strong data-i18n="privacyTitle">Informacja o danych</strong>
+                <p data-i18n="privacyBody">Dane logowania służą wyłącznie do uwierzytelnienia i ochrony dostępu do arkuszy. ARES zapisuje ustawienia profilu, historię działań oraz zgłoszenia techniczne powiązane z kontem.</p>
+            </article>
+            <article>
+                <strong data-i18n="reportTitle">Zgłoszenia</strong>
+                <p data-i18n="reportBody">Błąd możesz zgłosić z ekranu logowania albo z panelu po zalogowaniu. W zgłoszeniu warto podać adres strony, opis kroków i opcjonalny zrzut ekranu.</p>
+                <a href="{% url 'bug_report' %}" data-i18n="reportLink">Przejdź do zgłoszenia</a>
+            </article>
+        </section>
     </div>
 </section>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    (function () {
+        const languageSelect = document.getElementById('login-language');
+        const themeSelect = document.getElementById('login-theme-select');
+        const languageKey = 'ares_language';
+        const themeKey = 'ares_theme';
+        const lightThemes = new Set(['arctic-light', 'sand-light', 'clean-slate']);
+        const copy = {
+            pl: {
+                eyebrow: 'Centrum pracy z danymi',
+                topHelp: 'Pomoc',
+                topReport: 'Zgłoś błąd',
+                languageLabel: 'Język',
+                themeLabel: 'Motyw',
+                title: 'Arkusze, raporty oraz historia pracy. Wszystko w jednym miejscu.',
+                lead: 'ARES pomaga porządkować importy, edytować arkusze i wracać do zapisanych zmian bez szukania plików na dysku.',
+                noticeTitle: 'Informacja o dostępie',
+                noticeBody: 'Do zapisywania arkuszy, historii oraz ustawień profilu wymagane jest zalogowanie. Tryb demo pozwala sprawdzić edytor bez zapisywania danych na koncie.',
+                featureSheetsTitle: 'Arkusze online',
+                featureSheetsBody: 'Edycja danych, formuły oraz import plików CSV i XLSX.',
+                featureReportsTitle: 'Raporty',
+                featureReportsBody: 'Podsumowania pracy i szybki dostęp do wyników.',
+                featureHistoryTitle: 'Historia',
+                featureHistoryBody: 'Przegląd działań przypisanych do konta użytkownika.',
+                formTitle: 'Zaloguj się',
+                formLead: 'Wpisz dane konta ARES.',
+                loginLabel: 'Login lub e-mail',
+                loginPlaceholder: 'np. stasi',
+                passwordLabel: 'Hasło',
+                passwordPlaceholder: 'Wpisz hasło',
+                submit: 'Zaloguj się',
+                demo: 'Otwórz demo',
+                register: 'Utwórz konto',
+                helpTitle: 'Pomoc przy logowaniu',
+                helpBody: 'Jeżeli konto oczekuje na potwierdzenie, zalogowanie przekieruje Cię do wpisania kodu z wiadomości e-mail. Jeśli nie pamiętasz danych, skontaktuj się z administratorem systemu.',
+                privacyTitle: 'Informacja o danych',
+                privacyBody: 'Dane logowania służą wyłącznie do uwierzytelnienia i ochrony dostępu do arkuszy. ARES zapisuje ustawienia profilu, historię działań oraz zgłoszenia techniczne powiązane z kontem.',
+                reportTitle: 'Zgłoszenia',
+                reportBody: 'Błąd możesz zgłosić z ekranu logowania albo z panelu po zalogowaniu. W zgłoszeniu warto podać adres strony, opis kroków i opcjonalny zrzut ekranu.',
+                reportLink: 'Przejdź do zgłoszenia'
+            },
+            en: {
+                eyebrow: 'Data workspace',
+                topHelp: 'Help',
+                topReport: 'Report issue',
+                languageLabel: 'Language',
+                themeLabel: 'Theme',
+                title: 'Sheets, reports, and activity history in one place.',
+                lead: 'ARES helps organize imports, edit sheets, and return to saved changes without searching through local files.',
+                noticeTitle: 'Access information',
+                noticeBody: 'Sign-in is required to save sheets, history, and profile settings. Demo mode lets you test the editor without saving data to an account.',
+                featureSheetsTitle: 'Online sheets',
+                featureSheetsBody: 'Data editing, formulas, and CSV/XLSX import.',
+                featureReportsTitle: 'Reports',
+                featureReportsBody: 'Work summaries and quick access to results.',
+                featureHistoryTitle: 'History',
+                featureHistoryBody: 'A record of actions assigned to the user account.',
+                formTitle: 'Sign in',
+                formLead: 'Enter your ARES account details.',
+                loginLabel: 'Login or email',
+                loginPlaceholder: 'e.g. stasi',
+                passwordLabel: 'Password',
+                passwordPlaceholder: 'Enter password',
+                submit: 'Sign in',
+                demo: 'Open demo',
+                register: 'Create account',
+                helpTitle: 'Sign-in help',
+                helpBody: 'If your account is awaiting confirmation, signing in redirects you to the email code screen. If you do not remember your details, contact the system administrator.',
+                privacyTitle: 'Data information',
+                privacyBody: 'Sign-in data is used only for authentication and protecting access to sheets. ARES stores profile settings, activity history, and technical reports connected with the account.',
+                reportTitle: 'Reports',
+                reportBody: 'You can report an issue from the sign-in screen or after signing in. Include the page address, steps, and an optional screenshot.',
+                reportLink: 'Go to report'
+            },
+            de: {
+                eyebrow: 'Datenarbeitsbereich',
+                topHelp: 'Hilfe',
+                topReport: 'Fehler melden',
+                languageLabel: 'Sprache',
+                themeLabel: 'Design',
+                title: 'Tabellen, Berichte und Verlauf an einem Ort.',
+                lead: 'ARES hilft, Importe zu ordnen, Tabellen zu bearbeiten und gespeicherte Änderungen ohne Dateisuche wiederzufinden.',
+                noticeTitle: 'Information zum Zugriff',
+                noticeBody: 'Zum Speichern von Tabellen, Verlauf und Profileinstellungen ist eine Anmeldung erforderlich. Im Demo-Modus kann der Editor ohne Speicherung im Konto getestet werden.',
+                featureSheetsTitle: 'Online-Tabellen',
+                featureSheetsBody: 'Datenbearbeitung, Formeln und CSV/XLSX-Import.',
+                featureReportsTitle: 'Berichte',
+                featureReportsBody: 'Arbeitszusammenfassungen und schneller Zugriff auf Ergebnisse.',
+                featureHistoryTitle: 'Verlauf',
+                featureHistoryBody: 'Übersicht der Aktionen, die dem Benutzerkonto zugeordnet sind.',
+                formTitle: 'Anmelden',
+                formLead: 'Geben Sie Ihre ARES-Zugangsdaten ein.',
+                loginLabel: 'Login oder E-Mail',
+                loginPlaceholder: 'z. B. stasi',
+                passwordLabel: 'Passwort',
+                passwordPlaceholder: 'Passwort eingeben',
+                submit: 'Anmelden',
+                demo: 'Demo öffnen',
+                register: 'Konto erstellen',
+                helpTitle: 'Hilfe bei der Anmeldung',
+                helpBody: 'Wenn das Konto auf Bestätigung wartet, führt die Anmeldung zur Eingabe des E-Mail-Codes. Wenn Sie Ihre Daten nicht kennen, wenden Sie sich an den Administrator.',
+                privacyTitle: 'Information zu Daten',
+                privacyBody: 'Anmeldedaten werden nur zur Authentifizierung und zum Schutz des Tabellenzugriffs verwendet. ARES speichert Profileinstellungen, Aktivitätsverlauf und technische Meldungen zum Konto.',
+                reportTitle: 'Meldungen',
+                reportBody: 'Ein Fehler kann auf dem Anmeldebildschirm oder nach der Anmeldung gemeldet werden. Geben Sie nach Möglichkeit Adresse, Schritte und einen Screenshot an.',
+                reportLink: 'Zur Meldung'
+            }
+        };
+
+        function applyLanguage(language) {
+            const next = copy[language] ? language : 'pl';
+            document.documentElement.lang = next;
+            document.querySelectorAll('[data-i18n]').forEach(node => {
+                const value = copy[next][node.dataset.i18n];
+                if (value) node.textContent = value;
+            });
+            document.querySelectorAll('[data-i18n-placeholder]').forEach(node => {
+                const value = copy[next][node.dataset.i18nPlaceholder];
+                if (value) node.setAttribute('placeholder', value);
+            });
+            if (languageSelect) languageSelect.value = next;
+            localStorage.setItem(languageKey, next);
+        }
+
+        function applyTheme(theme) {
+            const next = theme || 'midnight-blue';
+            document.body.setAttribute('data-theme', next);
+            document.body.dataset.loginTheme = lightThemes.has(next) ? 'light' : 'dark';
+            if (themeSelect) themeSelect.value = next;
+            localStorage.setItem(themeKey, next);
+        }
+
+        applyLanguage(localStorage.getItem(languageKey) || 'pl');
+        applyTheme(localStorage.getItem(themeKey) || 'midnight-blue');
+
+        languageSelect?.addEventListener('change', function () {
+            applyLanguage(languageSelect.value);
+        });
+        themeSelect?.addEventListener('change', function () {
+            applyTheme(themeSelect.value);
+        });
+    })();
+</script>
 {% endblock %}

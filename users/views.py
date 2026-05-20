@@ -451,7 +451,6 @@ def reports_view(request):
     return render(request, 'reports.html')
 
 
-@login_required
 def helpdesk_view(request):
     return render(request, 'helpdesk.html')
 
@@ -541,7 +540,6 @@ def is_ares_admin(user):
     return user.is_authenticated and user.is_superuser
 
 
-@login_required
 @require_http_methods(['GET', 'POST'])
 def bug_report_view(request):
     """Formularz zgłoszenia błędu / sugestii przez użytkownika."""
@@ -549,18 +547,18 @@ def bug_report_view(request):
         form = BugReportForm(request.POST, request.FILES)
         if form.is_valid():
             report = form.save(commit=False)
-            report.reporter = request.user
+            report.reporter = request.user if request.user.is_authenticated else None
             report.browser_info = request.META.get('HTTP_USER_AGENT', '')[:500]
             report.save()
             messages.success(request, 'Zgłoszenie zostało zapisane. Administrator może je teraz odczytać w panelu zgłoszeń.')
-            return redirect('bug_report')
+            return redirect('bug_report' if request.user.is_authenticated else 'login')
     else:
         initial = {
             'page_url': request.GET.get('page', '') or request.META.get('HTTP_REFERER', ''),
         }
         form = BugReportForm(initial=initial)
 
-    user_reports = BugReport.objects.filter(reporter=request.user)[:20]
+    user_reports = BugReport.objects.filter(reporter=request.user)[:20] if request.user.is_authenticated else []
     return render(request, 'bug_report.html', {
         'form': form,
         'user_reports': user_reports,
