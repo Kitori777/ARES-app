@@ -259,6 +259,7 @@
     let followMeBroadcastEnabled = false;
     const FOLLOW_ME_CHANNEL = "ares_follow_me_channel_v1";
     let networkSummaryCache = { friends: [], groups: [] };
+    let editorAddonsCache = [];
     const LARGE_SELECTION_CELL_LIMIT = 1500;
 
     let historyStack = [];
@@ -1208,15 +1209,15 @@
         setScriptResult("Skrypt usunięty.");
     }
 
-    async function runCurrentScript() {
-        const code = String(sheetScriptEditor?.value || "").trim();
-        if (!code) {
+    async function runScriptCode(scriptName, code) {
+        const finalCode = String(code || "").trim();
+        if (!finalCode) {
             setScriptResult("Najpierw wpisz kod skryptu.", true);
-            return;
+            return false;
         }
         if (!currentSheet || !currentSheetCanEdit) {
             setScriptResult("Skrypt wymaga arkusza z uprawnieniem edycji.", true);
-            return;
+            return false;
         }
         const api = {
             getCell: ref => {
@@ -1236,18 +1237,26 @@
         };
         try {
             pushHistorySnapshot();
-            const runner = new Function("api", `"use strict";\n${code}`);
+            const runner = new Function("api", `"use strict";\n${finalCode}`);
             await Promise.resolve(runner(api));
             renderGrid();
             markDirty();
             logUserAction("Uruchomiono skrypt arkusza", {
                 type: "script_run",
-                scriptName: String(sheetScriptNameInput?.value || "Skrypt"),
+                scriptName: String(scriptName || "Skrypt"),
             });
             setScriptResult("Skrypt uruchomiony.");
+            return true;
         } catch (error) {
             setScriptResult(`Błąd skryptu: ${error.message}`, true);
+            return false;
         }
+    }
+
+    async function runCurrentScript() {
+        const scriptName = String(sheetScriptNameInput?.value || "Skrypt");
+        const code = String(sheetScriptEditor?.value || "");
+        await runScriptCode(scriptName, code);
     }
 
     function ensureDimensions(rows, cols) {
@@ -4034,12 +4043,42 @@
         }, 180);
     }
 
+    function attachAddonToCurrentSheet(addon) {
+        if (!addon) return null;
+        const safeName = String(addon.title || "Dodatek").trim().slice(0, 80) || "Dodatek";
+        const safeCode = String(addon.scriptBody || "").trim();
+        if (!safeCode) {
+            setScriptResult("Ten dodatek nie ma kodu skryptu.", true);
+            return null;
+        }
+        const existing = sheetScripts.find(
+            item => item.name === safeName && String(item.code || "").trim() === safeCode
+        );
+        if (existing) {
+            renderScriptSelect(existing.id);
+            setScriptResult(`Dodatek „${safeName}” jest już przypisany do tego arkusza.`);
+            return existing;
+        }
+        const script = {
+            id: `addon-${addon.id || Date.now()}-${Date.now()}`,
+            name: safeName,
+            code: safeCode,
+            updatedAt: new Date().toISOString(),
+        };
+        sheetScripts.unshift(script);
+        renderScriptSelect(script.id);
+        persistScriptsToSheet();
+        setScriptResult(`Dodatek „${safeName}” przypisany do arkusza.`);
+        return script;
+    }
+
     function renderEditorAddons(addons) {
         if (!editorAddonsList) return;
         if (!addons.length) {
             editorAddonsList.innerHTML = '<div class="we-addons-empty">Nie ma jeszcze zatwierdzonych dodatków. Możesz zgłosić pierwszy na forum dodatków.</div>';
             return;
         }
+        editorAddonsCache = Array.isArray(addons) ? addons : [];
         editorAddonsList.innerHTML = addons.map(addon => `
             <article class="we-addon-card">
                 <div class="we-addon-card-head">
@@ -4050,6 +4089,10 @@
                 <p>${escapeHtml(addon.summary)}</p>
                 <small>${addon.author ? `Autor: ${escapeHtml(addon.author)}` : "Autor: ARES"}</small>
                 ${addon.instructions ? `<details><summary>Instrukcja</summary><p>${escapeHtml(addon.instructions).replace(/\n/g, "<br>")}</p></details>` : ""}
+                <div class="we-sheet-script-actions">
+                    <button class="btn btn-secondary" type="button" data-addon-attach-id="${escapeHtml(String(addon.id || ""))}">Przypisz do arkusza</button>
+                    <button class="btn btn-primary" type="button" data-addon-run-id="${escapeHtml(String(addon.id || ""))}">Przypisz i uruchom</button>
+                </div>
                 <details>
                     <summary>Podgląd skryptu</summary>
                     <pre>${escapeHtml(addon.scriptBody || "")}</pre>
@@ -4070,6 +4113,7 @@
             editorAddonsLoaded = true;
         } catch (error) {
             console.warn("Nie udało się pobrać dodatków.", error);
+            editorAddonsCache = [];
             editorAddonsList.innerHTML = '<div class="we-addons-empty">Nie udało się wczytać dodatków.</div>';
         }
     }
@@ -6165,6 +6209,26 @@
         sheetScriptDeleteBtn?.addEventListener("click", deleteCurrentScript);
         sheetScriptSaveBtn?.addEventListener("click", saveCurrentScriptFromEditor);
         sheetScriptRunBtn?.addEventListener("click", runCurrentScript);
+        editorAddonsList?.addEventListener("click", async event => {
+            const attachBtn = event.target.closest("[data-addon-attach-id]");
+            const runBtn = event.target.closest("[data-addon-run-id]");
+            if (!attachBtn && !runBtn) return;
+            if (!currentSheetCanEdit) {
+                setScriptResult("Nie masz uprawnień do edycji tego arkusza.", true);
+                return;
+            }
+            const addonId = String(attachBtn?.dataset.addonAttachId || runBtn?.dataset.addonRunId || "").trim();
+            const addon = editorAddonsCache.find(item => String(item.id) === addonId);
+            if (!addon) {
+                setScriptResult("Nie znaleziono dodatku. Odśwież listę dodatków.", true);
+                return;
+            }
+            const script = attachAddonToCurrentSheet(addon);
+            if (!script) return;
+            if (runBtn) {
+                await runScriptCode(script.name, script.code);
+            }
+        });
         window.addEventListener("resize", refreshEditorResponsiveLayout);
         window.visualViewport?.addEventListener("resize", refreshEditorResponsiveLayout);
         setTimeout(refreshEditorResponsiveLayout, 80);

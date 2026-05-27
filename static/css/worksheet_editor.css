@@ -5223,3 +5223,53 @@ body.we-resizing-columns .we-col-resize-handle::after,
     .generated-object-card,
     .we-object-card { min-width: 260px; }
 }
+
+/* v0.8.9 — visual alignment fixes (toolbar + badges + team shortcut visibility) */
+.we-addons-team-shortcut {
+    margin-top: 8px;
+    padding: 10px 12px;
+    border: 1px solid color-mix(in srgb, var(--line, rgba(255,255,255,.16)) 82%, transparent);
+    border-radius: 12px;
+    background: color-mix(in srgb, var(--primary, #4f8cff) 10%, var(--panel-2, #172033));
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.we-university-card span {
+    min-width: 104px;
+    height: 28px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 0 10px;
+    line-height: 1;
+}
+
+.we-start-toolbar {
+    align-items: stretch;
+}
+
+.we-start-toolbar .we-toolbar-group,
+.we-start-toolbar .we-google-like-tools {
+    min-height: 62px;
+    align-items: center;
+    box-sizing: border-box;
+}
+
+.we-start-toolbar .we-toolbar-select,
+.we-start-toolbar .we-toolbar-number,
+.we-start-toolbar .we-mini-btn,
+.we-start-toolbar .we-color-chip {
+    height: 40px !important;
+    min-height: 40px !important;
+    box-sizing: border-box;
+}
+
+.we-start-toolbar .we-icon-btn,
+.we-start-toolbar .we-mini-btn {
+    width: 40px !important;
+    min-width: 40px !important;
+    padding: 0 !important;
+}
