@@ -4057,6 +4057,48 @@ body[data-theme="clean-slate"] .profile-dropdown {
     display: grid;
     gap: .65rem;
 }
+
+/* v0.8.1 — addons marketplace */
+.addon-list {
+    display: grid;
+    gap: 14px;
+}
+
+.addon-card {
+    display: grid;
+    gap: 12px;
+}
+
+.addon-card details {
+    border-top: 1px solid var(--line, rgba(255,255,255,.1));
+    padding-top: 10px;
+}
+
+.addon-card summary {
+    cursor: pointer;
+    font-weight: 800;
+}
+
+.addon-code-preview,
+.code-input {
+    font-family: Consolas, "Courier New", monospace;
+}
+
+.addon-code-preview {
+    max-height: 360px;
+    overflow: auto;
+    white-space: pre-wrap;
+    word-break: break-word;
+    border-radius: 12px;
+    border: 1px solid var(--line, rgba(255,255,255,.1));
+    background: color-mix(in srgb, var(--panel-2, #111827) 86%, transparent);
+    color: var(--text, #eef3ff);
+    padding: 12px;
+}
+
+.addon-submit-form .settings-grid {
+    margin: 0;
+}
 .share-empty {
     padding: .85rem;
     border-radius: 1rem;
@@ -4113,6 +4155,95 @@ body[data-theme="clean-slate"] .profile-dropdown {
         justify-content: flex-start;
         width: 100%;
     }
+}
+
+.command-palette {
+    position: fixed;
+    inset: 0;
+    z-index: 1200;
+}
+
+.command-palette[hidden] {
+    display: none !important;
+}
+
+.command-palette-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(12, 14, 20, 0.48);
+    backdrop-filter: blur(4px);
+}
+
+.command-palette-card {
+    position: absolute;
+    top: 8vh;
+    left: 50%;
+    transform: translateX(-50%);
+    width: min(760px, calc(100vw - 28px));
+    border-radius: 14px;
+    border: 1px solid var(--line, rgba(0,0,0,.2));
+    background: color-mix(in srgb, var(--panel, #141414) 96%, #fff 4%);
+    box-shadow: 0 28px 80px rgba(0, 0, 0, 0.35);
+    overflow: hidden;
+}
+
+.command-palette-head {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 10px;
+    padding: 12px;
+    border-bottom: 1px solid var(--line, rgba(0,0,0,.14));
+}
+
+.command-palette-head input {
+    margin: 0;
+}
+
+.command-palette-close {
+    border-radius: 10px;
+    border: 1px solid var(--line, rgba(0,0,0,.14));
+    min-width: 40px;
+    background: transparent;
+    color: var(--text, #fff);
+    cursor: pointer;
+}
+
+.command-palette-list {
+    max-height: min(62vh, 560px);
+    overflow: auto;
+    padding: 8px;
+    display: grid;
+    gap: 6px;
+}
+
+.command-palette-item {
+    text-align: left;
+    border-radius: 10px;
+    border: 1px solid var(--line, rgba(0,0,0,.12));
+    background: color-mix(in srgb, var(--panel-2, #1b1b1b) 94%, transparent);
+    color: var(--text, #fff);
+    padding: 10px 12px;
+    cursor: pointer;
+    display: grid;
+    gap: 4px;
+}
+
+.command-palette-item strong {
+    font-size: 1rem;
+}
+
+.command-palette-item small {
+    color: var(--muted, #9aa4b2);
+}
+
+.command-palette-item:hover {
+    border-color: color-mix(in srgb, var(--primary, #4f8cff) 42%, var(--line, rgba(0,0,0,.12)));
+    background: color-mix(in srgb, var(--primary, #4f8cff) 14%, var(--panel-2, #1b1b1b));
+}
+
+.command-palette-empty {
+    padding: 14px;
+    color: var(--muted, #9aa4b2);
 }
 
 /* v0.5.8 profile toast */
@@ -4713,6 +4844,27 @@ body[data-demo-mode="1"] .profile-trigger-name::after {
 }
 
 /* v0.6.12 — stabilniejszy odtwarzacz YouTube + postęp utworu */
+
+@media (max-width: 760px) {
+  .topbar-music-panel {
+    left: 12px;
+    right: 12px;
+    width: auto;
+    max-width: none;
+  }
+  .music-panel-controls {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  .music-panel-controls .music-input {
+    grid-column: 1 / -1;
+    width: 100%;
+  }
+  .music-panel-controls .btn {
+    width: 100%;
+  }
+}
 .music-progress-card {
     margin-top: 12px;
     padding: 12px 13px;
@@ -4845,11 +4997,19 @@ body[data-theme] .dashboard-hero-right {
 }
 .app-sidebar {
     z-index: 3000;
+    max-height: 100vh;
+    overflow-y: auto;
+    overflow-x: hidden;
+    overscroll-behavior: contain;
 }
 .app-shell.sidebar-collapsed .profile-dropdown {
     right: 14px !important;
 }
 @media (max-width: 980px) {
+    .app-sidebar {
+        max-height: none;
+        overflow: visible;
+    }
     .app-shell.sidebar-collapsed .app-sidebar {
         transform: translateX(-105%);
         pointer-events: none;

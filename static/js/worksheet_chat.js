@@ -109,12 +109,16 @@
                 } else if (!append) {
                     renderMessages([], false);
                 }
-                if (subtitle) subtitle.textContent = "Czat udostępnionego arkusza — wiadomości są zapisywane przy arkuszu.";
+                if (subtitle) subtitle.textContent = "Czat udostępnionego arkusza - wiadomości są zapisywane przy arkuszu.";
             } catch (err) {
                 if (subtitle) subtitle.textContent = "Czat niedostępny: " + err.message.slice(0, 120);
             } finally {
                 loading = false;
             }
+        }
+
+        function shouldPoll() {
+            return !panel.hidden && document.visibilityState === "visible";
         }
 
         launcher.addEventListener("click", () => {
@@ -123,6 +127,7 @@
                 setUnread(0);
                 input.focus({ preventScroll: true });
                 messagesEl.scrollTop = messagesEl.scrollHeight;
+                loadMessages(true);
             }
         });
         closeBtn?.addEventListener("click", () => { panel.hidden = true; });
@@ -153,8 +158,15 @@
             }
         });
 
-        loadMessages(false);
-        pollTimer = window.setInterval(() => loadMessages(true), 7000);
+        if (!panel.hidden) {
+            loadMessages(false);
+        }
+        pollTimer = window.setInterval(() => {
+            if (shouldPoll()) loadMessages(true);
+        }, 45000);
+        document.addEventListener("visibilitychange", () => {
+            if (shouldPoll()) loadMessages(true);
+        });
         window.addEventListener("beforeunload", () => { if (pollTimer) clearInterval(pollTimer); });
     });
 })();

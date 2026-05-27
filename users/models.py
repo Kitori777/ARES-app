@@ -61,6 +61,34 @@ class PendingRegistration(models.Model):
         return f'Oczekująca rejestracja: {self.username} <{self.email}>'
 
 
+class PasswordResetCode(models.Model):
+    """Kod jednorazowy do resetu hasła."""
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='password_reset_codes')
+    code = models.CharField(max_length=6)
+    created_at = models.DateTimeField(auto_now_add=True)
+    expires_at = models.DateTimeField()
+    used_at = models.DateTimeField(null=True, blank=True)
+    last_sent_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['user']),
+            models.Index(fields=['expires_at']),
+            models.Index(fields=['used_at']),
+        ]
+
+    def save(self, *args, **kwargs):
+        if not self.expires_at:
+            self.expires_at = timezone.now() + timedelta(minutes=20)
+        super().save(*args, **kwargs)
+
+    @property
+    def is_expired(self):
+        return self.expires_at < timezone.now()
+
+
 class UserProfile(models.Model):
     """Ustawienia profilu i wyglądu przypisane do zalogowanego użytkownika."""
 

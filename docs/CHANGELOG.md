@@ -1,5 +1,36 @@
 # Changelog
 
+## [1.0.0] - 2026-05-28
+
+### Added
+- Globalny moduł **Zespół** (`/network/`): znajomi, grupy, role, przypinanie arkuszy.
+- Dedykowany widok współpracy w stylu „workspace/repo panel”.
+- Flow resetu hasła:
+  - `/password/forgot/`
+  - `/password/reset/`
+- Testy `pytest` w folderze `tests/` dla helperów walidacyjnych/transformacyjnych.
+
+### Changed
+- Przebudowa raportów: czytelniejsze KPI, wykres aktywności dziennej, top akcje/arkusze, eksport PDF.
+- Uspójnienie nawigacji:
+  - nowy link **Zespół** w menu,
+  - skrócony i automatycznie kompaktowany dolny pasek skrótów.
+- Panel YouTube: obsługa odtwarzania po linku **i po frazie** wewnątrz aplikacji.
+- README zaktualizowany do obecnej architektury i uruchamiania.
+
+### Fixed
+- Krytyczny błąd JS w `base.html` (`loadJSON`) blokujący część interfejsu (avatar, zwijanie panelu).
+- Odporność startu edytora arkusza:
+  - bezpieczna inicjalizacja kroków UI (safe boot),
+  - pojedynczy błąd panelu nie blokuje ładowania danych arkusza.
+- Bezpieczny odczyt danych z `localStorage` w edytorze (uszkodzony JSON nie zatrzymuje aplikacji).
+- Przewijanie lewego panelu (sidebar) dla długich list opcji.
+- Korekty tekstów/encoding w kluczowych ekranach.
+
+### Notes
+- To wydanie domyka główne funkcje użytkowe MVP+ i stabilizuje ścieżki krytyczne edytora.
+- Wersje wcześniejsze (0.x) były etapami przygotowawczymi.
+
 ## [v0.8.0] - 2026-05-20
 
 ### Dodano

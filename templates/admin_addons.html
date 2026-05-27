@@ -1,0 +1,78 @@
+{% extends 'base.html' %}
+
+{% block title %}ARES | Panel dodatków{% endblock %}
+{% block topbar_title %}Panel dodatków{% endblock %}
+
+{% block content %}
+<section class="profile-page">
+    <div class="profile-hero-card">
+        <div class="profile-hero-main">
+            <span class="hero-badge">SUPERADMIN</span>
+            <h1>Weryfikacja dodatków</h1>
+            <p>Sprawdź zgłoszone skrypty i publikuj tylko te dodatki, które działają poprawnie oraz są bezpieczne dla użytkowników.</p>
+            <div class="hero-note-grid">
+                <div class="hero-note-tile"><strong>{{ stats.pending }}</strong><small>oczekuje</small></div>
+                <div class="hero-note-tile"><strong>{{ stats.approved }}</strong><small>zatwierdzone</small></div>
+                <div class="hero-note-tile"><strong>{{ stats.rejected }}</strong><small>odrzucone</small></div>
+            </div>
+        </div>
+    </div>
+
+    <section class="profile-section">
+        <div class="profile-section-head">
+            <span class="section-kicker">Kolejka</span>
+            <h2>Dodatki do sprawdzenia</h2>
+        </div>
+        <form method="get" class="settings-card admin-report-form">
+            <label class="field-label" for="status">Status</label>
+            <select class="settings-input" id="status" name="status">
+                <option value="">Wszystkie</option>
+                {% for value,label in status_choices %}
+                    <option value="{{ value }}"{% if status_filter == value %} selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+            </select>
+            <div class="profile-actions">
+                <button class="btn btn-primary" type="submit">Filtruj</button>
+                <a class="btn btn-secondary" href="{% url 'admin_addons' %}">Oczekujące</a>
+            </div>
+        </form>
+
+        {% if addons %}
+            <div class="report-list">
+                {% for addon in addons %}
+                    <article class="report-card admin-report-card addon-card">
+                        <div>
+                            <strong>#{{ addon.id }} — {{ addon.title }}</strong>
+                            <p>{{ addon.summary }}</p>
+                            <small>{{ addon.get_kind_display }} • v{{ addon.version }} • autor: {% if addon.author %}{{ addon.author.username }}{% else %}brak{% endif %} • status: {{ addon.get_status_display }}</small>
+                        </div>
+                        {% if addon.instructions %}
+                            <details>
+                                <summary>Instrukcja użycia</summary>
+                                <p>{{ addon.instructions|linebreaksbr }}</p>
+                            </details>
+                        {% endif %}
+                        <details open>
+                            <summary>Kod / skrypt</summary>
+                            <pre class="addon-code-preview">{{ addon.script_body }}</pre>
+                        </details>
+                        <form method="post" class="admin-report-form">
+                            {% csrf_token %}
+                            <input type="hidden" name="addon_id" value="{{ addon.id }}">
+                            <label class="field-label">Notatka administratora</label>
+                            <textarea class="settings-input" name="admin_note" rows="3">{{ addon.admin_note }}</textarea>
+                            <div class="profile-actions">
+                                <button class="btn btn-primary" name="action" value="approve" type="submit">Zatwierdź</button>
+                                <button class="btn btn-secondary" name="action" value="pending" type="submit">Do poprawki</button>
+                                <button class="btn btn-secondary" name="action" value="reject" type="submit">Odrzuć</button>
+                            </div>
+                        </form>
+                    </article>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="settings-card">Brak dodatków dla wybranego filtra.</div>
+        {% endif %}
+    </section>
+</section>
+{% endblock %}

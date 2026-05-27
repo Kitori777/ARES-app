@@ -78,6 +78,8 @@ class AccountUpdateForm(forms.Form):
         return email
 
 
+from ares.models import Addon
+
 from .models import BugReport
 
 
@@ -110,5 +112,48 @@ class BugReportForm(forms.ModelForm):
             'screenshot': forms.ClearableFileInput(attrs={
                 'class': 'settings-input',
                 'accept': 'image/png,image/jpeg,image/webp,image/gif',
+            }),
+        }
+
+
+class AddonSubmissionForm(forms.ModelForm):
+    """Formularz zgłoszenia dodatku do sprawdzenia przez administratora."""
+
+    class Meta:
+        model = Addon
+        fields = ['title', 'summary', 'kind', 'version', 'script_body', 'instructions']
+        labels = {
+            'title': 'Nazwa dodatku',
+            'summary': 'Krótki opis działania',
+            'kind': 'Typ dodatku',
+            'version': 'Wersja',
+            'script_body': 'Kod, skrypt lub instrukcja techniczna',
+            'instructions': 'Instrukcja użycia',
+        }
+        widgets = {
+            'title': forms.TextInput(attrs={
+                'class': 'settings-input',
+                'placeholder': 'Np. Walidator budżetu',
+            }),
+            'summary': forms.Textarea(attrs={
+                'class': 'settings-input',
+                'rows': 4,
+                'placeholder': 'Napisz, co dodatek robi i komu pomoże.',
+            }),
+            'kind': forms.Select(attrs={'class': 'settings-input'}),
+            'version': forms.TextInput(attrs={
+                'class': 'settings-input',
+                'placeholder': 'Np. 1.0.0',
+            }),
+            'script_body': forms.Textarea(attrs={
+                'class': 'settings-input code-input',
+                'rows': 12,
+                'placeholder': 'Wklej kod, makro, opis konfiguracji albo treść dodatku do weryfikacji.',
+                'spellcheck': 'false',
+            }),
+            'instructions': forms.Textarea(attrs={
+                'class': 'settings-input',
+                'rows': 5,
+                'placeholder': 'Jak użytkownik ma użyć dodatku po zatwierdzeniu?',
             }),
         }

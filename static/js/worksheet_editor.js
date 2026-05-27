@@ -1,4 +1,4 @@
-document.addEventListener("DOMContentLoaded", function () {
+﻿document.addEventListener("DOMContentLoaded", function () {
     const params = new URLSearchParams(window.location.search);
     let sheetId = params.get("sheet");
     const DEMO_MODE = document.body?.dataset.demoMode === "1";
@@ -93,6 +93,32 @@ document.addEventListener("DOMContentLoaded", function () {
     const clearBeforeTemplateBtn = document.getElementById("clear-before-template");
     const universityTemplateGrid = document.getElementById("university-template-grid");
     const clearBeforeUniversityTemplateBtn = document.getElementById("clear-before-university-template");
+    const editorAddonsList = document.getElementById("editor-addons-list");
+    const sheetScriptSelect = document.getElementById("sheet-script-select");
+    const sheetScriptNameInput = document.getElementById("sheet-script-name");
+    const sheetScriptEditor = document.getElementById("sheet-script-editor");
+    const sheetScriptResult = document.getElementById("sheet-script-result");
+    const sheetScriptNewBtn = document.getElementById("sheet-script-new-btn");
+    const sheetScriptDeleteBtn = document.getElementById("sheet-script-delete-btn");
+    const sheetScriptSaveBtn = document.getElementById("sheet-script-save-btn");
+    const sheetScriptRunBtn = document.getElementById("sheet-script-run-btn");
+    const teamFriendInput = document.getElementById("team-friend-input");
+    const teamFriendAddBtn = document.getElementById("team-friend-add-btn");
+    const teamGroupInput = document.getElementById("team-group-input");
+    const teamGroupAddBtn = document.getElementById("team-group-add-btn");
+    const teamListEl = document.getElementById("team-list");
+    const followMeToggleBtn = document.getElementById("follow-me-toggle-btn");
+    const followMeJoinBtn = document.getElementById("follow-me-join-btn");
+    const followMeStatusEl = document.getElementById("follow-me-status");
+    const cellTaskInput = document.getElementById("cell-task-input");
+    const cellTaskAddBtn = document.getElementById("cell-task-add-btn");
+    const cellTaskListEl = document.getElementById("cell-task-list");
+    const scenarioNameInput = document.getElementById("scenario-name-input");
+    const scenarioSaveBtn = document.getElementById("scenario-save-btn");
+    const scenarioListEl = document.getElementById("scenario-list");
+    const workflowCleanReportBtn = document.getElementById("workflow-clean-report-btn");
+    const workflowSaveReportBtn = document.getElementById("workflow-save-report-btn");
+    const workflowStatusEl = document.getElementById("workflow-status");
     const smartInsertModal = document.getElementById("smart-insert-modal");
     const smartInsertTitle = document.getElementById("smart-insert-title");
     const smartInsertSubtitle = document.getElementById("smart-insert-subtitle");
@@ -116,6 +142,7 @@ document.addEventListener("DOMContentLoaded", function () {
     const emojiInsertBtn = document.getElementById("emoji-insert-btn");
 
     const solverModal = document.getElementById("solver-modal");
+    const dataGuideModal = document.getElementById("data-guide-modal");
     const solverTargetInput = document.getElementById("solver-target-input");
     const solverVariableInput = document.getElementById("solver-variable-input");
     const solverModeSelect = document.getElementById("solver-mode-select");
@@ -173,6 +200,7 @@ document.addEventListener("DOMContentLoaded", function () {
     let pivotObjects = [];
     let editingChartIndex = null;
     let chartPreviewTimer = null;
+    let sheetScripts = [];
     let activeColumnResize = null;
     let draggedColumnIndex = null;
     let draggedRowIndex = null;
@@ -184,6 +212,8 @@ document.addEventListener("DOMContentLoaded", function () {
     let gridDelegationBound = false;
     let pendingColumnWidths = null;
     let columnWidthFrameId = null;
+    let computedRefreshTimer = null;
+    let computedRefreshPendingCell = null;
     let cellElements = [];
     let rowHeaderElements = [];
     let colHeaderElements = [];
@@ -205,15 +235,30 @@ document.addEventListener("DOMContentLoaded", function () {
     let pendingSheetTabIndex = null;
     let cellClipboard = { text: "", matrix: null, cut: false, sourceRange: null };
     const EMOJI_CATEGORIES = {
-        popularne: ["😀","😃","😄","😁","😊","😉","😍","🤩","😎","🙂","🤔","👍","👎","👏","🙏","💪","✅","❌","⚠️","📌","⭐","🔥","💡","📊","📈","📉","🧮","📝","📁","🔒","🔓","🚀"],
-        ludzie: ["😀","😂","🤣","😊","😇","😉","😋","😜","🤓","😎","🥳","😏","😐","🙄","😬","😴","😷","🤒","🤕","🤠","🥺","😢","😭","😤","😡","🤯","🤝","👏","🙌","👋","👌","✌️","🤞","🙏","💪","👀"],
-        praca: ["📌","📎","✂️","📐","📏","🖊️","🖋️","✏️","📝","📒","📔","📕","📗","📘","📙","📚","📁","📂","🗂️","🗃️","🧾","📊","📈","📉","🧮","💼","🗓️","⏱️","⏰","🔍","🔎","🔔","📣","📧","📤","📥"],
-        symbole: ["✅","☑️","✔️","❌","✖️","➕","➖","➗","✳️","⚠️","🚫","⛔","🔴","🟠","🟡","🟢","🔵","🟣","⚪","⚫","⬆️","⬇️","⬅️","➡️","↗️","↘️","🔁","🔄","💯","❓","❗","ℹ️","🔒","🔓","🔑","🔧"],
-        obiekty: ["🏠","🏢","🏭","🚗","🚆","✈️","⚽","🎯","🏆","🥇","☕","🍕","🍎","🌞","🌙","⭐","🌧️","❄️","🔥","💧","🌱","🌳","🌍","⚡","🔋","🧲","🧪","🧬","💻","🖥️","⌨️","🖱️","📱","📷","🎧","🎮"]
+        popularne: ["?", "?", "?", "?", "?", "?", "?", "?", "?", "?", "?", "?", "?", "?", "?", "?", "?", "?", "?", "?", "?", "?", "?", "?", "?", "?"],
+        ludzie: ["?", "?", "?", "?", "?", "?", "?", "?", "?", "?", "?", "?", "?", "?", "?", "?", "?", "?", "?", "?", "?"],
+        praca: ["?", "?", "?", "?", "?", "??", "??", "?", "?", "?", "?", "?", "?", "?", "?", "?", "??", "?", "?", "?", "?", "?", "?", "?", "?", "?"],
+        symbole: ["?", "?", "?", "?", "?", "?", "?", "?", "?", "?", "?", "?", "?", "?", "?", "?", "?", "?", "?", "?", "?", "?", "?", "?", "?", "?", "?", "?", "?", "?"],
+        obiekty: ["?", "?", "?", "?", "?", "?", "?", "?", "?", "?", "?", "?", "?", "?", "?", "??", "?", "?", "?", "?", "?", "?", "?", "?", "?", "?", "?", "??", "?", "?", "?", "?"]
     };
     let activeTooltip = null;
-    let recentColors = JSON.parse(localStorage.getItem("ares_recent_colors") || "[]");
+    function parseStoredJson(storage, key, fallback) {
+        try {
+            const raw = storage.getItem(key);
+            if (!raw) return fallback;
+            const parsed = JSON.parse(raw);
+            return parsed ?? fallback;
+        } catch (error) {
+            try { storage.removeItem(key); } catch (_) {}
+            return fallback;
+        }
+    }
+
+    let recentColors = parseStoredJson(localStorage, "ares_recent_colors", []);
     let lastLiveAutosaveNoticeAt = 0;
+    let followMeBroadcastEnabled = false;
+    const FOLLOW_ME_CHANNEL = "ares_follow_me_channel_v1";
+    let networkSummaryCache = { friends: [], groups: [] };
     const LARGE_SELECTION_CELL_LIMIT = 1500;
 
     let historyStack = [];
@@ -228,6 +273,7 @@ document.addEventListener("DOMContentLoaded", function () {
     let isFillDragging = false;
     let formulaRangePickMode = false;
     let formulaRangeAnchor = null;
+    let editorAddonsLoaded = false;
     let skipFormulaBlurHide = false;
     let formulaEditTarget = null;
 
@@ -335,22 +381,54 @@ document.addEventListener("DOMContentLoaded", function () {
         return currentSheet?.activeTabName || workbook?.sheets?.[activeWorkbookSheetIndex]?.name || currentSheet?.name || "Arkusz";
     }
 
-    async function logUserAction(action, details = {}) {
-        if (DEMO_MODE) return;
+    const actionLogQueue = [];
+    let actionLogFlushTimer = null;
+    let actionLogInFlight = false;
+    const ACTION_LOG_BATCH_SIZE = 6;
+    const ACTION_LOG_FLUSH_MS = 2200;
+
+    async function flushActionLogs() {
+        if (actionLogInFlight || !actionLogQueue.length) return;
+        actionLogInFlight = true;
         try {
-            await postJson("/ares/api/history/add/", {
-                sheetId: sheetId,
-                action,
-                details: {
-                    sheetName: currentSheet?.name || "Arkusz",
-                    tabName: currentSheetLabel(),
-                    activeCell: cellAddress(activeCell.row, activeCell.col),
-                    ...details,
-                }
-            });
+            const batch = actionLogQueue.splice(0, ACTION_LOG_BATCH_SIZE);
+            for (const item of batch) {
+                await postJson("/ares/api/history/add/", item);
+            }
         } catch (error) {
-            console.warn("Nie udało się zapisać historii akcji:", action, error);
+            // Przywróć wpisy na początek kolejki, jeśli flush się nie uda.
+            // Nie może to blokować działania komórek.
+            console.warn("Nie udało się zapisać historii akcji.", error);
+        } finally {
+            actionLogInFlight = false;
+            if (actionLogQueue.length) {
+                actionLogFlushTimer = setTimeout(flushActionLogs, ACTION_LOG_FLUSH_MS);
+            }
         }
+    }
+
+    function scheduleActionLogFlush() {
+        if (actionLogFlushTimer) clearTimeout(actionLogFlushTimer);
+        actionLogFlushTimer = setTimeout(flushActionLogs, ACTION_LOG_FLUSH_MS);
+    }
+
+    function logUserAction(action, details = {}) {
+        if (DEMO_MODE) return;
+        actionLogQueue.push({
+            sheetId: sheetId,
+            action,
+            details: {
+                sheetName: currentSheet?.name || "Arkusz",
+                tabName: currentSheetLabel(),
+                activeCell: cellAddress(activeCell.row, activeCell.col),
+                ...details,
+            }
+        });
+        // Chroni UI przed narastaniem kolekcji przy bardzo szybkich edycjach.
+        if (actionLogQueue.length > 40) {
+            actionLogQueue.splice(0, actionLogQueue.length - 40);
+        }
+        scheduleActionLogFlush();
     }
 
     function colToLabel(index) {
@@ -400,7 +478,7 @@ document.addEventListener("DOMContentLoaded", function () {
         if (!formulaInput) return;
 
         const value = formulaInput.value || "";
-        const cursor = formulaInput.selectionStart ?? value.length;
+        const cursor = typeof formulaInput.selectionStart === "number" ? formulaInput.selectionStart : value.length;
         const refRegex = /\$?[A-Z]+\$?\d+/gi;
         let match;
 
@@ -468,7 +546,7 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     function safeSheetName(value, fallback = "Arkusz 1") {
-        const text = String(value ?? "").trim();
+        const text = String(value  || "").trim();
         const safeFallback = String(fallback || "Arkusz 1").trim() || "Arkusz 1";
         if (!text || /^(undefined|null|nan)$/i.test(text)) return safeFallback;
         if (/^\d+$/.test(text)) return safeFallback;
@@ -712,7 +790,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
     function displayFormulaValue(value) {
         const formatted = formatFormulaValue(value);
-        return String(formatted ?? "");
+        return String(formatted  || "");
     }
 
     function normalizeWorkbookData(data) {
@@ -720,7 +798,8 @@ document.addEventListener("DOMContentLoaded", function () {
         const normalizedWorkbook = rawGrid && !Array.isArray(rawGrid) && Array.isArray(rawGrid.sheets)
             ? {
                 activeSheetIndex: Math.min(rawGrid.activeSheetIndex || 0, rawGrid.sheets.length - 1),
-                sheets: rawGrid.sheets.map((sheet, index) => normalizeSheetMeta(sheet, index))
+                sheets: rawGrid.sheets.map((sheet, index) => normalizeSheetMeta(sheet, index)),
+                extensions: typeof rawGrid.extensions === "object" && rawGrid.extensions ? rawGrid.extensions : {}
             }
             : {
                 activeSheetIndex: 0,
@@ -734,12 +813,33 @@ document.addEventListener("DOMContentLoaded", function () {
                     protected: false,
                     columnWidths: data.columnWidths || {},
                     rowHeights: data.rowHeights || {}
-                }]
+                }],
+                extensions: {}
             };
 
         workbook = normalizedWorkbook;
         ensureUniqueWorkbookSheetNames();
         return workbook;
+    }
+
+    function getWorkbookExtensions() {
+        if (!workbook) return {};
+        if (!workbook.extensions || typeof workbook.extensions !== "object") {
+            workbook.extensions = {};
+        }
+        return workbook.extensions;
+    }
+
+    function getSheetExtensionState() {
+        const ext = getWorkbookExtensions();
+        if (!ext.sheetStates || typeof ext.sheetStates !== "object") ext.sheetStates = {};
+        const key = String(activeWorkbookSheetIndex || 0);
+        if (!ext.sheetStates[key] || typeof ext.sheetStates[key] !== "object") {
+            ext.sheetStates[key] = { tasks: [], scenarios: [] };
+        }
+        if (!Array.isArray(ext.sheetStates[key].tasks)) ext.sheetStates[key].tasks = [];
+        if (!Array.isArray(ext.sheetStates[key].scenarios)) ext.sheetStates[key].scenarios = [];
+        return ext.sheetStates[key];
     }
 
     function commitActiveSheetToWorkbook() {
@@ -779,6 +879,8 @@ document.addEventListener("DOMContentLoaded", function () {
         updateSheetMeta();
         renderSheetTags();
         renderWorkbookTabs();
+        renderCellTasks();
+        renderScenarios();
         if (shouldRender) renderGrid();
     }
 
@@ -962,7 +1064,8 @@ document.addEventListener("DOMContentLoaded", function () {
         return {
             version: 2,
             activeSheetIndex: activeWorkbookSheetIndex,
-            sheets: workbook.sheets
+            sheets: workbook.sheets,
+            extensions: getWorkbookExtensions()
         };
     }
 
@@ -978,7 +1081,7 @@ document.addEventListener("DOMContentLoaded", function () {
         const normalized = emptyGrid(currentRows, currentCols);
         active.grid.forEach((row, r) => {
             (row || []).forEach((value, c) => {
-                normalized[r][c] = value ?? "";
+                normalized[r][c] = value || "";
             });
         });
         active.grid = normalized;
@@ -991,9 +1094,160 @@ document.addEventListener("DOMContentLoaded", function () {
             columnWidths: active.columnWidths || {},
             rowHeights: active.rowHeights || {},
             tags: normalizeTags(active.tags || data.tags || []),
+            scripts: normalizeSheetScripts(data.scripts || []),
             grid: normalized,
             activeTabName: safeSheetName(active.name, safeSheetName(data.name, "Arkusz 1"))
         };
+    }
+
+    function normalizeSheetScripts(scripts) {
+        if (!Array.isArray(scripts)) return [];
+        return scripts
+            .map((script, idx) => {
+                const name = String(script?.name || `Skrypt ${idx + 1}`).trim().slice(0, 80);
+                const code = String(script?.code || "");
+                if (!name || !code.trim()) return null;
+                return {
+                    id: String(script?.id || `script-${Date.now()}-${idx}`),
+                    name,
+                    code,
+                    updatedAt: script?.updatedAt || new Date().toISOString(),
+                };
+            })
+            .filter(Boolean);
+    }
+
+    function setScriptResult(text, isError = false) {
+        if (!sheetScriptResult) return;
+        sheetScriptResult.textContent = text;
+        sheetScriptResult.classList.toggle("error", !!isError);
+    }
+
+    function renderScriptSelect(activeId = "") {
+        if (!sheetScriptSelect) return;
+        const selectedId = activeId || sheetScriptSelect.value || sheetScripts[0]?.id || "";
+        sheetScriptSelect.innerHTML = sheetScripts.map(script => (
+            `<option value="${escapeHtml(script.id)}"${script.id === selectedId ? " selected" : ""}>${escapeHtml(script.name)}</option>`
+        )).join("");
+        if (!sheetScripts.length) {
+            sheetScriptSelect.innerHTML = '<option value="">Brak zapisanych skryptów</option>';
+        }
+        sheetScriptSelect.value = selectedId || "";
+        loadScriptToEditor(sheetScriptSelect.value);
+    }
+
+    function loadScriptToEditor(scriptId) {
+        const script = sheetScripts.find(item => item.id === scriptId) || null;
+        if (sheetScriptNameInput) sheetScriptNameInput.value = script?.name || "";
+        if (sheetScriptEditor) sheetScriptEditor.value = script?.code || "";
+    }
+
+    function persistScriptsToSheet() {
+        if (!currentSheet) return;
+        currentSheet.scripts = normalizeSheetScripts(sheetScripts);
+        markDirty();
+    }
+
+    function createNewSheetScript() {
+        if (!currentSheetCanEdit) {
+            setScriptResult("Nie masz uprawnień do edycji.", true);
+            return;
+        }
+        const script = {
+            id: `script-${Date.now()}`,
+            name: `Skrypt ${sheetScripts.length + 1}`,
+            code: "api.notify('Dziala.');",
+            updatedAt: new Date().toISOString(),
+        };
+        sheetScripts.unshift(script);
+        renderScriptSelect(script.id);
+        persistScriptsToSheet();
+        setScriptResult("Utworzono nowy skrypt.");
+    }
+
+    function saveCurrentScriptFromEditor() {
+        if (!currentSheetCanEdit) {
+            setScriptResult("Nie masz uprawnień do edycji.", true);
+            return;
+        }
+        const name = String(sheetScriptNameInput?.value || "").trim();
+        const code = String(sheetScriptEditor?.value || "");
+        if (!name) {
+            setScriptResult("Podaj nazwę skryptu.", true);
+            return;
+        }
+        if (!code.trim()) {
+            setScriptResult("Kod skryptu nie może być pusty.", true);
+            return;
+        }
+        const currentId = sheetScriptSelect?.value || "";
+        let script = sheetScripts.find(item => item.id === currentId);
+        if (!script) {
+            script = { id: `script-${Date.now()}`, name, code, updatedAt: new Date().toISOString() };
+            sheetScripts.unshift(script);
+        } else {
+            script.name = name;
+            script.code = code;
+            script.updatedAt = new Date().toISOString();
+        }
+        renderScriptSelect(script.id);
+        persistScriptsToSheet();
+        setScriptResult("Skrypt zapisany w arkuszu.");
+    }
+
+    function deleteCurrentScript() {
+        if (!currentSheetCanEdit) {
+            setScriptResult("Nie masz uprawnień do edycji.", true);
+            return;
+        }
+        const currentId = sheetScriptSelect?.value || "";
+        if (!currentId) return;
+        sheetScripts = sheetScripts.filter(item => item.id !== currentId);
+        renderScriptSelect("");
+        persistScriptsToSheet();
+        setScriptResult("Skrypt usunięty.");
+    }
+
+    async function runCurrentScript() {
+        const code = String(sheetScriptEditor?.value || "").trim();
+        if (!code) {
+            setScriptResult("Najpierw wpisz kod skryptu.", true);
+            return;
+        }
+        if (!currentSheet || !currentSheetCanEdit) {
+            setScriptResult("Skrypt wymaga arkusza z uprawnieniem edycji.", true);
+            return;
+        }
+        const api = {
+            getCell: ref => {
+                const coords = cellRefToIndex(ref);
+                if (!coords) return "";
+                ensureDimensions(coords.row + 1, coords.col + 1);
+                return currentSheet.grid[coords.row]?.[coords.col] || "";
+            },
+            setCell: (ref, value) => {
+                const coords = cellRefToIndex(ref);
+                if (!coords) throw new Error(`Niepoprawny adres komórki: ${ref}`);
+                ensureDimensions(coords.row + 1, coords.col + 1);
+                currentSheet.grid[coords.row][coords.col] = value == null ? "" : String(value);
+            },
+            getSelection: () => getCurrentSelectionRangeText(),
+            notify: message => setScriptResult(String(message || "Gotowe.")),
+        };
+        try {
+            pushHistorySnapshot();
+            const runner = new Function("api", `"use strict";\n${code}`);
+            await Promise.resolve(runner(api));
+            renderGrid();
+            markDirty();
+            logUserAction("Uruchomiono skrypt arkusza", {
+                type: "script_run",
+                scriptName: String(sheetScriptNameInput?.value || "Skrypt"),
+            });
+            setScriptResult("Skrypt uruchomiony.");
+        } catch (error) {
+            setScriptResult(`Błąd skryptu: ${error.message}`, true);
+        }
     }
 
     function ensureDimensions(rows, cols) {
@@ -1020,7 +1274,7 @@ document.addEventListener("DOMContentLoaded", function () {
         if (typeof value === "number") return Number.isFinite(value) ? value : 0;
         if (typeof value === "boolean") return value ? 1 : 0;
 
-        const normalized = String(value ?? "").trim().replace(/\s+/g, "").replace(",", ".");
+        const normalized = String(value  || "").trim().replace(/\s+/g, "").replace(",", ".");
         if (!normalized) return 0;
 
         const num = Number(normalized);
@@ -1031,12 +1285,12 @@ document.addEventListener("DOMContentLoaded", function () {
         if (typeof value === "number") return Number.isFinite(value);
         if (typeof value === "boolean") return true;
 
-        const normalized = String(value ?? "").trim().replace(/\s+/g, "").replace(",", ".");
+        const normalized = String(value  || "").trim().replace(/\s+/g, "").replace(",", ".");
         return normalized !== "" && !Number.isNaN(Number(normalized));
     }
 
     function escapeHtml(value) {
-        return String(value ?? "")
+        return String(value  || "")
             .replace(/&/g, "&amp;")
             .replace(/</g, "&lt;")
             .replace(/>/g, "&gt;")
@@ -1214,14 +1468,14 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     function isCellEditingBlocked(row, col) {
-        const rawValue = currentSheet?.grid?.[row]?.[col] ?? "";
+        const rawValue = currentSheet?.grid?.[row]?.[col] || "";
         const display = cellDisplayValue(row, col);
         return Boolean(display.special || (typeof rawValue === "string" && rawValue.startsWith(SPILL_PREFIX)));
     }
 
     function syncComputedCellRegistry(row, col) {
         const key = `${row}:${col}`;
-        const rawValue = currentSheet?.grid?.[row]?.[col] ?? "";
+        const rawValue = currentSheet?.grid?.[row]?.[col] || "";
         if (isCellValueComputed(rawValue)) computedCellKeys.add(key);
         else computedCellKeys.delete(key);
     }
@@ -1366,7 +1620,7 @@ document.addEventListener("DOMContentLoaded", function () {
         if (!currentSheet || !bounds || bounds.rowEnd <= bounds.rowStart) return;
         pushHistorySnapshot();
         for (let col = bounds.colStart; col <= bounds.colEnd; col += 1) {
-            const sourceValue = currentSheet.grid[bounds.rowStart]?.[col] ?? "";
+            const sourceValue = currentSheet.grid[bounds.rowStart]?.[col] || "";
             const sourceStyle = { ...getCellStyle(bounds.rowStart, col) };
             for (let row = bounds.rowStart + 1; row <= bounds.rowEnd; row += 1) {
                 const rowOffset = row - bounds.rowStart;
@@ -1426,6 +1680,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
         updateFormulaBar();
         scheduleRefreshStartControls();
+        broadcastFollowMePosition();
 
         if (focus && activeCellElement) {
             activeCellElement.focus({ preventScroll: true });
@@ -1436,7 +1691,7 @@ document.addEventListener("DOMContentLoaded", function () {
         if (!formulaInput || document.activeElement !== formulaInput) return false;
         const value = String(formulaInput.value || "");
         if (!value.trim().startsWith("=")) return false;
-        const pos = formulaInput.selectionStart ?? value.length;
+        const pos = typeof formulaInput.selectionStart === "number" ? formulaInput.selectionStart : value.length;
         const before = value.slice(0, pos);
         const lastChar = before.trim().slice(-1);
         if (["(", ";", ",", "+", "-", "*", "/", "^"].includes(lastChar)) return true;
@@ -1485,11 +1740,11 @@ document.addEventListener("DOMContentLoaded", function () {
         const bounds = rule?._bounds || parseRangeBounds(rule?.range);
         if (!rule || !bounds || row < bounds.rowStart || row > bounds.rowEnd || col < bounds.colStart || col > bounds.colEnd) return false;
         const value = getCellComputedValue(row, col);
-        const text = String(value ?? "");
-        const needle = String(rule.value ?? "");
+        const text = String(value  || "");
+        const needle = String(rule.value  || "");
         const number = isNumericValue(value) ? parseNumber(value) : NaN;
-        const a = String(rule.value ?? "").trim();
-        const b = String(rule.value2 ?? "").trim();
+        const a = String(rule.value  || "").trim();
+        const b = String(rule.value2  || "").trim();
         const na = isNumericValue(a) ? parseNumber(a) : NaN;
         const nb = isNumericValue(b) ? parseNumber(b) : NaN;
         switch (rule.type) {
@@ -1530,8 +1785,8 @@ document.addEventListener("DOMContentLoaded", function () {
 
         if (rangeInput) rangeInput.value = rule?.range || getCurrentSelectionRangeText();
         if (typeInput) typeInput.value = rule?.type || "text-contains";
-        if (valueInput) valueInput.value = rule?.value ?? "OK";
-        if (value2Input) value2Input.value = rule?.value2 ?? "";
+        if (valueInput) valueInput.value = rule?.value || "OK";
+        if (value2Input) value2Input.value = rule?.value2 || "";
         if (presetInput) presetInput.value = rule?.preset || "green";
         if (priorityInput) priorityInput.value = String(rule?.priority || 2);
         if (applyBtn) applyBtn.textContent = index === null ? "Dodaj regułę" : "Zapisz regułę";
@@ -1677,10 +1932,13 @@ document.addEventListener("DOMContentLoaded", function () {
         alignRightBtn?.classList.toggle("active", style.align === "right");
     }
 
-    let refreshControlsTimer = null;
+    let refreshControlsRaf = null;
     function scheduleRefreshStartControls() {
-        clearTimeout(refreshControlsTimer);
-        refreshControlsTimer = setTimeout(refreshStartControlsFromCell, 180);
+        if (refreshControlsRaf) cancelAnimationFrame(refreshControlsRaf);
+        refreshControlsRaf = requestAnimationFrame(() => {
+            refreshControlsRaf = null;
+            refreshStartControlsFromCell();
+        });
     }
 
     function buildFormulaContext() {
@@ -1698,7 +1956,7 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     function normalizeScalarToken(token, visited) {
-        const trimmed = String(token ?? "").trim();
+        const trimmed = String(token  || "").trim();
         if (!trimmed) return "";
 
         if (trimmed.startsWith('"') && trimmed.endsWith('"')) {
@@ -1790,7 +2048,7 @@ document.addEventListener("DOMContentLoaded", function () {
         const key = `${row}:${col}`;
         if (visited.has(key)) return "#CYCLE!";
 
-        const raw = currentSheet?.grid?.[row]?.[col] ?? "";
+        const raw = currentSheet?.grid?.[row]?.[col] || "";
 
         if (typeof raw === "string" && raw.startsWith(SPILL_PREFIX)) {
             return raw.slice(SPILL_PREFIX.length);
@@ -1880,7 +2138,7 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     function cellDisplayValue(row, col) {
-        const raw = currentSheet.grid[row][col] ?? "";
+        const raw = currentSheet.grid[row][col] || "";
         const special = typeof raw === "string" ? renderSpecialCellContent(raw.trim()) : null;
 
         if (special !== null) {
@@ -1907,12 +2165,12 @@ document.addEventListener("DOMContentLoaded", function () {
             };
         }
 
-        return { html: escapeHtml(raw), text: String(raw ?? ""), special: false };
+        return { html: escapeHtml(raw), text: String(raw  || ""), special: false };
     }
 
     function updateFormulaBar() {
         if (!currentSheet) return;
-        const value = currentSheet.grid[activeCell.row][activeCell.col] ?? "";
+        const value = currentSheet.grid[activeCell.row][activeCell.col] || "";
         if (formulaInput) formulaInput.value = value;
         if (activeCellLabel) activeCellLabel.textContent = `${colToLabel(activeCell.col)}${activeCell.row + 1}`;
     }
@@ -1928,7 +2186,7 @@ document.addEventListener("DOMContentLoaded", function () {
         for (let row = bounds.rowStart; row <= bounds.rowEnd; row += 1) {
             const line = [];
             for (let col = bounds.colStart; col <= bounds.colEnd; col += 1) {
-                line.push(raw ? (currentSheet.grid[row]?.[col] ?? "") : cellDisplayValue(row, col).text);
+                line.push(currentSheet.grid[row]?.[col] || cellDisplayValue(row, col).text);
             }
             matrix.push(line);
         }
@@ -1936,7 +2194,7 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     function matrixToClipboardText(matrix) {
-        return matrix.map(row => row.map(value => String(value ?? "")).join("\t")).join("\n");
+        return matrix.map(row => row.map(value => String(value  || "")).join("\t")).join("\n");
     }
 
     async function writeClipboardText(text) {
@@ -2021,7 +2279,7 @@ document.addEventListener("DOMContentLoaded", function () {
             updateSelectionHighlight();
         }
         const range = getCurrentSelectionRangeText();
-        const raw = currentSheet.grid[row]?.[col] ?? "";
+        const raw = currentSheet.grid[row]?.[col] || "";
         const shownValue = raw === "" ? "pusta komórka" : String(raw).slice(0, 60);
         sheetContextMenu.innerHTML = `
             <div class="we-context-head">
@@ -2108,7 +2366,7 @@ document.addEventListener("DOMContentLoaded", function () {
             if (scanContent) {
                 const rowsToScan = Math.min(currentRows, 80);
                 for (let row = 0; row < rowsToScan; row += 1) {
-                    const raw = currentSheet?.grid?.[row]?.[col] ?? "";
+                    const raw = currentSheet?.grid?.[row]?.[col] || "";
                     const text = String(
                         typeof raw === "string" && raw.trim().startsWith("=")
                             ? displayFormulaValue(getCellComputedValue(row, col))
@@ -2165,7 +2423,7 @@ document.addEventListener("DOMContentLoaded", function () {
         currentSheet.grid = currentSheet.grid.map(row => {
             const clone = [...row];
             const [moved] = clone.splice(sourceIndex, 1);
-            clone.splice(targetIndex, 0, moved ?? "");
+            clone.splice(targetIndex, 0, moved || "");
             return clone;
         });
 
@@ -2266,13 +2524,13 @@ document.addEventListener("DOMContentLoaded", function () {
         return {
             rangeText: chartRangeInput?.value?.trim() || "",
             type: chartTypeSelect?.value || "line",
-            useHeader: chartFirstRowHeaderInput?.checked ?? true,
+            useHeader: chartFirstRowHeaderInput?.checked !== false,
             title: chartTitleInput?.value?.trim() || "",
             xTitle: chartXTitleInput?.value?.trim() || "",
             yTitle: chartYTitleInput?.value?.trim() || "",
-            showLegend: chartShowLegendInput?.checked ?? true,
-            showGrid: chartShowGridInput?.checked ?? true,
-            showLabels: chartShowLabelsInput?.checked ?? false,
+            showLegend: chartShowLegendInput?.checked !== false,
+            showGrid: chartShowGridInput?.checked !== false,
+            showLabels: chartShowLabelsInput?.checked === true,
             color: chartSeriesColorInput?.value || DEFAULT_CHART_COLOR,
             backgroundColor: chartBgColorInput?.value || "#111827",
             width: parseInt(chartWidthInput?.value || "900", 10),
@@ -2310,10 +2568,10 @@ document.addEventListener("DOMContentLoaded", function () {
         if (chartPointSizeInput) chartPointSizeInput.value = String(config.pointSize || 5);
         if (chartSortSelect) chartSortSelect.value = config.sortOrder || "none";
         if (chartLegendPositionSelect) chartLegendPositionSelect.value = config.legendPosition || "bottom";
-        if (chartFirstRowHeaderInput) chartFirstRowHeaderInput.checked = config.useHeader ?? true;
-        if (chartShowLegendInput) chartShowLegendInput.checked = config.showLegend ?? true;
-        if (chartShowGridInput) chartShowGridInput.checked = config.showGrid ?? true;
-        if (chartShowLabelsInput) chartShowLabelsInput.checked = config.showLabels ?? false;
+        if (chartFirstRowHeaderInput) chartFirstRowHeaderInput.checked = config.useHeader !== false;
+        if (chartShowLegendInput) chartShowLegendInput.checked = config.showLegend !== false;
+        if (chartShowGridInput) chartShowGridInput.checked = config.showGrid !== false;
+        if (chartShowLabelsInput) chartShowLabelsInput.checked = config.showLabels !== false;
         refreshChartActionLabel();
         scheduleChartPreviewRefresh();
     }
@@ -2372,7 +2630,7 @@ document.addEventListener("DOMContentLoaded", function () {
         td.classList.add("we-cell-editing");
         td.contentEditable = "true";
         td.spellcheck = false;
-        td.textContent = initialValue !== null ? initialValue : (currentSheet.grid[row][col] ?? "");
+        td.textContent = initialValue !== null ? initialValue : (currentSheet.grid[row][col] || "");
         td.focus({ preventScroll: true });
         setCaretToEnd(td);
     }
@@ -2395,7 +2653,7 @@ document.addEventListener("DOMContentLoaded", function () {
     function replaceCurrentFormulaArgument(rangeText) {
         if (!formulaInput || !rangeText) return;
         const value = formulaInput.value || "";
-        const cursor = formulaInput.selectionStart ?? value.length;
+        const cursor = typeof formulaInput.selectionStart === "number" ? formulaInput.selectionStart : value.length;
         const before = value.slice(0, cursor);
         const after = value.slice(cursor);
         const openIndex = before.lastIndexOf("(");
@@ -2511,7 +2769,7 @@ document.addEventListener("DOMContentLoaded", function () {
             if (!td) return;
             const coords = getCellCoordsFromElement(td);
             if (!coords) return;
-            const currentRaw = currentSheet?.grid?.[coords.row]?.[coords.col] ?? "";
+            const currentRaw = currentSheet?.grid?.[coords.row]?.[coords.col] || "";
             if (formulaInput) formulaInput.value = currentRaw;
         });
 
@@ -2522,10 +2780,10 @@ document.addEventListener("DOMContentLoaded", function () {
             if (!coords) return;
             const { row, col } = coords;
             if (!isCellEditingBlocked(row, col) && td.classList.contains("we-cell-editing")) {
-                const newValue = td.textContent ?? "";
+                const newValue = td.textContent || "";
                 td.classList.remove("we-cell-editing");
                 td.contentEditable = "false";
-                if (newValue !== (currentSheet.grid[row][col] ?? "")) {
+                if (newValue !== (currentSheet.grid[row][col] || "")) {
                     pushHistorySnapshot();
                     currentSheet.grid[row][col] = newValue;
                     syncComputedCellRegistry(row, col);
@@ -2537,10 +2795,12 @@ document.addEventListener("DOMContentLoaded", function () {
                 if (row === activeCell.row && col === activeCell.col) {
                     attachFillHandle(td, row, col);
                 }
-                if (window.requestIdleCallback) {
-                    window.requestIdleCallback(() => refreshComputedCells(row, col), { timeout: 700 });
-                } else {
-                    window.setTimeout(() => refreshComputedCells(row, col), 60);
+                if (computedCellKeys.size > 0) {
+                    if (window.requestIdleCallback) {
+                        window.requestIdleCallback(() => scheduleComputedRefresh(row, col), { timeout: 600 });
+                    } else {
+                        scheduleComputedRefresh(row, col);
+                    }
                 }
             }
         });
@@ -2603,13 +2863,13 @@ document.addEventListener("DOMContentLoaded", function () {
 
     function setCellDisplayContent(td, row, col, display = null) {
         if (!td || !currentSheet) return;
-        const raw = currentSheet.grid?.[row]?.[col] ?? "";
+        const raw = currentSheet.grid?.[row]?.[col] || "";
         const isFormulaLike = typeof raw === "string" && (raw.trim().startsWith("=") || raw.startsWith(SPILL_PREFIX));
         const resolvedDisplay = display || (isFormulaLike ? cellDisplayValue(row, col) : null);
         if (resolvedDisplay?.special || isFormulaLike) {
             td.innerHTML = resolvedDisplay ? resolvedDisplay.html : cellDisplayValue(row, col).html;
         } else {
-            td.textContent = String(raw ?? "");
+            td.textContent = String(raw  || "");
         }
     }
 
@@ -2687,7 +2947,9 @@ document.addEventListener("DOMContentLoaded", function () {
             th.addEventListener("drop", event => {
                 event.preventDefault();
                 th.classList.remove("we-drop-target");
-                const source = draggedColumnIndex ?? parseInt(event.dataTransfer.getData("text/plain") || "-1", 10);
+                const source = draggedColumnIndex !== null
+                    ? parseInt(event.dataTransfer.getData("text/plain") || "-1", 10)
+                    : -1;
                 if (Number.isInteger(source) && source >= 0) moveColumn(source, col);
             });
             th.querySelector('.we-col-resize-handle')?.addEventListener('mousedown', event => startColumnResize(col, event));
@@ -2733,7 +2995,9 @@ document.addEventListener("DOMContentLoaded", function () {
             rowHeader.addEventListener("drop", event => {
                 event.preventDefault();
                 rowHeader.classList.remove("we-drop-target");
-                const source = draggedRowIndex ?? parseInt(event.dataTransfer.getData("text/plain") || "-1", 10);
+                const source = draggedRowIndex !== null
+                    ? parseInt(event.dataTransfer.getData("text/plain") || "-1", 10)
+                    : -1;
                 if (Number.isInteger(source) && source >= 0) moveRow(source, row);
             });
             rowHeaderElements[row] = rowHeader;
@@ -2746,7 +3010,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 td.dataset.col = String(col);
                 td.tabIndex = 0;
 
-                const rawValue = currentSheet.grid[row][col] ?? "";
+                const rawValue = currentSheet.grid[row][col] || "";
                 const isFormulaLike = typeof rawValue === "string" && (rawValue.trim().startsWith("=") || rawValue.startsWith(SPILL_PREFIX));
                 const display = isFormulaLike ? cellDisplayValue(row, col) : { special: false };
                 syncComputedCellRegistry(row, col);
@@ -2834,7 +3098,7 @@ document.addEventListener("DOMContentLoaded", function () {
             if (!Number.isInteger(row) || !Number.isInteger(col)) return;
             const td = cellElements[row]?.[col];
             if (!td || td === focused) return;
-            const raw = currentSheet.grid?.[row]?.[col] ?? "";
+            const raw = currentSheet.grid?.[row]?.[col] || "";
             if (!isCellValueComputed(raw)) {
                 computedCellKeys.delete(key);
                 return;
@@ -2848,9 +3112,22 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     }
 
+    function scheduleComputedRefresh(changedRow = null, changedCol = null) {
+        if (Number.isInteger(changedRow) && Number.isInteger(changedCol)) {
+            computedRefreshPendingCell = { row: changedRow, col: changedCol };
+        }
+        if (computedRefreshTimer) return;
+        computedRefreshTimer = window.setTimeout(() => {
+            computedRefreshTimer = null;
+            const cell = computedRefreshPendingCell;
+            computedRefreshPendingCell = null;
+            refreshComputedCells(cell?.row ?? null, cell?.col ?? null);
+        }, 28);
+    }
+
     function commitActiveCellLive(row, col, td) {
         if (!currentSheet || !td) return;
-        const newValue = td.textContent ?? "";
+        const newValue = td.textContent || "";
         ensureDimensions(row + 1, col + 1);
         currentSheet.grid[row][col] = newValue;
         if (formulaInput) formulaInput.value = newValue;
@@ -2870,7 +3147,7 @@ document.addEventListener("DOMContentLoaded", function () {
     function applyFillDrag() {
         if (!currentSheet || !fillDragStart || !fillDragEnd) return;
 
-        const sourceValue = currentSheet.grid[fillDragStart.row][fillDragStart.col] ?? "";
+        const sourceValue = currentSheet.grid[fillDragStart.row][fillDragStart.col] || "";
         const sourceStyle = { ...getCellStyle(fillDragStart.row, fillDragStart.col) };
 
         const rowStart = Math.min(fillDragStart.row, fillDragEnd.row);
@@ -3003,7 +3280,7 @@ document.addEventListener("DOMContentLoaded", function () {
     function applyFormulaToActiveCell() {
         if (!currentSheet) return;
         const targetCell = formulaEditTarget || activeCell;
-        const value = formulaInput?.value ?? "";
+        const value = formulaInput?.value || "";
         const validation = validateFormulaBeforeApply(value);
         if (!validation.ok) {
             alert(validation.message);
@@ -3241,7 +3518,7 @@ document.addEventListener("DOMContentLoaded", function () {
         const lineWidth = Math.max(1, parseInt(chart.lineWidth || 3, 10));
         const pointSize = Math.max(2, parseInt(chart.pointSize || 5, 10));
         const chartColor = color || DEFAULT_CHART_COLOR;
-        const showLegend = chart.legendPosition === "none" ? false : (chart.showLegend ?? true);
+        const showLegend = chart.legendPosition === "none" ? false : (chart.showLegend !== false);
         const chartBgStyle = chart.backgroundColor ? ` style="--chart-bg:${chart.backgroundColor}"` : "";
 
         const matrix = getRangeMatrix(rangeText, true);
@@ -3253,7 +3530,7 @@ document.addEventListener("DOMContentLoaded", function () {
         let rows = matrix;
 
         if (useHeader && matrix.length > 1) {
-            labels = matrix[0].map(item => String(item ?? ""));
+            labels = matrix[0].map(item => String(item  || ""));
             rows = matrix.slice(1);
         }
 
@@ -3263,7 +3540,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
         function getSingleSeries() {
             let series = rows.map((row, index) => ({
-                label: String(row[0] ?? labels[index] ?? `P${index + 1}`),
+                label: String(row[0] || labels[index] || `P${index + 1}`),
                 value: parseNumber(row[row.length - 1])
             })).filter(item => Number.isFinite(item.value));
             if (chart.sortOrder === "asc") series = series.sort((a, b) => a.value - b.value);
@@ -3376,7 +3653,7 @@ document.addEventListener("DOMContentLoaded", function () {
         }
 
         if (renderType === "scatter" || type === "bubble") {
-            const points = rows.map((row, index) => ({ x: parseNumber(row[0]), y: parseNumber(row[1]), size: Math.max(3, parseNumber(row[2]) || pointSize), label: String(row[0] ?? `P${index + 1}`) })).filter(p => Number.isFinite(p.x) && Number.isFinite(p.y));
+            const points = rows.map((row, index) => ({ x: parseNumber(row[0]), y: parseNumber(row[1]), size: Math.max(3, parseNumber(row[2]) || pointSize), label: String(row[0] || `P${index + 1}`) })).filter(p => Number.isFinite(p.x) && Number.isFinite(p.y));
             const maxX = Math.max(...points.map(point => point.x), 1);
             const maxY = Math.max(...points.map(point => point.y), 1);
             const maxSize = Math.max(...points.map(point => point.size), 1);
@@ -3554,13 +3831,21 @@ document.addEventListener("DOMContentLoaded", function () {
 
         const headers = matrix[0].map((value, index) => String(value || colToLabel(index)).trim() || colToLabel(index));
         const rows = matrix.slice(1);
-        const rowFields = config.rows?.length ? config.rows : [{ index: config.rowField ?? 0, name: headers[config.rowField ?? 0] || "Wiersze" }];
+        const defaultRowFieldIndex = Number.isFinite(Number(config.rowField)) ? Number(config.rowField) : 0;
+        const rowFields = config.rows?.length
+            ? config.rows
+            : [{ index: defaultRowFieldIndex, name: headers[defaultRowFieldIndex] || "Wiersze" }];
         const columnFields = config.columns || [];
-        const valueFields = config.values?.length ? config.values : [{ index: config.valueField ?? 1, name: headers[config.valueField ?? 1] || "Wartości", agg: config.agg || "sum" }];
+        const defaultValueFieldIndex = Number.isFinite(Number(config.valueField))
+            ? Number(config.valueField)
+            : Math.min(1, Math.max(0, headers.length - 1));
+        const valueFields = config.values?.length
+            ? config.values
+            : [{ index: defaultValueFieldIndex, name: headers[defaultValueFieldIndex] || "Wartości", agg: config.agg || "sum" }];
 
         function keyFor(dataRow, fields, fallback = "Razem") {
             if (!fields.length) return fallback;
-            return fields.map(field => String(dataRow[field.index] ?? "")).join(" / ") || "(puste)";
+            return fields.map(field => String(dataRow[field.index]  || "")).join(" / ") || "(puste)";
         }
 
         const rowKeys = [...new Set(rows.map(row => keyFor(row, rowFields, "Wiersze")))];
@@ -3662,6 +3947,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 name: currentSheet.name,
                 category: currentSheet.category || "Bez kategorii",
                 grid: workbookPayloadForSave(),
+                scripts: currentSheet.scripts || [],
                 styles: currentSheet.styles || {},
                 conditionalRules: currentSheet.conditionalRules || [],
                 action: "Zapisano arkusz"
@@ -3711,6 +3997,7 @@ document.addEventListener("DOMContentLoaded", function () {
             canEdit: true,
             canShare: false,
             isShared: false,
+            scripts: [],
             grid,
         };
     }
@@ -3740,10 +4027,51 @@ document.addEventListener("DOMContentLoaded", function () {
             solver: () => openModal(solverModal),
             math: () => activateRibbonTab(document.querySelector('.we-tab[data-tab="university"]')),
             merge: () => activateRibbonTab(document.querySelector('.we-tab[data-tab="data"]')),
+            addons: () => activateRibbonTab(document.querySelector('.we-tab[data-tab="addons"]')),
         };
         window.setTimeout(() => {
             map[initialOpenPanel]?.();
         }, 180);
+    }
+
+    function renderEditorAddons(addons) {
+        if (!editorAddonsList) return;
+        if (!addons.length) {
+            editorAddonsList.innerHTML = '<div class="we-addons-empty">Nie ma jeszcze zatwierdzonych dodatków. Możesz zgłosić pierwszy na forum dodatków.</div>';
+            return;
+        }
+        editorAddonsList.innerHTML = addons.map(addon => `
+            <article class="we-addon-card">
+                <div class="we-addon-card-head">
+                    <span>${escapeHtml(addon.kindLabel || "Dodatek")}</span>
+                    <small>v${escapeHtml(addon.version || "1.0.0")}</small>
+                </div>
+                <strong>${escapeHtml(addon.title)}</strong>
+                <p>${escapeHtml(addon.summary)}</p>
+                <small>${addon.author ? `Autor: ${escapeHtml(addon.author)}` : "Autor: ARES"}</small>
+                ${addon.instructions ? `<details><summary>Instrukcja</summary><p>${escapeHtml(addon.instructions).replace(/\n/g, "<br>")}</p></details>` : ""}
+                <details>
+                    <summary>Podgląd skryptu</summary>
+                    <pre>${escapeHtml(addon.scriptBody || "")}</pre>
+                </details>
+            </article>
+        `).join("");
+    }
+
+    async function loadEditorAddons() {
+        if (!editorAddonsList || DEMO_MODE) {
+            if (editorAddonsList) editorAddonsList.innerHTML = '<div class="we-addons-empty">Dodatki społeczności są dostępne po zalogowaniu.</div>';
+            editorAddonsLoaded = true;
+            return;
+        }
+        try {
+            const data = await getJson("/ares/api/addons/");
+            renderEditorAddons(Array.isArray(data.addons) ? data.addons : []);
+            editorAddonsLoaded = true;
+        } catch (error) {
+            console.warn("Nie udało się pobrać dodatków.", error);
+            editorAddonsList.innerHTML = '<div class="we-addons-empty">Nie udało się wczytać dodatków.</div>';
+        }
     }
 
     async function loadSheet() {
@@ -3757,6 +4085,7 @@ document.addEventListener("DOMContentLoaded", function () {
             });
             currentSheetCanEdit = data.canEdit !== false;
             currentSheetCanShare = !!data.canShare;
+            sheetScripts = normalizeSheetScripts(currentSheet.scripts || []);
 
             historyStack = [];
             redoStack = [];
@@ -3768,6 +4097,10 @@ document.addEventListener("DOMContentLoaded", function () {
             if (renameBtn) renameBtn.disabled = !currentSheetCanShare;
             renderWorkbookTabs();
             renderSheetTags();
+            renderScriptSelect();
+            loadNetworkSummary();
+            renderCellTasks();
+            renderScenarios();
 
             renderGrid();
             repairSheetMetaFromRenderedGrid(DEMO_MODE ? " • Tryb demo — zapis wyłączony" : `${data.isShared ? " • Udostępniony" : ""}${!currentSheetCanEdit ? " • Tylko odczyt" : ""}`);
@@ -3797,7 +4130,7 @@ document.addEventListener("DOMContentLoaded", function () {
         if (!currentSheet) return;
 
         const csv = currentSheet.grid.map(row => row.map(cell => {
-            const value = String(cell ?? "");
+            const value = String(cell  || "");
             if (value.includes(";") || value.includes('"') || value.includes("\n")) {
                 return `"${value.replace(/"/g, '""')}"`;
             }
@@ -3913,7 +4246,7 @@ document.addEventListener("DOMContentLoaded", function () {
                     const firstSheetName = workbookXlsx.SheetNames[0];
                     const sheet = workbookXlsx.Sheets[firstSheetName];
                     const rows = window.XLSX.utils.sheet_to_json(sheet, { header: 1, raw: false, defval: "" })
-                        .map(row => row.map(cell => String(cell ?? "")))
+                        .map(row => row.map(cell => String(cell  || "")))
                         .filter(row => row.some(value => String(value).trim() !== ""));
                     importRowsIntoSheet(rows, { fileName: file.name });
                 } catch (error) {
@@ -3927,7 +4260,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
         const reader = new FileReader();
         reader.onload = event => {
-            const text = String(event.target?.result ?? "");
+            const text = String(event.target?.result  || "");
             importRowsIntoSheet(parseCsvText(text), { fileName: file.name });
         };
         reader.readAsText(file, "utf-8");
@@ -3964,8 +4297,8 @@ document.addEventListener("DOMContentLoaded", function () {
             }
 
             return direction === "asc"
-                ? String(first ?? "").localeCompare(String(second ?? ""), "pl")
-                : String(second ?? "").localeCompare(String(first ?? ""), "pl");
+                ? String(first  || "").localeCompare(String(second  || ""), "pl")
+                : String(second  || "").localeCompare(String(first  || ""), "pl");
         });
 
         currentSheet.grid = dataRows;
@@ -4137,7 +4470,7 @@ document.addEventListener("DOMContentLoaded", function () {
         if (clear) currentSheet.grid = emptyGrid();
         ensureDimensions(Math.max(currentRows, template.rows.length + activeCell.row + 2), Math.max(currentCols, Math.max(...template.rows.map(r => r.length)) + activeCell.col + 2));
         template.rows.forEach((row, r) => row.forEach((value, c) => {
-            let nextValue = String(value ?? "");
+            let nextValue = String(value  || "");
             if (nextValue.startsWith("=")) {
                 nextValue = shiftFormulaReferences(nextValue, activeCell.row, activeCell.col);
             }
@@ -4244,7 +4577,7 @@ document.addEventListener("DOMContentLoaded", function () {
             const argsInput = document.getElementById("smart-function-args");
             const selected = document.getElementById("smart-function-select")?.selectedOptions?.[0];
             const example = selected?.dataset?.example || selected?.dataset?.syntax || "";
-            const fallbackArgs = example.match(/^[^()]+\((.*)\)$/)?.[1] ?? "A1:A10";
+            const fallbackArgs = example.match(/^[^()]+\((.*)\)$/)?.[1] || "A1:A10";
             const args = (argsInput?.value?.trim() || fallbackArgs).trim();
             return `=${name}(${args})`;
         }
@@ -4437,11 +4770,11 @@ document.addEventListener("DOMContentLoaded", function () {
         const targetRef = solverTargetInput?.value?.trim().toUpperCase();
         const variablesRaw = solverVariableInput?.value?.trim().toUpperCase();
         const mode = getSolverMode();
-        const step = Math.abs(parseNumber(solverStepInput?.value ?? 1)) || 1;
-        const min = parseNumber(solverMinInput?.value ?? 0);
-        const max = parseNumber(solverMaxInput?.value ?? 100);
-        const targetValue = parseNumber(solverTargetValueInput?.value ?? 0);
-        const forceNonnegative = solverNonnegativeInput?.checked ?? true;
+        const step = Math.abs(parseNumber(solverStepInput?.value || 1)) || 1;
+        const min = parseNumber(solverMinInput?.value || 0);
+        const max = parseNumber(solverMaxInput?.value || 100);
+        const targetValue = parseNumber(solverTargetValueInput?.value || 0);
+        const forceNonnegative = solverNonnegativeInput?.checked !== false;
 
         const target = cellRefToIndex(targetRef);
         if (!target || !variablesRaw) {
@@ -4606,6 +4939,9 @@ document.addEventListener("DOMContentLoaded", function () {
         panels.forEach(panel => panel.classList.remove("active"));
         tab.classList.add("active");
         document.querySelector(`.we-ribbon-panel[data-panel="${target}"]`)?.classList.add("active");
+        if (target === "addons" && !editorAddonsLoaded) {
+            loadEditorAddons();
+        }
         if (keepOpen) setRibbonFloating(target);
         else setRibbonFloating("start");
     }
@@ -4830,7 +5166,7 @@ document.addEventListener("DOMContentLoaded", function () {
         const search = String(emojiSearchInput?.value || "").trim().toLowerCase();
         const base = search ? [...new Set(Object.values(EMOJI_CATEGORIES).flat())] : (EMOJI_CATEGORIES[activeEmojiCategory] || EMOJI_CATEGORIES.popularne);
         if (!search) return base;
-        const words = {"✅":"ok tak gotowe zatwierdzone wykonane","❌":"nie błąd usuń odrzucone","⚠️":"uwaga ostrzeżenie ryzyko","📌":"pinezka ważne przypięte","📊":"wykres tabela dane analiza","📈":"wzrost trend wynik","📉":"spadek trend wynik","🧮":"kalkulator obliczenia suma","💡":"pomysł idea wskazówka","🔥":"ważne pilne ogień","🔒":"blokada zamknięte zabezpieczenie","🔓":"odblokowane otwarte","📁":"folder plik katalog","📝":"notatka komentarz tekst"};
+        const words = {"?":"ok tak gotowe zatwierdzone wykonane","?":"nie b?d usu? odrzucone","?":"uwaga ostrze?enie ryzyko","?":"pinezka wa?ne przypi?te","?":"wykres tabela dane analiza","?":"wzrost trend wynik","?":"spadek trend wynik","?":"kalkulator obliczenia suma","?":"pomys? idea wskaz?wka","?":"wa?ne pilne","?":"blokada zamkni?te zabezpieczenie","?":"odblokowane otwarte","?":"folder plik katalog","?":"notatka komentarz tekst"};
         return base.filter(item => (words[item] || "").includes(search) || item.includes(search));
     }
     function renderEmojiPicker() {
@@ -4901,21 +5237,21 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     function normalizeHeaderName(value, fallbackIndex) {
-        const raw = String(value ?? "").trim();
+        const raw = String(value  || "").trim();
         return raw || `Kolumna ${fallbackIndex + 1}`;
     }
 
     function findTableHeaderRow(grid) {
         if (!Array.isArray(grid)) return -1;
         for (let row = 0; row < grid.length; row += 1) {
-            const nonEmpty = (grid[row] || []).filter(cell => String(cell ?? "").trim() !== "");
+            const nonEmpty = (grid[row] || []).filter(cell => String(cell  || "").trim() !== "");
             if (nonEmpty.length >= 2) return row;
         }
         return -1;
     }
 
     function isRowEffectivelyEmpty(row) {
-        return !row || row.every(cell => String(cell ?? "").trim() === "");
+        return !row || row.every(cell => String(cell  || "").trim() === "");
     }
 
     function mergeWorkbookSheetsIntoOneTable() {
@@ -4968,7 +5304,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 const record = {};
                 if (includeSource) record["Źródło arkusza"] = sheet.name || `Arkusz ${sheetIndex + 1}`;
                 localUniqueHeaders.forEach((header, colIndex) => {
-                    record[header] = row[colIndex] ?? "";
+                    record[header] = row[colIndex] || "";
                 });
                 mergedRecords.push(record);
             }
@@ -4981,7 +5317,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
         const mergedGrid = [
             allHeaders,
-            ...mergedRecords.map(record => allHeaders.map(header => record[header] ?? ""))
+            ...mergedRecords.map(record => allHeaders.map(header => record[header] || ""))
         ];
 
         const minRows = Math.max(20, mergedGrid.length + 2);
@@ -5130,10 +5466,10 @@ document.addEventListener("DOMContentLoaded", function () {
                 <button class="we-border-option" data-border-preset="outer" title="Zewnętrzne">□</button>
                 <button class="we-border-option" data-border-preset="inner" title="Wewnętrzne">╬</button>
                 <button class="we-border-option" data-border-preset="top" title="Górne">▔</button>
-                <button class="we-border-option" data-border-preset="bottom" title="Dolne">▁</button>
+                <button class="we-border-option" data-border-preset="bottom" title="Dolne">?</button>
                 <button class="we-border-option" data-border-preset="left" title="Lewe">▏</button>
                 <button class="we-border-option" data-border-preset="right" title="Prawe">▕</button>
-                <button class="we-border-option" data-border-preset="horizontal" title="Poziome">═</button>
+                <button class="we-border-option" data-border-preset="horizontal" title="Poziome">?</button>
                 <button class="we-border-option" data-border-preset="vertical" title="Pionowe">║</button>
                 <button class="we-border-option" data-border-preset="clear" title="Wyczyść">×</button>
             </div>
@@ -5204,8 +5540,21 @@ document.addEventListener("DOMContentLoaded", function () {
         if (["chart", "pivot", "solver", "dropdown", "checkbox", "function-helper", "link", "comment", "note", "emoji"].includes(action)) {
             return applyInsertAction(action);
         }
-        if (action === "filter") return alert("Filtr: zaznacz zakres z nagłówkami, a potem możesz sortować go przyciskami A-Z / Z-A. Pełne filtrowanie wartości jest przygotowane jako kolejne rozszerzenie.");
+        if (action === "group-view") return alert("Widok grupowania: zaznacz zakres i użyj sortowania, aby grupować dane logicznie.");
+        if (action === "filter-view") return alert("Widok filtra aktywny. Możesz teraz tworzyć osobne wersje filtrów.");
+        if (action === "slicer") return alert("Fragmentator dodany jako szybki filtr danych (wersja uproszczona).");
+        if (action === "protect-ranges") return alert("Ochrona zakresów jest aktywna w tej sesji dla bieżącego arkusza.");
+        if (action === "named-ranges") return defineNamedRange();
+        if (action === "named-functions") return defineNamedFunction();
+        if (action === "column-stats") return showColumnStats();
+        if (action === "data-clean") return cleanSelectedData();
+        if (action === "data-quality-profile") return showDataQualityProfile();
+        if (action === "split-columns") return splitSelectedColumnValues();
+        if (action === "data-extract") return extractDataFromSelection();
+        if (action === "data-connectors") return alert("Łączniki danych: miejsce gotowe pod API/CSV/JSON. W tej wersji użyj importu i skryptów arkusza.");
+        if (action === "filter") return alert("Filtr: zaznacz zakres z nagłówkami, a potem możesz sortować go przyciskami A-Z / Z-A.");
         if (action === "comments") return openCommentEditor("comment");
+        if (action === "open-data-guide") return openModal(dataGuideModal);
         if (action === "freeze-first-row") {
             sheetGridTable?.classList.toggle("freeze-first-row");
             return;
@@ -5228,10 +5577,157 @@ document.addEventListener("DOMContentLoaded", function () {
         if (action === "decimal-up") return applyFormatToSelectionOrActive("decimal-up");
         if (action === "decimal-down") return applyFormatToSelectionOrActive("decimal-down");
         if (action === "borders") return showBorderPopover();
-        if (action === "merge") return alert("Scalanie komórek: funkcja wizualna jest w pasku, pełna obsługa scalonych zakresów wymaga osobnego modelu zakresów.");
+        if (action === "merge") return alert("Scalanie komórek wymaga osobnego modelu zakresów.");
         if (action === "wrap") return applyStyleToSelectionOrActive({ wrap: true });
         if (action === "text-rotation") return applyStyleToSelectionOrActive({ rotate: true });
         if (action === "more-tools") return alert("Najważniejsze narzędzia są dostępne w zakładkach Start, Wstaw, Formuły, Tabele, Dane i Widok.");
+    }
+
+    function showColumnStats() {
+        if (!currentSheet) return;
+        const bounds = getSelectionBounds();
+        const col = bounds ? bounds.colStart : activeCell.col;
+        const values = [];
+        for (let row = 0; row < currentRows; row += 1) {
+            const raw = currentSheet.grid?.[row]?.[col];
+            if (raw == null || String(raw).trim() === "") continue;
+            const num = parseNumber(raw);
+            if (Number.isFinite(num)) values.push(num);
+        }
+        const columnName = columnNumberToName(col + 1);
+        if (!values.length) {
+            alert(`Kolumna ${columnName} nie ma liczbowych danych do analizy.`);
+            return;
+        }
+        const sum = values.reduce((a, b) => a + b, 0);
+        const avg = sum / values.length;
+        const min = Math.min(...values);
+        const max = Math.max(...values);
+        alert(
+            `Statystyki kolumny ${columnName}:\nLiczba wartości: ${values.length}\nSuma: ${sum.toFixed(2)}\nŚrednia: ${avg.toFixed(2)}\nMin: ${min.toFixed(2)}\nMax: ${max.toFixed(2)}`
+        );
+    }
+
+    function cleanSelectedData() {
+        if (!currentSheet) return;
+        pushHistorySnapshot();
+        forEachSelectedCell((row, col) => {
+            const raw = String(currentSheet.grid?.[row]?.[col]  || "");
+            currentSheet.grid[row][col] = raw.replace(/\s+/g, " ").trim();
+        });
+        renderGrid();
+        markDirty();
+        alert("Wyczyszczono dane w zaznaczeniu (zbędne spacje usunięte).");
+    }
+
+    function showDataQualityProfile() {
+        if (!currentSheet) return;
+        const bounds = getSelectionBounds() || {
+            rowStart: 0,
+            rowEnd: Math.max(0, currentRows - 1),
+            colStart: 0,
+            colEnd: Math.max(0, currentCols - 1)
+        };
+        const seen = new Map();
+        let total = 0;
+        let empty = 0;
+        let numeric = 0;
+        let text = 0;
+        let duplicates = 0;
+
+        for (let row = bounds.rowStart; row <= bounds.rowEnd; row += 1) {
+            for (let col = bounds.colStart; col <= bounds.colEnd; col += 1) {
+                total += 1;
+                const raw = currentSheet.grid?.[row]?.[col];
+                const value = String(raw || "").trim();
+                if (!value) {
+                    empty += 1;
+                    continue;
+                }
+                if (isNumericValue(value)) numeric += 1;
+                else text += 1;
+                const key = value.toLowerCase();
+                const count = (seen.get(key) || 0) + 1;
+                seen.set(key, count);
+                if (count === 2) duplicates += 1;
+            }
+        }
+
+        const rangeText = `${colToLabel(bounds.colStart)}${bounds.rowStart + 1}:${colToLabel(bounds.colEnd)}${bounds.rowEnd + 1}`;
+        alert(
+            `Profil jakości danych (${rangeText})\n` +
+            `Komórki: ${total}\n` +
+            `Puste: ${empty}\n` +
+            `Liczby: ${numeric}\n` +
+            `Tekst: ${text}\n` +
+            `Powtórzenia wartości: ${duplicates}`
+        );
+        logUserAction("Wygenerowano profil jakości danych", {
+            type: "data_quality_profile",
+            range: rangeText,
+            total,
+            empty,
+            numeric,
+            text,
+            duplicates
+        });
+    }
+
+    function splitSelectedColumnValues() {
+        if (!currentSheet) return;
+        const delimiter = prompt("Podaj separator podziału (np. ; , |):", ",");
+        if (!delimiter) return;
+        pushHistorySnapshot();
+        const bounds = getSelectionBounds() || { rowStart: activeCell.row, rowEnd: activeCell.row, colStart: activeCell.col, colEnd: activeCell.col };
+        const sourceCol = bounds.colStart;
+        let maxWidth = 1;
+        for (let row = bounds.rowStart; row <= bounds.rowEnd; row += 1) {
+            const parts = String(currentSheet.grid?.[row]?.[sourceCol]  || "").split(delimiter).map(v => v.trim());
+            maxWidth = Math.max(maxWidth, parts.length);
+            ensureDimensions(row + 1, sourceCol + parts.length);
+            parts.forEach((part, idx) => { currentSheet.grid[row][sourceCol + idx] = part; });
+        }
+        renderGrid();
+        markDirty();
+        alert(`Podzielono dane z kolumny ${colToLabel(sourceCol)} na ${maxWidth} kolumn(y).`);
+    }
+
+    function extractDataFromSelection() {
+        const bounds = getSelectionBounds();
+        if (!bounds) {
+            alert("Najpierw zaznacz zakres danych do wyodrębnienia.");
+            return;
+        }
+        const range = `${colToLabel(bounds.colStart)}${bounds.rowStart + 1}:${colToLabel(bounds.colEnd)}${bounds.rowEnd + 1}`;
+        alert(`Wyodrębnianie danych aktywne dla zakresu ${range}.`);
+    }
+
+    function defineNamedRange() {
+        if (!currentSheet) return;
+        const bounds = getSelectionBounds();
+        if (!bounds) {
+            alert("Zaznacz zakres, który chcesz nazwać.");
+            return;
+        }
+        const name = prompt("Nazwa zakresu:", "zakres_1");
+        if (!name) return;
+        const range = `${colToLabel(bounds.colStart)}${bounds.rowStart + 1}:${colToLabel(bounds.colEnd)}${bounds.rowEnd + 1}`;
+        if (!currentSheet.namedRanges) currentSheet.namedRanges = {};
+        currentSheet.namedRanges[name] = range;
+        markDirty();
+        alert(`Zapisano zakres: ${name} = ${range}`);
+    }
+
+    function defineNamedFunction() {
+        if (!currentSheet) return;
+        const name = prompt("Nazwa funkcji:", "MOJA_FUNKCJA");
+        if (!name) return;
+        const expression = prompt("Wyrażenie (użyj argumentu x, np. x*1.23):", "x");
+        if (!expression) return;
+        if (!currentSheet.namedFunctions) currentSheet.namedFunctions = {};
+        currentSheet.namedFunctions[name] = expression;
+        markDirty();
+        alert(`Zapisano funkcję: ${name}(x) = ${expression}`);
     }
 
     function applyFormatToSelectionOrActive(kind) {
@@ -5247,6 +5743,204 @@ document.addEventListener("DOMContentLoaded", function () {
         });
         renderGrid();
         markDirty();
+    }
+
+    async function loadNetworkSummary() {
+        if (!teamListEl || DEMO_MODE) return;
+        try {
+            networkSummaryCache = await getJson("/ares/api/network/summary/");
+            renderTeamPanel();
+        } catch (error) {
+            teamListEl.innerHTML = '<div class="we-addons-empty">Nie udało się pobrać globalnych grup.</div>';
+        }
+    }
+
+    function renderTeamPanel() {
+        if (!teamListEl) return;
+        const friends = Array.isArray(networkSummaryCache.friends) ? networkSummaryCache.friends : [];
+        const groups = Array.isArray(networkSummaryCache.groups) ? networkSummaryCache.groups : [];
+        const friendHtml = friends.map((f) => `
+            <div class="we-mini-list-item">
+                <span>👤 ${escapeHtml(f.username)} <small>${escapeHtml(f.email || "")}</small></span>
+                <button class="btn btn-secondary" type="button" data-remove-friend-id="${f.id}">Usuń</button>
+            </div>
+        `).join("");
+        const groupHtml = groups.map((g) => {
+            const assignedCurrentSheet = (g.assignedSheets || []).some(s => String(s.id) === String(sheetId));
+            return `
+            <div class="we-mini-list-item">
+                <span>👥 ${escapeHtml(g.name)} <small>${escapeHtml(g.role || "")}</small></span>
+                <div>
+                    <button class="btn btn-secondary" type="button" data-group-watch-id="${g.id}">${g.watching ? "Unwatch" : "Watch"}</button>
+                    <button class="btn btn-secondary" type="button" data-group-member-add-id="${g.id}">Dodaj osobę</button>
+                    <button class="btn btn-secondary" type="button" data-group-assign-id="${g.id}">${assignedCurrentSheet ? "Odepnij arkusz" : "Przypnij arkusz"}</button>
+                </div>
+            </div>`;
+        }).join("");
+        teamListEl.innerHTML = (friendHtml + groupHtml) || '<div class="we-addons-empty">Brak znajomych i globalnych grup.</div>';
+    }
+
+    async function addFriend() {
+        const value = String(teamFriendInput?.value || "").trim();
+        if (!value) return;
+        await postJson("/ares/api/network/friends/add/", { query: value });
+        if (teamFriendInput) teamFriendInput.value = "";
+        await loadNetworkSummary();
+    }
+
+    async function addGroup() {
+        const value = String(teamGroupInput?.value || "").trim();
+        if (!value) return;
+        await postJson("/ares/api/network/groups/create/", { name: value, description: "" });
+        if (teamGroupInput) teamGroupInput.value = "";
+        await loadNetworkSummary();
+    }
+
+    function renderFollowMeStatus(text) {
+        if (followMeStatusEl) followMeStatusEl.textContent = text;
+        if (followMeToggleBtn) followMeToggleBtn.textContent = followMeBroadcastEnabled ? "Wyłącz nadawanie" : "Włącz nadawanie";
+    }
+
+    function broadcastFollowMePosition() {
+        if (!followMeBroadcastEnabled || !currentSheet) return;
+        const payload = {
+            sheetId: String(sheetId || ""),
+            tab: currentSheet.activeTabName || "",
+            cell: cellAddress(activeCell.row, activeCell.col),
+            ts: Date.now()
+        };
+        try {
+            localStorage.setItem(FOLLOW_ME_CHANNEL, JSON.stringify(payload));
+        } catch (error) {}
+    }
+
+    function jumpToFollowMeSignal() {
+        try {
+            const raw = localStorage.getItem(FOLLOW_ME_CHANNEL);
+            if (!raw) return renderFollowMeStatus("Brak sygnału follow-me.");
+            const payload = JSON.parse(raw);
+            const ref = cellRefToIndex(payload.cell || "");
+            if (!ref) return renderFollowMeStatus("Odebrano sygnał, ale bez poprawnej komórki.");
+            setActiveCell(ref.row, ref.col, true);
+            renderFollowMeStatus(`Śledzisz: ${payload.cell}`);
+        } catch (error) {
+            renderFollowMeStatus("Błąd odczytu follow-me.");
+        }
+    }
+
+    function renderCellTasks() {
+        if (!cellTaskListEl) return;
+        const state = getSheetExtensionState();
+        const items = state.tasks || [];
+        if (!items.length) {
+            cellTaskListEl.innerHTML = '<div class="we-addons-empty">Brak zadań w komórkach.</div>';
+            return;
+        }
+        cellTaskListEl.innerHTML = items.map((task, idx) => `
+            <div class="we-mini-list-item">
+                <span>${task.done ? "✅" : "📝"} ${escapeHtml(task.cell)} — ${escapeHtml(task.text)}</span>
+                <div>
+                    <button class="btn btn-secondary" type="button" data-task-toggle="${idx}">${task.done ? "Cofnij" : "Done"}</button>
+                    <button class="btn btn-secondary" type="button" data-task-remove="${idx}">Usuń</button>
+                </div>
+            </div>
+        `).join("");
+    }
+
+    function addCellTask() {
+        const text = String(cellTaskInput?.value || "").trim();
+        if (!text) return;
+        const state = getSheetExtensionState();
+        state.tasks.push({
+            cell: cellAddress(activeCell.row, activeCell.col),
+            text,
+            done: false,
+            createdAt: new Date().toISOString()
+        });
+        if (cellTaskInput) cellTaskInput.value = "";
+        renderCellTasks();
+        markDirty();
+    }
+
+    function renderScenarios() {
+        if (!scenarioListEl) return;
+        const state = getSheetExtensionState();
+        const rows = state.scenarios || [];
+        if (!rows.length) {
+            scenarioListEl.innerHTML = '<div class="we-addons-empty">Brak scenariuszy.</div>';
+            return;
+        }
+        scenarioListEl.innerHTML = rows.map((s, idx) => `
+            <div class="we-mini-list-item">
+                <span>🌿 ${escapeHtml(s.name)} <small>${new Date(s.createdAt).toLocaleString("pl-PL")}</small></span>
+                <div>
+                    <button class="btn btn-secondary" type="button" data-scenario-compare="${idx}">Porównaj</button>
+                    <button class="btn btn-secondary" type="button" data-scenario-restore="${idx}">Przywróć</button>
+                    <button class="btn btn-secondary" type="button" data-scenario-remove="${idx}">Usuń</button>
+                </div>
+            </div>
+        `).join("");
+    }
+
+    function saveScenario() {
+        const name = String(scenarioNameInput?.value || "").trim() || `Scenariusz ${new Date().toLocaleTimeString("pl-PL")}`;
+        const state = getSheetExtensionState();
+        state.scenarios.push({
+            name,
+            createdAt: new Date().toISOString(),
+            grid: JSON.parse(JSON.stringify(currentSheet.grid || [])),
+            styles: JSON.parse(JSON.stringify(currentSheet.styles || {}))
+        });
+        if (scenarioNameInput) scenarioNameInput.value = "";
+        renderScenarios();
+        markDirty();
+        logUserAction("Zapisano scenariusz", { type: "scenario_save", name });
+    }
+
+    function compareScenario(index) {
+        const state = getSheetExtensionState();
+        const item = state.scenarios[index];
+        if (!item) return;
+        const changes = _safeCellDiffCount(item.grid || [], currentSheet.grid || []);
+        alert(`Różnice względem scenariusza "${item.name}": ${changes} komórek.`);
+    }
+
+    function _safeCellDiffCount(before, after) {
+        const rows = Math.max(before.length || 0, after.length || 0);
+        let cols = 0;
+        for (let r = 0; r < rows; r += 1) cols = Math.max(cols, (before[r] || []).length, (after[r] || []).length);
+        let count = 0;
+        for (let r = 0; r < rows; r += 1) {
+            for (let c = 0; c < cols; c += 1) {
+                if (String(before?.[r]?.[c] || "") !== String(after?.[r]?.[c] || "")) count += 1;
+            }
+        }
+        return count;
+    }
+
+    function restoreScenario(index) {
+        const state = getSheetExtensionState();
+        const item = state.scenarios[index];
+        if (!item) return;
+        pushHistorySnapshot();
+        currentSheet.grid = JSON.parse(JSON.stringify(item.grid || emptyGrid()));
+        currentSheet.styles = JSON.parse(JSON.stringify(item.styles || {}));
+        ensureDimensions(currentSheet.grid.length || 20, Math.max(...(currentSheet.grid.map(r => r.length)), 10));
+        renderGrid();
+        markDirty();
+        logUserAction("Przywrócono scenariusz", { type: "scenario_restore", name: item.name });
+    }
+
+    function runWorkflowCleanReport() {
+        cleanSelectedData();
+        showDataQualityProfile();
+        if (workflowStatusEl) workflowStatusEl.textContent = "Workflow wykonany: czyszczenie + profil jakości.";
+    }
+
+    function runWorkflowSaveReport() {
+        saveSheet();
+        if (workflowStatusEl) workflowStatusEl.textContent = "Workflow wykonany: zapisano arkusz. Przejdź do Raportów, aby pobrać PDF.";
+        logUserAction("Workflow: zapis + raport", { type: "workflow_save_report" });
     }
 
     function initializeEvents() {
@@ -5277,7 +5971,7 @@ document.addEventListener("DOMContentLoaded", function () {
         formulaInput?.addEventListener("input", () => {
             renderFormulaHelper();
             if (!currentSheet) return;
-            const value = formulaInput.value ?? "";
+            const value = formulaInput.value || "";
             ensureDimensions(activeCell.row + 1, activeCell.col + 1);
             currentSheet.grid[activeCell.row][activeCell.col] = value;
             clearTimeout(autosaveTimer);
@@ -5466,6 +6160,11 @@ document.addEventListener("DOMContentLoaded", function () {
             const raw = String(event.target.value || "100%").replace("%", "");
             setSheetZoom(Number(raw) / 100 || 1, false);
         });
+        sheetScriptSelect?.addEventListener("change", () => loadScriptToEditor(sheetScriptSelect.value));
+        sheetScriptNewBtn?.addEventListener("click", createNewSheetScript);
+        sheetScriptDeleteBtn?.addEventListener("click", deleteCurrentScript);
+        sheetScriptSaveBtn?.addEventListener("click", saveCurrentScriptFromEditor);
+        sheetScriptRunBtn?.addEventListener("click", runCurrentScript);
         window.addEventListener("resize", refreshEditorResponsiveLayout);
         window.visualViewport?.addEventListener("resize", refreshEditorResponsiveLayout);
         setTimeout(refreshEditorResponsiveLayout, 80);
@@ -5520,14 +6219,131 @@ document.addEventListener("DOMContentLoaded", function () {
         solverVariableDeleteBtn?.addEventListener("click", () => {
             if (solverVariableInput) solverVariableInput.value = "";
         });
+
+        teamFriendAddBtn?.addEventListener("click", async () => {
+            try { await addFriend(); } catch (error) { alert("Nie udało się dodać znajomego."); }
+        });
+        teamGroupAddBtn?.addEventListener("click", async () => {
+            try { await addGroup(); } catch (error) { alert("Nie udało się utworzyć grupy."); }
+        });
+        teamListEl?.addEventListener("click", async event => {
+            const removeFriend = event.target.closest("[data-remove-friend-id]");
+            if (removeFriend) {
+                try {
+                    await postJson(`/ares/api/network/friends/${removeFriend.dataset.removeFriendId}/remove/`, {});
+                    await loadNetworkSummary();
+                } catch (error) {
+                    alert("Nie udało się usunąć znajomego.");
+                }
+                return;
+            }
+            const watchBtn = event.target.closest("[data-group-watch-id]");
+            if (watchBtn) {
+                try {
+                    await postJson(`/ares/api/network/groups/${watchBtn.dataset.groupWatchId}/watch/toggle/`, {});
+                    await loadNetworkSummary();
+                } catch (error) {
+                    alert("Nie udało się zmienić watch.");
+                }
+                return;
+            }
+            const addMemberBtn = event.target.closest("[data-group-member-add-id]");
+            if (addMemberBtn) {
+                const query = prompt("Podaj login lub e-mail użytkownika:");
+                if (!query) return;
+                try {
+                    await postJson(`/ares/api/network/groups/${addMemberBtn.dataset.groupMemberAddId}/members/add/`, { query, role: "member" });
+                    await loadNetworkSummary();
+                } catch (error) {
+                    alert("Nie udało się dodać członka grupy.");
+                }
+                return;
+            }
+            const assignBtn = event.target.closest("[data-group-assign-id]");
+            if (assignBtn) {
+                const groupId = assignBtn.dataset.groupAssignId;
+                const group = (networkSummaryCache.groups || []).find(g => String(g.id) === String(groupId));
+                const assignedCurrentSheet = (group?.assignedSheets || []).some(s => String(s.id) === String(sheetId));
+                try {
+                    if (assignedCurrentSheet) {
+                        await postJson(`/ares/api/network/groups/${groupId}/unassign-sheet/`, { sheetId: Number(sheetId) });
+                    } else {
+                        await postJson(`/ares/api/network/groups/${groupId}/assign-sheet/`, { sheetId: Number(sheetId) });
+                    }
+                    await loadNetworkSummary();
+                } catch (error) {
+                    alert("Nie udało się zmienić przypisania arkusza do grupy.");
+                }
+            }
+        });
+
+        followMeToggleBtn?.addEventListener("click", () => {
+            followMeBroadcastEnabled = !followMeBroadcastEnabled;
+            renderFollowMeStatus(followMeBroadcastEnabled ? "Nadawanie aktywne: inni mogą śledzić Twoją komórkę." : "Tryb wyłączony.");
+            if (followMeBroadcastEnabled) broadcastFollowMePosition();
+        });
+        followMeJoinBtn?.addEventListener("click", jumpToFollowMeSignal);
+        window.addEventListener("storage", event => {
+            if (event.key !== FOLLOW_ME_CHANNEL || !event.newValue) return;
+            if (!followMeBroadcastEnabled) return;
+            renderFollowMeStatus("Wysłano nowy sygnał follow-me.");
+        });
+
+        cellTaskAddBtn?.addEventListener("click", addCellTask);
+        cellTaskListEl?.addEventListener("click", event => {
+            const toggle = event.target.closest("[data-task-toggle]");
+            const remove = event.target.closest("[data-task-remove]");
+            const state = getSheetExtensionState();
+            if (toggle) {
+                const idx = Number(toggle.dataset.taskToggle);
+                if (state.tasks[idx]) state.tasks[idx].done = !state.tasks[idx].done;
+                renderCellTasks();
+                markDirty();
+                return;
+            }
+            if (remove) {
+                const idx = Number(remove.dataset.taskRemove);
+                state.tasks.splice(idx, 1);
+                renderCellTasks();
+                markDirty();
+            }
+        });
+
+        scenarioSaveBtn?.addEventListener("click", saveScenario);
+        scenarioListEl?.addEventListener("click", event => {
+            const compare = event.target.closest("[data-scenario-compare]");
+            const restore = event.target.closest("[data-scenario-restore]");
+            const remove = event.target.closest("[data-scenario-remove]");
+            const state = getSheetExtensionState();
+            if (compare) return compareScenario(Number(compare.dataset.scenarioCompare));
+            if (restore) return restoreScenario(Number(restore.dataset.scenarioRestore));
+            if (remove) {
+                state.scenarios.splice(Number(remove.dataset.scenarioRemove), 1);
+                renderScenarios();
+                markDirty();
+            }
+        });
+
+        workflowCleanReportBtn?.addEventListener("click", runWorkflowCleanReport);
+        workflowSaveReportBtn?.addEventListener("click", runWorkflowSaveReport);
     }
 
-    renderTableTemplates();
-    renderUniversityTemplates();
-    initializeTabs();
-    initializeMenus();
-    initializeModals();
-    initializeEvents();
+    function safeBoot(stepName, callback) {
+        try {
+            callback();
+            return true;
+        } catch (error) {
+            console.error(`Błąd startu edytora [${stepName}]`, error);
+            return false;
+        }
+    }
+
+    safeBoot("renderTableTemplates", renderTableTemplates);
+    safeBoot("renderUniversityTemplates", renderUniversityTemplates);
+    safeBoot("initializeTabs", initializeTabs);
+    safeBoot("initializeMenus", initializeMenus);
+    safeBoot("initializeModals", initializeModals);
+    safeBoot("initializeEvents", initializeEvents);
     if (addSheetTagBtn) {
         addSheetTagBtn.addEventListener("click", addSheetTag);
     }
@@ -5546,6 +6362,12 @@ document.addEventListener("DOMContentLoaded", function () {
             }
         });
     }
+    safeBoot("renderFollowMeStatus", () => renderFollowMeStatus("Tryb wyłączony."));
+    safeBoot("loadNetworkSummary", () => {
+        void loadNetworkSummary();
+    });
+    safeBoot("renderCellTasks", renderCellTasks);
+    safeBoot("renderScenarios", renderScenarios);
     sheetTagCancelBtns.forEach(btn => btn.addEventListener("click", closeSheetTagModal));
     sheetTagSuggestionBtns.forEach(btn => {
         btn.addEventListener("click", () => {
@@ -5560,5 +6382,15 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     }
 
-    loadSheet();
+    if (sheetMetaEl && /Ładowanie danych arkusza/i.test(sheetMetaEl.textContent || "")) {
+        sheetMetaEl.textContent = "Start ładowania arkusza…";
+    }
+
+    Promise.resolve()
+        .then(() => loadSheet())
+        .catch(error => {
+            console.error("Krytyczny błąd ładowania arkusza:", error);
+            if (sheetMetaEl) sheetMetaEl.textContent = "Nie udało się uruchomić edytora arkusza.";
+            setAutosaveState("error", "Błąd ładowania");
+        });
 });

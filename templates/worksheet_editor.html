@@ -1,11 +1,11 @@
-{% extends 'base.html' %}
+﻿{% extends 'base.html' %}
 {% load static %}
 
 {% block title %}ARES | Edytor arkusza{% endblock %}
 {% block topbar_title %}Edytor arkusza{% endblock %}
 
 {% block extra_head %}
-<link rel="stylesheet" href="{% static 'css/worksheet_editor.css' %}?v=0.7.7">
+<link rel="stylesheet" href="{% static 'css/worksheet_editor.css' %}?v=0.8.4-speed">
 {% endblock %}
 
 {% block content %}
@@ -72,6 +72,7 @@
             <button class="we-tab" data-tab="tables" type="button">Tabele</button>
             <button class="we-tab" data-tab="university" type="button">Matematyka akademicka</button>
             <button class="we-tab" data-tab="data" type="button">Dane</button>
+            <button class="we-tab" data-tab="addons" type="button">Dodatki</button>
             <button class="we-tab" data-tab="view" type="button">Widok</button>
         </div>
 
@@ -239,32 +240,185 @@
             </div>
 
             <div class="we-ribbon-panel" data-panel="data">
-                <div class="we-toolbar-buttons we-rich-toolbar">
-                    <button id="sort-asc-btn" class="btn btn-secondary" type="button">Sortuj A-Z</button>
-                    <button id="sort-desc-btn" class="btn btn-secondary" type="button">Sortuj Z-A</button>
-                    <button id="clear-cell-btn" class="btn btn-secondary" type="button">Wyczyść komórkę</button>
-                    <button class="btn btn-secondary" data-ribbon-action="filter" type="button">Filtr</button>
-                    <button class="btn btn-secondary" data-ribbon-action="pivot" type="button">Tabela przestawna</button>
-                    <button class="btn btn-secondary" data-ribbon-action="dropdown" type="button">Sprawdzanie danych / menu</button>
-                    <button class="btn btn-secondary" data-ribbon-action="conditional-format" type="button">Formatowanie warunkowe</button>
-                    <button class="btn btn-secondary" data-ribbon-action="checkbox" type="button">Pole wyboru</button>
-                    <button class="btn btn-secondary" data-ribbon-action="chart" type="button">Wykres</button>
-                    <button class="btn btn-secondary" data-ribbon-action="solver" type="button">Solver</button>
-                    <button class="btn btn-secondary" data-ribbon-action="merge-sheets" type="button">Scal arkusze w jedną tabelę</button>
+                <div class="we-ribbon-groups">
+                    <section class="we-ribbon-group">
+                        <div class="we-ribbon-group-head"><strong>Sortowanie i filtracja</strong><small>Praca na zakresie i widokach danych</small></div>
+                        <div class="we-toolbar-buttons we-rich-toolbar we-option-grid">
+                            <button id="sort-asc-btn" class="btn btn-secondary we-option-card" type="button"><span>↕</span><b>Sortuj arkusz</b></button>
+                            <button id="sort-desc-btn" class="btn btn-secondary we-option-card" type="button"><span>↕</span><b>Sortuj zakres</b></button>
+                            <button class="btn btn-secondary we-option-card" data-ribbon-action="filter" type="button"><span>⌬</span><b>Utwórz filtr</b></button>
+                            <button class="btn btn-secondary we-option-card" data-ribbon-action="group-view" type="button"><span>＋</span><b>Widok grupuj według</b></button>
+                            <button class="btn btn-secondary we-option-card" data-ribbon-action="filter-view" type="button"><span>＋</span><b>Utwórz widok filtra</b></button>
+                            <button class="btn btn-secondary we-option-card" data-ribbon-action="slicer" type="button"><span>≣</span><b>Dodaj fragmentator</b></button>
+                        </div>
+                    </section>
+                    <section class="we-ribbon-group">
+                        <div class="we-ribbon-group-head"><strong>Jakość i struktura</strong><small>Sprawdzanie i porządkowanie danych</small></div>
+                        <div class="we-toolbar-buttons we-rich-toolbar we-option-grid">
+                            <button class="btn btn-secondary we-option-card" data-ribbon-action="column-stats" type="button"><span>◫</span><b>Statystyki kolumn</b></button>
+                            <button class="btn btn-secondary we-option-card" data-ribbon-action="dropdown" type="button"><span>▾</span><b>Sprawdzanie poprawności</b></button>
+                            <button class="btn btn-secondary we-option-card" data-ribbon-action="data-clean" type="button"><span>✳</span><b>Czyszczenie danych</b></button>
+                            <button class="btn btn-secondary we-option-card" data-ribbon-action="data-quality-profile" type="button"><span>◎</span><b>Profil jakości danych</b></button>
+                            <button class="btn btn-secondary we-option-card" data-ribbon-action="split-columns" type="button"><span>↤↦</span><b>Podział tekstu na kolumny</b></button>
+                            <button class="btn btn-secondary we-option-card" data-ribbon-action="data-extract" type="button"><span>⇢</span><b>Wyodrębnianie danych</b></button>
+                            <button class="btn btn-secondary we-option-card" data-ribbon-action="protect-ranges" type="button"><span>🔒</span><b>Chroń arkusz i zakresy</b></button>
+                        </div>
+                    </section>
+                    <section class="we-ribbon-group">
+                        <div class="we-ribbon-group-head"><strong>Modelowanie</strong><small>Analiza i obiekty raportowe</small></div>
+                        <div class="we-toolbar-buttons we-rich-toolbar we-option-grid">
+                            <button class="btn btn-secondary we-option-card" data-ribbon-action="named-ranges" type="button"><span>▣</span><b>Zakresy nazwane</b></button>
+                            <button class="btn btn-secondary we-option-card" data-ribbon-action="named-functions" type="button"><span>∑</span><b>Funkcje nazwane</b></button>
+                            <button class="btn btn-secondary we-option-card" data-ribbon-action="pivot" type="button"><span>▦</span><b>Tabela przestawna</b></button>
+                            <button class="btn btn-secondary we-option-card" data-ribbon-action="conditional-format" type="button"><span>◐</span><b>Formatowanie warunkowe</b></button>
+                            <button class="btn btn-secondary we-option-card" data-ribbon-action="checkbox" type="button"><span>☑</span><b>Pole wyboru</b></button>
+                            <button class="btn btn-secondary we-option-card" data-ribbon-action="chart" type="button"><span>◔</span><b>Wykres</b></button>
+                            <button class="btn btn-secondary we-option-card" data-ribbon-action="solver" type="button"><span>∑</span><b>Solver</b></button>
+                        </div>
+                    </section>
+                    <section class="we-ribbon-group">
+                        <div class="we-ribbon-group-head"><strong>Narzędzia</strong><small>Operacje globalne i pomoc</small></div>
+                        <div class="we-toolbar-buttons we-rich-toolbar we-option-grid">
+                            <button class="btn btn-secondary we-option-card" data-ribbon-action="data-connectors" type="button"><span>⛁</span><b>Łączniki danych</b></button>
+                            <button id="clear-cell-btn" class="btn btn-secondary we-option-card" type="button"><span>⌫</span><b>Wyczyść komórkę</b></button>
+                            <button class="btn btn-secondary we-option-card we-option-card-wide" data-ribbon-action="merge-sheets" type="button"><span>⇄</span><b>Scal arkusze w jedną tabelę</b></button>
+                        </div>
+                    </section>
                 </div>
             </div>
 
+            <div class="we-ribbon-panel" data-panel="addons">
+                <div class="we-addons-panel">
+                    <div class="we-addons-head">
+                        <div>
+                            <strong>Dodatki społeczności</strong>
+                            <p>Zatwierdzone przez administratora skrypty, makra i narzędzia od użytkowników ARES.</p>
+                        </div>
+                        <a class="btn btn-secondary" href="{% url 'addons_marketplace' %}">Forum dodatków</a>
+                    </div>
+                    <div id="editor-addons-list" class="we-addons-list">
+                        <div class="we-addons-empty">Ładowanie dodatków...</div>
+                    </div>
+                    <div class="we-sheet-scripts-panel">
+                        <div class="we-addons-head">
+                            <div>
+                                <strong>Skrypty tego arkusza</strong>
+                                <p>Skrypty zapisują się lokalnie w bieżącym arkuszu i działają na jego komórkach.</p>
+                            </div>
+                        </div>
+                        <div class="we-sheet-scripts-grid">
+                            <div class="we-sheet-scripts-list-wrap">
+                                <label for="sheet-script-select">Wybierz skrypt</label>
+                                <select id="sheet-script-select" class="we-toolbar-select"></select>
+                                <div class="we-sheet-script-actions">
+                                    <button id="sheet-script-new-btn" class="btn btn-secondary" type="button">Nowy</button>
+                                    <button id="sheet-script-delete-btn" class="btn btn-secondary" type="button">Usuń</button>
+                                </div>
+                            </div>
+                            <div class="we-sheet-scripts-editor-wrap">
+                                <label for="sheet-script-name">Nazwa</label>
+                                <input id="sheet-script-name" class="we-toolbar-select" type="text" maxlength="80" placeholder="np. Podsumowanie kolumny">
+                                <label for="sheet-script-editor">Kod skryptu JavaScript</label>
+                                <textarea id="sheet-script-editor" class="we-script-textarea" spellcheck="false" placeholder="api.setCell('A1', 'Hello');&#10;api.notify('Gotowe');"></textarea>
+                                <div class="we-sheet-script-actions">
+                                    <button id="sheet-script-save-btn" class="btn btn-secondary" type="button">Zapisz skrypt</button>
+                                    <button id="sheet-script-run-btn" class="btn btn-primary" type="button">Uruchom na arkuszu</button>
+                                </div>
+                                <div id="sheet-script-result" class="we-sheet-script-result">Gotowe.</div>
+                                <div class="we-script-guide-callout">
+                                    <strong>Guide programowania dodatków</strong>
+                                    <p>Krótki poradnik jak pisać skrypty dla arkusza i budować własne dodatki krok po kroku.</p>
+                                    <button class="btn btn-secondary" data-ribbon-action="open-data-guide" type="button">Otwórz guide</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="we-sheet-scripts-panel">
+                        <div class="we-addons-head">
+                            <div>
+                                <strong>Zespół i automatyzacje (MVP+)</strong>
+                                <p>5 większych funkcji ponad klasyczny arkusz: znajomi/grupy, follow-me, zadania, scenariusze i workflowy.</p>
+                            </div>
+                        </div>
+                        <div class="we-innovations-grid">
+                            <section class="we-innovation-card">
+                                <h4>1) Znajomi i grupy</h4>
+                                <div class="we-inline-row">
+                                    <input id="team-friend-input" class="we-toolbar-select" type="text" placeholder="nick lub e-mail">
+                                    <button id="team-friend-add-btn" class="btn btn-secondary" type="button">Dodaj</button>
+                                </div>
+                                <div class="we-inline-row">
+                                    <input id="team-group-input" class="we-toolbar-select" type="text" placeholder="nazwa grupy">
+                                    <button id="team-group-add-btn" class="btn btn-secondary" type="button">Utwórz</button>
+                                </div>
+                                <div id="team-list" class="we-mini-list"></div>
+                            </section>
+
+                            <section class="we-innovation-card">
+                                <h4>2) Follow-me (live)</h4>
+                                <div class="we-inline-row">
+                                    <button id="follow-me-toggle-btn" class="btn btn-secondary" type="button">Włącz nadawanie</button>
+                                    <button id="follow-me-join-btn" class="btn btn-secondary" type="button">Śledź ostatni sygnał</button>
+                                </div>
+                                <div id="follow-me-status" class="we-sheet-script-result">Tryb wyłączony.</div>
+                            </section>
+
+                            <section class="we-innovation-card">
+                                <h4>3) Zadania w komórkach</h4>
+                                <div class="we-inline-row">
+                                    <input id="cell-task-input" class="we-toolbar-select" type="text" placeholder="np. sprawdź wartości">
+                                    <button id="cell-task-add-btn" class="btn btn-secondary" type="button">Dodaj do aktywnej</button>
+                                </div>
+                                <div id="cell-task-list" class="we-mini-list"></div>
+                            </section>
+
+                            <section class="we-innovation-card">
+                                <h4>4) Gałęzie / scenariusze</h4>
+                                <div class="we-inline-row">
+                                    <input id="scenario-name-input" class="we-toolbar-select" type="text" placeholder="np. Plan A">
+                                    <button id="scenario-save-btn" class="btn btn-secondary" type="button">Zapisz scenariusz</button>
+                                </div>
+                                <div id="scenario-list" class="we-mini-list"></div>
+                            </section>
+
+                            <section class="we-innovation-card">
+                                <h4>5) Workflowy 1-klik</h4>
+                                <div class="we-inline-row">
+                                    <button id="workflow-clean-report-btn" class="btn btn-secondary" type="button">Czyszczenie + profil</button>
+                                    <button id="workflow-save-report-btn" class="btn btn-primary" type="button">Zapisz + raport</button>
+                                </div>
+                                <div id="workflow-status" class="we-sheet-script-result">Gotowe.</div>
+                            </section>
+                        </div>
+                    </div>
+                </div>
+            </div>
             <div class="we-ribbon-panel" data-panel="view">
-                <div class="we-toolbar-buttons we-rich-toolbar">
-                    <button id="toggle-full-width-btn" class="btn btn-secondary" type="button">Tryb pełnej szerokości</button>
-                    <button id="toggle-grid-btn" class="btn btn-secondary" type="button">Pokaż / ukryj siatkę</button>
-                    <button id="autofit-cols-btn" class="btn btn-secondary" type="button">Dopasuj kolumny</button>
-                    <button class="btn btn-secondary" data-ribbon-action="freeze-first-row" type="button">Zablokuj pierwszy wiersz</button>
-                    <button class="btn btn-secondary" data-ribbon-action="freeze-first-col" type="button">Zablokuj pierwszą kolumnę</button>
-                    <button class="btn btn-secondary" data-ribbon-action="comments" type="button">Komentarze i notatki</button>
-                    <button class="btn btn-secondary" data-ribbon-action="zoom-fit" type="button">Dopasuj do szerokości</button>
-                    <button class="btn btn-secondary" data-ribbon-action="zoom-100" type="button">Zoom 100%</button>
-                    <button class="btn btn-secondary" data-ribbon-action="compact-view" type="button">Widok kompaktowy</button>
+                <div class="we-ribbon-groups">
+                    <section class="we-ribbon-group">
+                        <div class="we-ribbon-group-head"><strong>Układ arkusza</strong><small>Szerokość, siatka i dopasowanie</small></div>
+                        <div class="we-toolbar-buttons we-rich-toolbar we-option-grid">
+                            <button id="toggle-full-width-btn" class="btn btn-secondary we-option-card" type="button"><span>⬌</span><b>Tryb pełnej szerokości</b></button>
+                            <button id="toggle-grid-btn" class="btn btn-secondary we-option-card" type="button"><span>⌗</span><b>Pokaż / ukryj siatkę</b></button>
+                            <button id="autofit-cols-btn" class="btn btn-secondary we-option-card" type="button"><span>↔</span><b>Dopasuj kolumny</b></button>
+                            <button class="btn btn-secondary we-option-card" data-ribbon-action="compact-view" type="button"><span>▤</span><b>Widok kompaktowy</b></button>
+                        </div>
+                    </section>
+                    <section class="we-ribbon-group">
+                        <div class="we-ribbon-group-head"><strong>Nawigacja</strong><small>Zamrażanie i orientacja pracy</small></div>
+                        <div class="we-toolbar-buttons we-rich-toolbar we-option-grid">
+                            <button class="btn btn-secondary we-option-card" data-ribbon-action="freeze-first-row" type="button"><span>⇵</span><b>Zablokuj pierwszy wiersz</b></button>
+                            <button class="btn btn-secondary we-option-card" data-ribbon-action="freeze-first-col" type="button"><span>⇄</span><b>Zablokuj pierwszą kolumnę</b></button>
+                            <button class="btn btn-secondary we-option-card" data-ribbon-action="zoom-fit" type="button"><span>⤢</span><b>Dopasuj do szerokości</b></button>
+                            <button class="btn btn-secondary we-option-card" data-ribbon-action="zoom-100" type="button"><span>100%</span><b>Zoom 100%</b></button>
+                        </div>
+                    </section>
+                    <section class="we-ribbon-group">
+                        <div class="we-ribbon-group-head"><strong>Współpraca</strong><small>Notatki i szybka pomoc</small></div>
+                        <div class="we-toolbar-buttons we-rich-toolbar we-option-grid">
+                            <button class="btn btn-secondary we-option-card" data-ribbon-action="comments" type="button"><span>✎</span><b>Komentarze i notatki</b></button>
+                        </div>
+                    </section>
                 </div>
             </div>
         </div>
@@ -287,6 +441,61 @@
     </section>
 </section>
 
+<div class="we-modal" id="data-guide-modal">
+    <div class="we-modal-box we-guide-box">
+        <div class="we-modal-top">
+            <div>
+                <strong>Tutorial: Jak programować dodatki i skrypty w ARES</strong>
+                <div class="we-pivot-subtitle">Praktyczny przewodnik od zera: API, komendy, gotowe przykłady i dobre praktyki.</div>
+            </div>
+            <button type="button" class="we-modal-close" data-close-modal="data-guide-modal">✕</button>
+        </div>
+        <div class="we-guide-content">
+            <h4>1. Gdzie pisać kod</h4>
+            <p>Wejdź w <b>Dodatki → Skrypty tego arkusza</b>, kliknij <b>Nowy</b>, nadaj nazwę i pisz kod JavaScript w polu „Kod skryptu”. Skrypt zapisuje się lokalnie do bieżącego arkusza.</p>
+
+            <h4>2. Podstawowe komendy API</h4>
+            <ul class="we-guide-list">
+                <li><code>api.getCell("A1")</code> – pobiera wartość komórki.</li>
+                <li><code>api.setCell("A1", "tekst")</code> – wpisuje wartość do komórki.</li>
+                <li><code>api.getRange("A1:C3")</code> – pobiera zakres danych.</li>
+                <li><code>api.setRange("A1:B2", [[1,2],[3,4]])</code> – wpisuje dane do zakresu.</li>
+                <li><code>api.getSelection()</code> – zwraca bieżące zaznaczenie użytkownika.</li>
+                <li><code>api.notify("Gotowe")</code> – pokazuje komunikat po zakończeniu.</li>
+            </ul>
+
+            <h4>3. Pierwszy skrypt (start)</h4>
+            <pre class="we-guide-code"><code>const sel = api.getSelection() || "A1";
+api.setCell(sel.split(":")[0], "✅ Działa");
+api.notify("Skrypt uruchomiony poprawnie.");</code></pre>
+
+            <h4>4. Przykład: podsumowanie kolumny</h4>
+            <pre class="we-guide-code"><code>const values = api.getRange("B2:B20");
+let sum = 0;
+for (const row of values) {
+  const n = Number(row?.[0] || 0);
+  if (!Number.isNaN(n)) sum += n;
+}
+api.setCell("B21", sum);
+api.notify("Policzono sumę kolumny B.");</code></pre>
+
+            <h4>5. Dobre praktyki</h4>
+            <ul class="we-guide-list">
+                <li>Najpierw testuj na małym zakresie (np. 10–20 wierszy).</li>
+                <li>Dodawaj <code>api.notify()</code> po krytycznych krokach.</li>
+                <li>Nie nadpisuj całego arkusza, jeśli wystarczy fragment zakresu.</li>
+                <li>Po większych zmianach zapisz arkusz i sprawdź Historię zmian.</li>
+            </ul>
+
+            <h4>6. Workflow użytkownika</h4>
+            <p><b>Dane</b> (czyszczenie/sortowanie) → <b>Dodatki</b> (skrypt) → <b>Raporty</b> (analiza i PDF) → <b>Historia</b> (podgląd różnic i przywracanie wersji).</p>
+        </div>
+        <div class="we-modal-actions">
+            <button type="button" class="btn btn-primary" data-close-modal="data-guide-modal">Rozumiem</button>
+        </div>
+    </div>
+</div>
+
 <div class="we-modal" id="chart-modal">
     <div class="we-modal-box we-chart-builder-modal">
         <div class="we-modal-top">
@@ -301,7 +510,7 @@
             <section class="we-chart-types-panel">
                 <div class="we-chart-types-title">Typ wykresu</div>
                 <div class="we-chart-types-grid" id="chart-type-cards">
-                    <button class="we-chart-type-card active" data-chart-type="line" type="button"><span>📈</span><strong>Liniowy</strong><small>trend w czasie</small></button>
+                    <button class="we-chart-type-card active" data-chart-type="line" type="button"><span>đź“</span><strong>Liniowy</strong><small>trend w czasie</small></button>
                     <button class="we-chart-type-card" data-chart-type="smooth-line" type="button"><span>〽️</span><strong>Liniowy wygładzony</strong><small>miękki trend</small></button>
                     <button class="we-chart-type-card" data-chart-type="area" type="button"><span>🏔️</span><strong>Warstwowy</strong><small>wartość + obszar</small></button>
                     <button class="we-chart-type-card" data-chart-type="stepped-area" type="button"><span>▰</span><strong>Schodkowy</strong><small>zmiany skokowe</small></button>
@@ -552,6 +761,30 @@
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="{% static 'js/formula_catalog.js' %}?v=0.7.7"></script>
 <script src="{% static 'js/formula_engine.js' %}?v=0.7.7"></script>
-<script src="{% static 'js/worksheet_editor.js' %}?v=0.7.7"></script>
-<script src="{% static 'js/worksheet_chat.js' %}?v=0.7.7"></script>
+<script>
+window.__WE_BUILD = "0.8.8-diagline";
+window.addEventListener("error", function (event) {
+    try {
+        const meta = document.getElementById("editor-sheet-meta");
+        if (meta) {
+            const msg = event?.message ? String(event.message) : "Nieznany błąd JavaScript";
+            const file = event?.filename ? String(event.filename).split("/").pop() : "unknown";
+            const line = Number.isFinite(event?.lineno) ? event.lineno : "?";
+            const col = Number.isFinite(event?.colno) ? event.colno : "?";
+            meta.textContent = `Błąd JavaScript: ${msg} (${file}:${line}:${col}) [build ${window.__WE_BUILD}]`;
+        }
+    } catch (_) {}
+});
+window.addEventListener("unhandledrejection", function (event) {
+    try {
+        const meta = document.getElementById("editor-sheet-meta");
+        if (meta) {
+            const reason = event?.reason && event.reason.message ? event.reason.message : String(event?.reason || "Nieznany błąd Promise");
+            meta.textContent = `Błąd Promise: ${reason}`;
+        }
+    } catch (_) {}
+});
+</script>
+<script src="{% static 'js/worksheet_editor.js' %}?v=0.8.8-diagline"></script>
+<script src="{% static 'js/worksheet_chat.js' %}?v=0.8.4-speed"></script>
 {% endblock %}

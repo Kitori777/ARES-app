@@ -7,10 +7,12 @@ from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout, update_session_auth_hash
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib.auth.hashers import check_password, make_password
+from django.contrib.auth.password_validation import validate_password
 from django.contrib.auth.forms import PasswordChangeForm
 from django.contrib.auth.models import User
 from django.core.mail import EmailMultiAlternatives
 from django.core.exceptions import ImproperlyConfigured
+from django.core.exceptions import ValidationError
 from django.db import IntegrityError, transaction
 from django.http import JsonResponse
 from django.shortcuts import redirect, render
@@ -19,8 +21,10 @@ from django.utils import timezone
 from django.views.decorators.csrf import ensure_csrf_cookie
 from django.views.decorators.http import require_http_methods, require_POST
 
-from .forms import RegisterForm, BugReportForm, AccountUpdateForm
-from .models import EmailVerification, PendingRegistration, UserProfile, BugReport
+from ares.models import Addon
+
+from .forms import RegisterForm, BugReportForm, AccountUpdateForm, AddonSubmissionForm
+from .models import EmailVerification, PendingRegistration, UserProfile, BugReport, PasswordResetCode
 
 logger = logging.getLogger(__name__)
 
@@ -226,6 +230,120 @@ def login_view(request):
         messages.error(request, 'Nieprawidłowy login lub hasło.')
 
     return render(request, 'login.html', _auth_page_context(request))
+
+
+def _create_password_reset_code(user: User) -> PasswordResetCode:
+    PasswordResetCode.objects.filter(user=user, used_at__isnull=True).delete()
+    return PasswordResetCode.objects.create(
+        user=user,
+        code=_generate_verification_code(),
+        expires_at=timezone.now() + timezone.timedelta(minutes=20),
+        last_sent_at=timezone.now(),
+    )
+
+
+def _send_password_reset_email(user: User, reset_code: PasswordResetCode) -> None:
+    missing = _missing_email_configuration()
+    if missing:
+        raise ImproperlyConfigured('Brakuje konfiguracji poczty: ' + ', '.join(missing))
+
+    expires_local = timezone.localtime(reset_code.expires_at).strftime('%d.%m.%Y, %H:%M')
+    subject = 'ARES — reset hasła'
+    text_body = (
+        f"Cześć {user.username},\n\n"
+        f"Twój kod resetu hasła do ARES: {reset_code.code}\n"
+        f"Kod jest ważny do: {expires_local}\n\n"
+        "Jeśli to nie Ty, zignoruj tę wiadomość."
+    )
+    html_body = (
+        f"<p>Cześć <b>{user.username}</b>,</p>"
+        f"<p>Twój kod resetu hasła do ARES:</p>"
+        f"<h2 style='letter-spacing:2px'>{reset_code.code}</h2>"
+        f"<p>Kod jest ważny do: <b>{expires_local}</b></p>"
+        "<p>Jeśli to nie Ty, zignoruj tę wiadomość.</p>"
+    )
+    msg = EmailMultiAlternatives(
+        subject=subject,
+        body=text_body,
+        from_email=settings.DEFAULT_FROM_EMAIL,
+        to=[user.email],
+        headers={'X-ARES-Email-Type': 'password-reset'},
+    )
+    msg.attach_alternative(html_body, 'text/html')
+    sent_count = msg.send(fail_silently=False)
+    if sent_count < 1:
+        raise RuntimeError('Backend pocztowy nie zwrócił potwierdzenia wysłania wiadomości.')
+
+
+def forgot_password_view(request):
+    if request.user.is_authenticated:
+        return redirect('dashboard')
+
+    if request.method == 'POST':
+        identity = (request.POST.get('identity') or '').strip()
+        user = User.objects.filter(Q(username__iexact=identity) | Q(email__iexact=identity)).first()
+
+        if user and user.email:
+            try:
+                reset_code = _create_password_reset_code(user)
+                _send_password_reset_email(user, reset_code)
+                request.session['password_reset_email'] = user.email
+                messages.success(request, 'Wysłaliśmy kod resetu hasła na Twój e-mail.')
+                return redirect('password_reset_confirm')
+            except Exception:
+                logger.exception('Nie udało się wysłać kodu resetu hasła do %s', user.email)
+
+        messages.info(request, 'Jeśli konto istnieje, wysłaliśmy instrukcję resetu hasła na e-mail.')
+        return redirect('password_forgot')
+
+    return render(request, 'password_forgot.html', _auth_page_context(request))
+
+
+def password_reset_confirm_view(request):
+    if request.user.is_authenticated:
+        return redirect('dashboard')
+
+    email = (request.session.get('password_reset_email') or '').strip().lower()
+    if request.method == 'POST':
+        email_form = (request.POST.get('email') or '').strip().lower()
+        code = (request.POST.get('code') or '').strip()
+        new_password = request.POST.get('new_password') or ''
+        new_password2 = request.POST.get('new_password2') or ''
+
+        if not email_form or not code:
+            messages.error(request, 'Podaj e-mail i kod resetu.')
+            return render(request, 'password_reset_confirm.html', _auth_page_context(request, reset_email=email or email_form))
+
+        user = User.objects.filter(email__iexact=email_form).first()
+        if not user:
+            messages.error(request, 'Nieprawidłowy e-mail lub kod resetu.')
+            return render(request, 'password_reset_confirm.html', _auth_page_context(request, reset_email=email_form))
+
+        reset = PasswordResetCode.objects.filter(user=user, used_at__isnull=True).order_by('-created_at').first()
+        if not reset or reset.is_expired or reset.code != code:
+            messages.error(request, 'Kod resetu jest nieprawidłowy lub wygasł.')
+            return render(request, 'password_reset_confirm.html', _auth_page_context(request, reset_email=email_form))
+
+        if new_password != new_password2:
+            messages.error(request, 'Nowe hasła nie są takie same.')
+            return render(request, 'password_reset_confirm.html', _auth_page_context(request, reset_email=email_form))
+
+        try:
+            validate_password(new_password, user=user)
+        except ValidationError as exc:
+            for msg in exc.messages:
+                messages.error(request, msg)
+            return render(request, 'password_reset_confirm.html', _auth_page_context(request, reset_email=email_form))
+
+        user.set_password(new_password)
+        user.save(update_fields=['password'])
+        reset.used_at = timezone.now()
+        reset.save(update_fields=['used_at'])
+        request.session.pop('password_reset_email', None)
+        messages.success(request, 'Hasło zostało zmienione. Zaloguj się nowym hasłem.')
+        return redirect('login')
+
+    return render(request, 'password_reset_confirm.html', _auth_page_context(request, reset_email=email))
 
 
 def register_view(request):
@@ -451,6 +569,36 @@ def reports_view(request):
     return render(request, 'reports.html')
 
 
+@login_required
+def network_view(request):
+    return render(request, 'network.html')
+
+
+@login_required
+@require_http_methods(['GET', 'POST'])
+def addons_marketplace_view(request):
+    if request.method == 'POST':
+        form = AddonSubmissionForm(request.POST)
+        if form.is_valid():
+            addon = form.save(commit=False)
+            addon.author = request.user
+            addon.status = Addon.STATUS_PENDING
+            addon.save()
+            messages.success(request, 'Dodatek został wysłany do sprawdzenia przez administratora.')
+            return redirect('addons_marketplace')
+    else:
+        form = AddonSubmissionForm()
+
+    approved_addons = Addon.objects.filter(status=Addon.STATUS_APPROVED).select_related('author', 'reviewed_by')[:100]
+    user_addons = Addon.objects.filter(author=request.user).select_related('reviewed_by')[:50]
+
+    return render(request, 'addons_marketplace.html', {
+        'form': form,
+        'approved_addons': approved_addons,
+        'user_addons': user_addons,
+    })
+
+
 def helpdesk_view(request):
     return render(request, 'helpdesk.html')
 
@@ -608,6 +756,57 @@ def admin_bug_reports_view(request):
         'priority_choices': BugReport.PRIORITY_CHOICES,
         'demo_admin_login': 'ares_admin',
         'demo_admin_password': 'Admin123!',
+    })
+
+
+@login_required
+@user_passes_test(is_ares_admin)
+@require_http_methods(['GET', 'POST'])
+def admin_addons_view(request):
+    if request.method == 'POST':
+        addon_id = request.POST.get('addon_id')
+        action = request.POST.get('action')
+        admin_note = request.POST.get('admin_note', '')
+        addon = Addon.objects.filter(id=addon_id).first()
+        if not addon:
+            messages.error(request, 'Nie znaleziono dodatku.')
+            return redirect('admin_addons')
+        if action == 'approve':
+            addon.mark_reviewed(status=Addon.STATUS_APPROVED, reviewer=request.user, note=admin_note)
+            addon.save()
+            messages.success(request, f'Zatwierdzono dodatek: {addon.title}.')
+        elif action == 'reject':
+            addon.mark_reviewed(status=Addon.STATUS_REJECTED, reviewer=request.user, note=admin_note)
+            addon.save()
+            messages.success(request, f'Odrzucono dodatek: {addon.title}.')
+        elif action == 'pending':
+            addon.status = Addon.STATUS_PENDING
+            addon.reviewed_by = None
+            addon.reviewed_at = None
+            addon.admin_note = admin_note
+            addon.save()
+            messages.success(request, f'Przeniesiono dodatek do kolejki: {addon.title}.')
+        else:
+            messages.error(request, 'Nieznana akcja.')
+        return redirect('admin_addons')
+
+    status_filter = request.GET.get('status', Addon.STATUS_PENDING)
+    addons = Addon.objects.select_related('author', 'reviewed_by').all()
+    if status_filter:
+        addons = addons.filter(status=status_filter)
+
+    stats = {
+        'all': Addon.objects.count(),
+        'pending': Addon.objects.filter(status=Addon.STATUS_PENDING).count(),
+        'approved': Addon.objects.filter(status=Addon.STATUS_APPROVED).count(),
+        'rejected': Addon.objects.filter(status=Addon.STATUS_REJECTED).count(),
+    }
+
+    return render(request, 'admin_addons.html', {
+        'addons': addons[:200],
+        'stats': stats,
+        'status_filter': status_filter,
+        'status_choices': Addon.STATUS_CHOICES,
     })
 
 

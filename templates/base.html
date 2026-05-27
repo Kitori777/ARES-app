@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}ARES{% endblock %}</title>
-    <link rel="stylesheet" href="{% static 'css/style.css' %}?v=0.8.0">
+    <link rel="stylesheet" href="{% static 'css/style.css' %}?v=0.8.1-addons">
     {% block extra_head %}{% endblock %}
 </head>
 <body class="ares-body" data-theme="midnight-blue"{% if demo_mode %} data-demo-mode="1"{% endif %}>
@@ -45,10 +45,13 @@
             <a href="{% url 'import_data' %}" class="app-menu-link">Import CSV/XLSX</a>
             <a href="{% url 'history' %}" class="app-menu-link">Historia zmian</a>
             <a href="{% url 'reports' %}" class="app-menu-link">Raporty</a>
+            <a href="{% url 'network' %}" class="app-menu-link">Zespół</a>
+            <a href="{% url 'addons_marketplace' %}" class="app-menu-link">Dodatki</a>
             <a href="{% url 'helpdesk' %}" class="app-menu-link">Helpdesk</a>
             <a href="{% url 'profile' %}" class="app-menu-link">Profil użytkownika</a>
             <a href="{% url 'bug_report' %}" class="app-menu-link">Zgłoś problem</a>
             {% if request.user.is_superuser %}<a href="{% url 'admin_bug_reports' %}" class="app-menu-link">Panel zgłoszeń</a>
+            <a href="{% url 'admin_addons' %}" class="app-menu-link">Panel dodatków</a>
             <a href="{% url 'admin_users_panel' %}" class="app-menu-link">Panel użytkowników</a>{% endif %}
             {% endif %}
         </nav>
@@ -95,8 +98,10 @@
                             <a href="{% url 'profile' %}#shortcuts">Skróty</a>
                             <a href="{% url 'profile' %}#preferences">Preferencje</a>
                             <a href="{% url 'helpdesk' %}">Helpdesk</a>
+                            <a href="{% url 'addons_marketplace' %}">Dodatki</a>
                             <a href="{% url 'bug_report' %}">Zgłoś problem</a>
                             {% if request.user.is_superuser %}<a href="{% url 'admin_bug_reports' %}">Panel zgłoszeń</a>
+                            <a href="{% url 'admin_addons' %}">Panel dodatków</a>
                             <a href="{% url 'admin_users_panel' %}">Panel użytkowników</a>{% endif %}
                             {% endif %}
                         </div>
@@ -169,6 +174,8 @@
             <a href="{% url 'worksheets' %}" data-dock-shortcut="worksheets" title="Arkusze"><span>▦</span><small>Arkusze</small></a>
             <a href="{% url 'import_data' %}" data-dock-shortcut="import" title="Import danych"><span>⇩</span><small>Import</small></a>
             <a href="{% url 'reports' %}" data-dock-shortcut="reports" title="Raporty"><span>◫</span><small>Raporty</small></a>
+            <a href="{% url 'network' %}" data-dock-shortcut="network" title="Zespół"><span>◉</span><small>Zespół</small></a>
+            <a href="{% url 'addons_marketplace' %}" data-dock-shortcut="addons" title="Dodatki"><span>+</span><small>Dodatki</small></a>
             <a href="{% url 'history' %}" data-dock-shortcut="history" title="Historia zmian"><span>⏱</span><small>Historia</small></a>
             <a href="{% url 'helpdesk' %}" data-dock-shortcut="helpdesk" title="Helpdesk"><span>?</span><small>Pomoc</small></a>
             <a href="{% url 'worksheet_editor' %}?open=charts" data-dock-shortcut="charts" title="Wykresy"><span>◒</span><small>Wykresy</small></a>
@@ -178,8 +185,20 @@
             <a href="{% url 'profile' %}" data-dock-shortcut="profile" title="Profil"><span>⚙</span><small>Profil</small></a>
             <a href="{% url 'bug_report' %}" data-dock-shortcut="feedback" title="Zgłoś problem"><span>!</span><small>Problem</small></a>
             {% if request.user.is_superuser %}<a href="{% url 'admin_bug_reports' %}" data-dock-shortcut="adminReports" title="Panel zgłoszeń"><span>⚑</span><small>Zgłoszenia</small></a>
+            <a href="{% url 'admin_addons' %}" data-dock-shortcut="adminAddons" title="Panel dodatków"><span>+</span><small>Dodatki</small></a>
             <a href="{% url 'admin_users_panel' %}" data-dock-shortcut="adminUsers" title="Panel użytkowników"><span>♛</span><small>Użytkownicy</small></a>{% endif %}
         </nav>
+
+        <div id="command-palette" class="command-palette" hidden aria-hidden="true">
+            <div class="command-palette-backdrop" data-close-command-palette="1"></div>
+            <div class="command-palette-card" role="dialog" aria-modal="true" aria-label="Szybkie komendy">
+                <div class="command-palette-head">
+                    <input id="command-palette-input" type="text" placeholder="Wpisz akcję, np. raporty, historia, dodatki..." autocomplete="off">
+                    <button type="button" class="command-palette-close" data-close-command-palette="1" aria-label="Zamknij">✕</button>
+                </div>
+                <div id="command-palette-list" class="command-palette-list"></div>
+            </div>
+        </div>
     </div>
 </div>
 {% else %}
@@ -234,6 +253,8 @@
             worksheets: true,
             import: true,
             reports: true,
+            network: true,
+            addons: true,
             history: true,
             profile: true,
             charts: false,
@@ -243,6 +264,7 @@
             helpdesk: true,
             feedback: false,
             adminReports: false,
+            adminAddons: false,
             adminUsers: false
         };
         if (localStorage.getItem(compactShortcutFlag) !== '1') {
@@ -454,7 +476,7 @@
         function renderProfileCats(nextPrefs) {
             const activePrefs = nextPrefs || prefs || {};
             document.querySelectorAll('.profile-cat-layer').forEach(node => node.remove());
-            if (!activePrefs.showProfileCats || !window.location.pathname.includes('/profile')) return;
+            if (!activePrefs.showProfileCats) return;
             const layer = document.createElement('div');
             layer.className = 'profile-cat-layer';
             layer.dataset.catVariant = activePrefs.profileCatVariant || 'theme';
@@ -606,14 +628,21 @@
             resetMusicProgress();
         }
 
+        function parseYouTubeInput(value) {
+            const raw = String(value || '').trim();
+            const id = extractYouTubeId(raw);
+            if (id) return { mode: 'video', id, raw };
+            return { mode: 'search', query: raw, raw };
+        }
+
         async function renderMusicPlayer(value) {
             if (!musicPlayer) return;
-            const id = extractYouTubeId(value);
-            if (!id) {
-                setMusicStatus('To wygląda jak fraza. Kliknij „Szukaj”, wybierz film lub podcast i wklej link do ARES.', 'warn');
+            const parsed = parseYouTubeInput(value);
+            if (!parsed.raw) {
+                setMusicStatus('Wpisz link albo frazę.', 'warn');
                 return;
             }
-            localStorage.setItem(musicKey, value);
+            localStorage.setItem(musicKey, parsed.raw);
             setMusicStatus('Ładowanie odtwarzacza YouTube w aplikacji…', 'info');
             destroyMusicPlayer();
             if (musicTrackLabel) musicTrackLabel.textContent = 'YouTube';
@@ -624,7 +653,7 @@
                 ytPlayer = new YT.Player(holderId, {
                     width: 320,
                     height: 180,
-                    videoId: id,
+                    videoId: parsed.mode === 'video' ? parsed.id : undefined,
                     host: 'https://www.youtube-nocookie.com',
                     playerVars: {
                         autoplay: 1,
@@ -634,7 +663,9 @@
                         fs: 0,
                         rel: 0,
                         modestbranding: 1,
-                        origin: window.location.origin
+                        origin: window.location.origin,
+                        listType: parsed.mode === 'search' ? 'search' : undefined,
+                        list: parsed.mode === 'search' ? parsed.query : undefined
                     },
                     events: {
                         onReady: event => {
@@ -643,7 +674,9 @@
                                 event.target.setVolume(70);
                                 event.target.playVideo();
                             } catch (error) {}
-                            setMusicStatus('Odtwarzanie uruchomione w aplikacji. Widzisz postęp utworu, a panel możesz zamknąć.', 'ok');
+                            setMusicStatus(parsed.mode === 'search'
+                                ? 'Wynik wyszukiwania odtwarza się w aplikacji.'
+                                : 'Odtwarzanie uruchomione w aplikacji. Widzisz postęp utworu, a panel możesz zamknąć.', 'ok');
                             startMusicProgressTimer();
                         },
                         onStateChange: event => {
@@ -698,18 +731,12 @@
         musicSearch?.addEventListener('click', function () {
             const query = (musicInput?.value || '').trim();
             if (!query) return;
-            const id = extractYouTubeId(query);
-            if (id) {
-                renderMusicPlayer(query);
-                return;
-            }
-            window.open('https://www.youtube.com/results?search_query=' + encodeURIComponent(query), '_blank', 'noopener');
+            renderMusicPlayer(query);
         });
         musicInput?.addEventListener('keydown', function (event) {
             if (event.key === 'Enter') {
                 event.preventDefault();
-                const id = extractYouTubeId(musicInput.value);
-                id ? renderMusicPlayer(musicInput.value) : musicSearch?.click();
+                renderMusicPlayer(musicInput.value);
             }
         });
         const lastMusicLink = localStorage.getItem(musicKey);
@@ -749,10 +776,34 @@
             dock.hidden = prefs.showQuickDock === false;
             dock.querySelectorAll('[data-dock-shortcut]').forEach(item => {
                 const key = item.dataset.dockShortcut;
+                // Dolny pasek ma być krótki: panele admina zostają w menu bocznym/profilu.
+                if (key && key.startsWith('admin')) {
+                    item.hidden = true;
+                    return;
+                }
                 if (key !== 'start' && key !== 'profile' && shortcuts[key] !== true) {
                     item.hidden = true;
                 }
             });
+
+            // Auto-kompakt: utrzymuj rozsądną liczbę ikon bez poziomego scrolla.
+            const maxVisible = 9;
+            const priorityOrder = ['start', 'worksheets', 'import', 'reports', 'history', 'network', 'addons', 'helpdesk', 'profile'];
+            const visible = Array.from(dock.querySelectorAll('[data-dock-shortcut]')).filter(item => !item.hidden);
+            if (visible.length > maxVisible) {
+                const rank = (key) => {
+                    const index = priorityOrder.indexOf(key);
+                    return index === -1 ? 999 : index;
+                };
+                const currentItem = dock.querySelector('[aria-current="page"][data-dock-shortcut]');
+                const sorted = visible.slice().sort((a, b) => rank(a.dataset.dockShortcut) - rank(b.dataset.dockShortcut));
+                const keep = new Set(sorted.slice(0, maxVisible).map(item => item.dataset.dockShortcut));
+                if (currentItem?.dataset?.dockShortcut) keep.add(currentItem.dataset.dockShortcut);
+                visible.forEach(item => {
+                    const key = item.dataset.dockShortcut;
+                    if (!keep.has(key) && key !== 'start' && key !== 'profile') item.hidden = true;
+                });
+            }
         }
 
         function getCookie(name) {
@@ -775,6 +826,96 @@
                 theme: storedTheme || theme,
             };
         }
+
+        const commandPalette = document.getElementById('command-palette');
+        const commandPaletteInput = document.getElementById('command-palette-input');
+        const commandPaletteList = document.getElementById('command-palette-list');
+        const commandItems = [
+            { label: 'Start', hint: 'Pulpit aplikacji', href: '{% url "dashboard" %}' },
+            { label: 'Arkusze', hint: 'Lista arkuszy i szybkie otwieranie', href: '{% url "worksheets" %}' },
+            { label: 'Edytor arkusza', hint: 'Przejdź do edytora', href: '{% url "worksheet_editor" %}' },
+            { label: 'Historia zmian', hint: 'Wersje i przywracanie', href: '{% url "history" %}' },
+            { label: 'Raporty', hint: 'Aktywność i eksport PDF', href: '{% url "reports" %}' },
+            { label: 'Zespół', hint: 'Znajomi i grupy globalnie', href: '{% url "network" %}' },
+            { label: 'Dodatki', hint: 'Forum i marketplace dodatków', href: '{% url "addons_marketplace" %}' },
+            { label: 'Import danych', hint: 'CSV/XLSX', href: '{% url "import_data" %}' },
+            { label: 'Profil', hint: 'Preferencje i ustawienia', href: '{% url "profile" %}' },
+            { label: 'Helpdesk', hint: 'Pomoc i instrukcje', href: '{% url "helpdesk" %}' },
+            { label: 'Zgłoś problem', hint: 'Feedback dla aplikacji', href: '{% url "bug_report" %}' },
+        ];
+
+        function closeCommandPalette() {
+            if (!commandPalette) return;
+            commandPalette.hidden = true;
+            commandPalette.setAttribute('aria-hidden', 'true');
+        }
+
+        function renderCommandPalette(query = '') {
+            if (!commandPaletteList) return;
+            const q = String(query || '').trim().toLowerCase();
+            const rows = commandItems.filter(item => {
+                const haystack = `${item.label} ${item.hint}`.toLowerCase();
+                return !q || haystack.includes(q);
+            }).slice(0, 12);
+            commandPaletteList.innerHTML = rows.map((item, idx) => `
+                <button type="button" class="command-palette-item" data-command-link="${item.href}" data-command-index="${idx}">
+                    <strong>${item.label}</strong>
+                    <small>${item.hint}</small>
+                </button>
+            `).join('') || '<div class="command-palette-empty">Brak wyników.</div>';
+        }
+
+        function openCommandPalette() {
+            if (!commandPalette) return;
+            commandPalette.hidden = false;
+            commandPalette.setAttribute('aria-hidden', 'false');
+            renderCommandPalette('');
+            if (commandPaletteInput) {
+                commandPaletteInput.value = '';
+                commandPaletteInput.focus({ preventScroll: true });
+            }
+        }
+
+        commandPalette?.addEventListener('click', function (event) {
+            const close = event.target.closest('[data-close-command-palette]');
+            if (close) {
+                closeCommandPalette();
+                return;
+            }
+            const action = event.target.closest('[data-command-link]');
+            if (action) {
+                window.location.href = action.dataset.commandLink;
+            }
+        });
+
+        commandPaletteInput?.addEventListener('input', function () {
+            renderCommandPalette(commandPaletteInput.value);
+        });
+
+        commandPaletteInput?.addEventListener('keydown', function (event) {
+            if (event.key === 'Escape') {
+                event.preventDefault();
+                closeCommandPalette();
+            }
+            if (event.key === 'Enter') {
+                event.preventDefault();
+                const first = commandPaletteList?.querySelector('[data-command-link]');
+                if (first) window.location.href = first.dataset.commandLink;
+            }
+        });
+
+        document.addEventListener('keydown', function (event) {
+            const isMac = navigator.platform.toUpperCase().includes('MAC');
+            const openShortcut = (isMac && event.metaKey && event.key.toLowerCase() === 'k') || (!isMac && event.ctrlKey && event.key.toLowerCase() === 'k');
+            if (openShortcut) {
+                event.preventDefault();
+                if (commandPalette?.hidden) openCommandPalette();
+                else closeCommandPalette();
+            }
+            if (event.key === 'Escape' && commandPalette && !commandPalette.hidden) {
+                closeCommandPalette();
+            }
+        });
 
         async function migrateLocalProfileIfNeeded(payload) {
             if (!payload || payload.isDefaultProfile !== true) return payload;

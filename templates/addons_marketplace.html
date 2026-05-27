@@ -1,0 +1,112 @@
+{% extends 'base.html' %}
+
+{% block title %}ARES | Dodatki{% endblock %}
+{% block topbar_title %}Dodatki{% endblock %}
+
+{% block content %}
+<section class="profile-page">
+    <div class="profile-hero-card">
+        <div class="profile-hero-main">
+            <span class="hero-badge">DODATKI SPOŁECZNOŚCI</span>
+            <h1>Forum dodatków do ARES</h1>
+            <p>Użytkownicy mogą zgłaszać własne skrypty, makra, szablony i narzędzia. Administrator sprawdza działanie dodatku przed udostępnieniem go wszystkim w edytorze.</p>
+            <div class="hero-note-grid">
+                <div class="hero-note-tile"><strong>1</strong><small>Zgłoszenie</small></div>
+                <div class="hero-note-tile"><strong>2</strong><small>Weryfikacja admina</small></div>
+                <div class="hero-note-tile"><strong>3</strong><small>Publikacja w edytorze</small></div>
+            </div>
+        </div>
+    </div>
+
+    <section class="profile-section">
+        <div class="profile-section-head">
+            <span class="section-kicker">Biblioteka</span>
+            <h2>Zatwierdzone dodatki</h2>
+        </div>
+        {% if approved_addons %}
+            <div class="addon-list">
+                {% for addon in approved_addons %}
+                    <article class="report-card addon-card">
+                        <div>
+                            <strong>{{ addon.title }}</strong>
+                            <p>{{ addon.summary }}</p>
+                            <small>{{ addon.get_kind_display }} • v{{ addon.version }} • autor: {% if addon.author %}{{ addon.author.username }}{% else %}ARES{% endif %}</small>
+                        </div>
+                        {% if addon.instructions %}
+                            <details>
+                                <summary>Instrukcja użycia</summary>
+                                <p>{{ addon.instructions|linebreaksbr }}</p>
+                            </details>
+                        {% endif %}
+                        <details>
+                            <summary>Podgląd skryptu</summary>
+                            <pre class="addon-code-preview">{{ addon.script_body }}</pre>
+                        </details>
+                    </article>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="settings-card">Nie ma jeszcze zatwierdzonych dodatków.</div>
+        {% endif %}
+    </section>
+
+    <section class="profile-section">
+        <div class="profile-section-head">
+            <span class="section-kicker">Nowy dodatek</span>
+            <h2>Wyślij do sprawdzenia</h2>
+        </div>
+        <form method="post" class="settings-card addon-submit-form">
+            {% csrf_token %}
+            <label class="field-label" for="{{ form.title.id_for_label }}">Nazwa dodatku</label>
+            {{ form.title }}
+            <label class="field-label" for="{{ form.summary.id_for_label }}">Krótki opis</label>
+            {{ form.summary }}
+            <div class="settings-grid">
+                <div>
+                    <label class="field-label" for="{{ form.kind.id_for_label }}">Typ</label>
+                    {{ form.kind }}
+                </div>
+                <div>
+                    <label class="field-label" for="{{ form.version.id_for_label }}">Wersja</label>
+                    {{ form.version }}
+                </div>
+            </div>
+            <label class="field-label" for="{{ form.script_body.id_for_label }}">Kod, skrypt lub opis techniczny</label>
+            {{ form.script_body }}
+            <label class="field-label" for="{{ form.instructions.id_for_label }}">Instrukcja użycia</label>
+            {{ form.instructions }}
+            {% if form.errors %}
+                <div class="alert alert-error">Sprawdź formularz. Część pól wymaga poprawienia.</div>
+            {% endif %}
+            <div class="profile-actions">
+                <button class="btn btn-primary" type="submit">Wyślij do weryfikacji</button>
+            </div>
+        </form>
+    </section>
+
+    <section class="profile-section">
+        <div class="profile-section-head">
+            <span class="section-kicker">Moje dodatki</span>
+            <h2>Status zgłoszeń</h2>
+        </div>
+        {% if user_addons %}
+            <div class="report-list">
+                {% for addon in user_addons %}
+                    <article class="report-card addon-card">
+                        <div>
+                            <strong>{{ addon.title }}</strong>
+                            <p>{{ addon.summary|truncatechars:220 }}</p>
+                            <small>Status: {{ addon.get_status_display }} • {{ addon.created_at|date:"d.m.Y H:i" }}</small>
+                        </div>
+                        {% if addon.admin_note %}
+                            <p><b>Notatka admina:</b> {{ addon.admin_note }}</p>
+                        {% endif %}
+                    </article>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="settings-card">Nie masz jeszcze zgłoszonych dodatków.</div>
+        {% endif %}
+    </section>
+</section>
+{% endblock %}
