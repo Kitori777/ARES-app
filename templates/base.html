@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}ARES{% endblock %}</title>
-    <link rel="stylesheet" href="{% static 'css/style.css' %}?v=0.8.11-layout-profilefix">
+    <link rel="stylesheet" href="{% static 'css/style.css' %}?v=0.8.12-layout-profilefix2">
     {% block extra_head %}{% endblock %}
 </head>
 <body class="ares-body" data-theme="midnight-blue"{% if demo_mode %} data-demo-mode="1"{% endif %}>
@@ -367,13 +367,13 @@
                 const rect = trigger.getBoundingClientRect();
                 const gap = 12;
                 const width = Math.min(360, Math.max(300, Math.min(window.innerWidth - (gap * 2), dropdown.offsetWidth || 320)));
-                const preferredLeft = rect.right - width;
-                const fallbackLeft = rect.left;
-                let left = preferredLeft;
-                if (preferredLeft < gap || (preferredLeft + width) > (window.innerWidth - gap)) {
-                    left = fallbackLeft;
+                // Otwieramy dropdown po LEWEJ stronie triggera.
+                // Gdy zabraknie miejsca, dociskamy go do bezpiecznej krawędzi ekranu.
+                let left = rect.right - width;
+                if (left < gap) left = gap;
+                if ((left + width) > (window.innerWidth - gap)) {
+                    left = window.innerWidth - width - gap;
                 }
-                left = Math.max(gap, Math.min(left, window.innerWidth - width - gap));
                 const top = Math.max(gap, Math.min(rect.bottom + gap, window.innerHeight - 120));
                 const maxHeight = Math.max(220, window.innerHeight - top - gap);
 
