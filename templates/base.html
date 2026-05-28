@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}ARES{% endblock %}</title>
-    <link rel="stylesheet" href="{% static 'css/style.css' %}?v=0.8.1-addons">
+    <link rel="stylesheet" href="{% static 'css/style.css' %}?v=0.8.11-layout-profilefix">
     {% block extra_head %}{% endblock %}
 </head>
 <body class="ares-body" data-theme="midnight-blue"{% if demo_mode %} data-demo-mode="1"{% endif %}>
@@ -281,11 +281,15 @@
             [btn1, btn2].forEach(btn => {
                 if (!btn) return;
                 btn.addEventListener('click', () => {
+                    const profileDropdown = document.getElementById('profile-dropdown');
+                    const profileWasOpen = profileDropdown?.classList.contains('is-open') && profileDropdown?.getAttribute('aria-hidden') !== 'true';
+                    if (profileWasOpen && window.ARES_PROFILE_MENU?.close) {
+                        window.ARES_PROFILE_MENU.close();
+                    }
                     const collapsed = shell.classList.contains('sidebar-collapsed');
                     applyState(!collapsed);
                     window.setTimeout(() => {
-                        const dropdown = document.getElementById('profile-dropdown');
-                        if (dropdown?.classList.contains('is-open') && window.ARES_PROFILE_MENU?.open) {
+                        if (profileWasOpen && window.ARES_PROFILE_MENU?.open) {
                             window.ARES_PROFILE_MENU.open();
                         }
                     }, 180);
@@ -382,6 +386,7 @@
                 dropdown.style.setProperty('overflow-y', 'auto', 'important');
                 dropdown.style.setProperty('transform', 'none', 'important');
                 dropdown.style.visibility = 'visible';
+                dropdown.dataset.anchored = 'left';
             }
             function openProfileDropdown() {
                 dropdown.hidden = false;
@@ -392,6 +397,8 @@
                 document.body.classList.add('profile-menu-open');
                 trigger.setAttribute('aria-expanded', 'true');
                 placeProfileDropdown();
+                window.requestAnimationFrame(placeProfileDropdown);
+                window.setTimeout(placeProfileDropdown, 120);
                 window.ARES_I18N?.refresh?.();
             }
             function closeProfileDropdown() {

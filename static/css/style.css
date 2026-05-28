@@ -5204,6 +5204,22 @@ body[data-theme="sand-light"] .quick-access-dock a[aria-current="page"] {
     background: rgba(143, 95, 31, .13) !important;
     color: #241807 !important;
 }
+
+/* v0.8.11 - hotfix: stabilny układ i dropdown profilu po lewej stronie triggera */
+html, body {
+    overflow-x: hidden;
+}
+
+.app-shell,
+.app-content-area,
+.ares-main {
+    min-width: 0;
+}
+
+.profile-dropdown {
+    right: auto !important;
+    transform: none !important;
+}
 body[data-theme="sand-light"] .module-pills span,
 body[data-theme="sand-light"] .timeline-list time,
 body[data-theme="sand-light"] .action-list a > span,
