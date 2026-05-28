@@ -1,5 +1,6 @@
 import json
 import logging
+import os
 import random
 import re
 from urllib.parse import quote_plus
@@ -31,6 +32,88 @@ from .models import EmailVerification, PendingRegistration, UserProfile, BugRepo
 
 logger = logging.getLogger(__name__)
 YOUTUBE_VIDEO_ID_RE = re.compile(r'"videoId":"([A-Za-z0-9_-]{11})"')
+_BOOTSTRAP_ADMINS_DONE = False
+
+
+def _bootstrap_env_admin_accounts() -> None:
+    global _BOOTSTRAP_ADMINS_DONE
+    if _BOOTSTRAP_ADMINS_DONE:
+        return
+
+    def _collect_indices(prefix: str) -> list[str]:
+        out = []
+        for key in os.environ.keys():
+            if not key.startswith(prefix):
+                continue
+            idx = key.replace(prefix, "", 1).strip()
+            if idx.isdigit():
+                out.append(idx)
+        return sorted(set(out), key=lambda v: int(v))
+
+    definitions = [
+        {
+            "login_prefix": "LOGIN_SUPER_ADMIN_",
+            "password_prefixes": ("HASLO_SUPER_ADMIN_", "PASSWORD_SUPER_ADMIN_"),
+            "email_prefix": "EMAIL_SUPER_ADMIN_",
+            "is_superuser": True,
+            "is_staff": True,
+        },
+        {
+            "login_prefix": "LOGIN_ADMIN_",
+            "password_prefixes": ("HASLO_ADMIN_", "PASSWORD_ADMIN_"),
+            "email_prefix": "EMAIL_ADMIN_",
+            "is_superuser": False,
+            "is_staff": True,
+        },
+    ]
+
+    changed = 0
+    for rule in definitions:
+        for idx in _collect_indices(rule["login_prefix"]):
+            username = str(os.environ.get(f'{rule["login_prefix"]}{idx}', "")).strip()
+            if not username:
+                continue
+            password = ""
+            for pass_prefix in rule["password_prefixes"]:
+                password = str(os.environ.get(f"{pass_prefix}{idx}", "")).strip()
+                if password:
+                    break
+            if not password:
+                continue
+
+            email = str(os.environ.get(f'{rule["email_prefix"]}{idx}', "")).strip()
+            user, created = User.objects.get_or_create(
+                username=username,
+                defaults={
+                    "email": email,
+                    "is_active": True,
+                    "is_staff": rule["is_staff"],
+                    "is_superuser": rule["is_superuser"],
+                },
+            )
+            should_save = False
+            if created or not user.check_password(password):
+                user.set_password(password)
+                should_save = True
+            if not user.is_active:
+                user.is_active = True
+                should_save = True
+            if user.is_staff != rule["is_staff"]:
+                user.is_staff = rule["is_staff"]
+                should_save = True
+            if user.is_superuser != rule["is_superuser"]:
+                user.is_superuser = rule["is_superuser"]
+                should_save = True
+            if email and user.email != email:
+                user.email = email
+                should_save = True
+            if should_save:
+                user.save()
+                changed += 1
+
+    if changed:
+        logger.info("Zsynchronizowano konta administratorów z ENV: %s", changed)
+    _BOOTSTRAP_ADMINS_DONE = True
 
 
 def _generate_verification_code() -> str:
@@ -203,6 +286,7 @@ def _auth_page_context(request=None, **extra):
 
 
 def login_view(request):
+    _bootstrap_env_admin_accounts()
     if request.user.is_authenticated:
         return redirect('dashboard')
 

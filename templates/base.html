@@ -283,6 +283,12 @@
                 btn.addEventListener('click', () => {
                     const collapsed = shell.classList.contains('sidebar-collapsed');
                     applyState(!collapsed);
+                    window.setTimeout(() => {
+                        const dropdown = document.getElementById('profile-dropdown');
+                        if (dropdown?.classList.contains('is-open') && window.ARES_PROFILE_MENU?.open) {
+                            window.ARES_PROFILE_MENU.open();
+                        }
+                    }, 180);
                 });
             });
         }
@@ -357,7 +363,13 @@
                 const rect = trigger.getBoundingClientRect();
                 const gap = 12;
                 const width = Math.min(360, Math.max(300, Math.min(window.innerWidth - (gap * 2), dropdown.offsetWidth || 320)));
-                const left = Math.max(gap, Math.min(rect.right - width, window.innerWidth - width - gap));
+                const preferredLeft = rect.right - width;
+                const fallbackLeft = rect.left;
+                let left = preferredLeft;
+                if (preferredLeft < gap || (preferredLeft + width) > (window.innerWidth - gap)) {
+                    left = fallbackLeft;
+                }
+                left = Math.max(gap, Math.min(left, window.innerWidth - width - gap));
                 const top = Math.max(gap, Math.min(rect.bottom + gap, window.innerHeight - 120));
                 const maxHeight = Math.max(220, window.innerHeight - top - gap);
 
