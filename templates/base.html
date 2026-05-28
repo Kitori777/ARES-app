@@ -313,12 +313,24 @@
             return map[shape] || map.rounded;
         }
 
+        function isValidAvatarImage(value) {
+            const src = String(value || '').trim();
+            return src.startsWith('data:image/') || src.startsWith('http://') || src.startsWith('https://') || src.startsWith('/media/');
+        }
+
         function applyAvatar(el) {
             if (!el) return;
             el.style.background = settings.avatarStyle || 'linear-gradient(135deg, #6ea8ff, #3d62ff)';
             el.style.borderRadius = getAvatarRadius(settings.avatarShape || 'rounded');
-            if (settings.avatarImage) {
+            if (isValidAvatarImage(settings.avatarImage)) {
                 el.innerHTML = '<img src="' + settings.avatarImage + '" alt="Avatar">';
+                const img = el.querySelector('img');
+                if (img) {
+                    img.addEventListener('error', () => {
+                        el.innerHTML = '';
+                        el.textContent = settings.avatarText || 'A';
+                    }, { once: true });
+                }
             } else {
                 el.textContent = settings.avatarText || 'A';
             }
@@ -635,6 +647,23 @@
             return { mode: 'search', query: raw, raw };
         }
 
+        async function resolveYouTubeSearch(query) {
+            const q = String(query || '').trim();
+            if (!q) return '';
+            try {
+                const response = await fetch(`/api/youtube/search/?q=${encodeURIComponent(q)}`, {
+                    method: 'GET',
+                    credentials: 'same-origin',
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                });
+                if (!response.ok) return '';
+                const data = await response.json();
+                return String(data?.videoId || '');
+            } catch (error) {
+                return '';
+            }
+        }
+
         async function renderMusicPlayer(value) {
             if (!musicPlayer) return;
             const parsed = parseYouTubeInput(value);
@@ -650,10 +679,20 @@
             musicPlayer.innerHTML = `<div id="${holderId}"></div>`;
             try {
                 const YT = await loadYouTubeApi();
+                let videoIdToPlay = parsed.mode === 'video' ? parsed.id : '';
+                if (!videoIdToPlay && parsed.mode === 'search') {
+                    setMusicStatus('Szukam najlepszego wyniku w YouTube…', 'info');
+                    videoIdToPlay = await resolveYouTubeSearch(parsed.query);
+                }
+                if (!videoIdToPlay) {
+                    setMusicStatus('Nie znaleziono wideo dla tej frazy. Spróbuj inną frazę lub wklej link YouTube.', 'warn');
+                    resetMusicProgress();
+                    return;
+                }
                 ytPlayer = new YT.Player(holderId, {
                     width: 320,
                     height: 180,
-                    videoId: parsed.mode === 'video' ? parsed.id : undefined,
+                    videoId: videoIdToPlay,
                     host: 'https://www.youtube-nocookie.com',
                     playerVars: {
                         autoplay: 1,
@@ -663,9 +702,7 @@
                         fs: 0,
                         rel: 0,
                         modestbranding: 1,
-                        origin: window.location.origin,
-                        listType: parsed.mode === 'search' ? 'search' : undefined,
-                        list: parsed.mode === 'search' ? parsed.query : undefined
+                        origin: window.location.origin
                     },
                     events: {
                         onReady: event => {
@@ -674,9 +711,7 @@
                                 event.target.setVolume(70);
                                 event.target.playVideo();
                             } catch (error) {}
-                            setMusicStatus(parsed.mode === 'search'
-                                ? 'Wynik wyszukiwania odtwarza się w aplikacji.'
-                                : 'Odtwarzanie uruchomione w aplikacji. Widzisz postęp utworu, a panel możesz zamknąć.', 'ok');
+                            setMusicStatus('Odtwarzanie uruchomione w aplikacji. Widzisz postęp utworu, a panel możesz zamknąć.', 'ok');
                             startMusicProgressTimer();
                         },
                         onStateChange: event => {
@@ -961,8 +996,15 @@
                     if (!el) return;
                     el.style.background = profile.avatarStyle || 'linear-gradient(135deg, #6ea8ff, #3d62ff)';
                     el.style.borderRadius = getAvatarRadius(profile.avatarShape || 'rounded');
-                    if (profile.avatarImage) {
+                    if (isValidAvatarImage(profile.avatarImage)) {
                         el.innerHTML = '<img src="' + profile.avatarImage + '" alt="Avatar">';
+                        const img = el.querySelector('img');
+                        if (img) {
+                            img.addEventListener('error', () => {
+                                el.innerHTML = '';
+                                el.textContent = profile.avatarText || 'A';
+                            }, { once: true });
+                        }
                     } else {
                         el.textContent = profile.avatarText || 'A';
                     }

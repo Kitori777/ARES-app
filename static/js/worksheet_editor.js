@@ -98,6 +98,7 @@
     const sheetScriptNameInput = document.getElementById("sheet-script-name");
     const sheetScriptEditor = document.getElementById("sheet-script-editor");
     const sheetScriptResult = document.getElementById("sheet-script-result");
+    const sheetScriptsPanel = document.getElementById("sheet-scripts-panel");
     const sheetScriptNewBtn = document.getElementById("sheet-script-new-btn");
     const sheetScriptDeleteBtn = document.getElementById("sheet-script-delete-btn");
     const sheetScriptSaveBtn = document.getElementById("sheet-script-save-btn");
@@ -235,11 +236,11 @@
     let pendingSheetTabIndex = null;
     let cellClipboard = { text: "", matrix: null, cut: false, sourceRange: null };
     const EMOJI_CATEGORIES = {
-        popularne: ["?", "?", "?", "?", "?", "?", "?", "?", "?", "?", "?", "?", "?", "?", "?", "?", "?", "?", "?", "?", "?", "?", "?", "?", "?", "?"],
-        ludzie: ["?", "?", "?", "?", "?", "?", "?", "?", "?", "?", "?", "?", "?", "?", "?", "?", "?", "?", "?", "?", "?"],
-        praca: ["?", "?", "?", "?", "?", "??", "??", "?", "?", "?", "?", "?", "?", "?", "?", "?", "??", "?", "?", "?", "?", "?", "?", "?", "?", "?"],
-        symbole: ["?", "?", "?", "?", "?", "?", "?", "?", "?", "?", "?", "?", "?", "?", "?", "?", "?", "?", "?", "?", "?", "?", "?", "?", "?", "?", "?", "?", "?", "?"],
-        obiekty: ["?", "?", "?", "?", "?", "?", "?", "?", "?", "?", "?", "?", "?", "?", "?", "??", "?", "?", "?", "?", "?", "?", "?", "?", "?", "?", "?", "??", "?", "?", "?", "?"]
+        popularne: ["\u2705", "\u274C", "\u26A0\uFE0F", "\uD83D\uDCCC", "\uD83D\uDD25", "\uD83D\uDE80", "\uD83D\uDCA1", "\uD83D\uDCC8", "\uD83D\uDCC9", "\uD83D\uDCCA", "\uD83D\uDC4D", "\uD83D\uDE80", "\uD83D\uDE0A", "\uD83C\uDF89", "\uD83D\uDCA5", "\uD83D\uDD0D"],
+        ludzie: ["\uD83D\uDE00", "\uD83D\uDE02", "\uD83D\uDE0A", "\uD83D\uDE0E", "\uD83D\uDE22", "\uD83D\uDE21", "\uD83D\uDE31", "\uD83E\uDD14", "\uD83D\uDE44", "\uD83E\uDD1D", "\uD83D\uDC4F", "\uD83D\uDC4D", "\uD83D\uDC4E", "\uD83E\uDEC2", "\uD83D\uDE4C", "\uD83D\uDE4F"],
+        praca: ["\uD83D\uDCBC", "\uD83D\uDCC1", "\uD83D\uDCC2", "\uD83D\uDCC4", "\uD83D\uDCDD", "\uD83D\uDCCA", "\uD83D\uDCC8", "\uD83D\uDCC9", "\uD83E\uDDEE", "\uD83D\uDCC5", "\u23F0", "\uD83D\uDCCC", "\uD83D\uDCE7", "\uD83D\uDCAC", "\uD83D\uDDA5\uFE0F", "\uD83D\uDD10"],
+        symbole: ["\u2714\uFE0F", "\u2716\uFE0F", "\u2795", "\u2796", "\u27A1\uFE0F", "\u2B05\uFE0F", "\u2B06\uFE0F", "\u2B07\uFE0F", "\u25B6\uFE0F", "\u23F8\uFE0F", "\u23F9\uFE0F", "\uD83D\uDD01", "\u2122\uFE0F", "\u00A9\uFE0F", "\u00AE\uFE0F", "\uD83D\uDD22"],
+        obiekty: ["\uD83D\uDCF1", "\uD83D\uDCBB", "\u2328\uFE0F", "\uD83D\uDDA8\uFE0F", "\uD83D\uDCE6", "\uD83D\uDCEB", "\uD83D\uDD27", "\uD83D\uDD28", "\u2699\uFE0F", "\uD83D\uDD0B", "\uD83D\uDCA1", "\uD83D\uDD2C", "\uD83D\uDCCF", "\uD83D\uDCD0", "\uD83D\uDCB0", "\uD83D\uDC8E"]
     };
     let activeTooltip = null;
     function parseStoredJson(storage, key, fallback) {
@@ -1122,6 +1123,14 @@
         if (!sheetScriptResult) return;
         sheetScriptResult.textContent = text;
         sheetScriptResult.classList.toggle("error", !!isError);
+    }
+
+    function focusSheetScriptsPanel() {
+        const addonsTab = document.querySelector('.we-tab[data-tab="addons"]');
+        if (addonsTab) activateRibbonTab(addonsTab, true);
+        if (sheetScriptsPanel && typeof sheetScriptsPanel.scrollIntoView === "function") {
+            sheetScriptsPanel.scrollIntoView({ behavior: "smooth", block: "nearest" });
+        }
     }
 
     function renderScriptSelect(activeId = "") {
@@ -4056,7 +4065,8 @@
         );
         if (existing) {
             renderScriptSelect(existing.id);
-            setScriptResult(`Dodatek „${safeName}” jest już przypisany do tego arkusza.`);
+            setScriptResult(`Dodatek „${safeName}” już był przypisany. Znajdziesz go w sekcji „Skrypty tego arkusza”.`);
+            focusSheetScriptsPanel();
             return existing;
         }
         const script = {
@@ -4068,7 +4078,8 @@
         sheetScripts.unshift(script);
         renderScriptSelect(script.id);
         persistScriptsToSheet();
-        setScriptResult(`Dodatek „${safeName}” przypisany do arkusza.`);
+        setScriptResult(`Dodatek „${safeName}” został przypisany do arkusza i jest gotowy do uruchomienia.`);
+        focusSheetScriptsPanel();
         return script;
     }
 

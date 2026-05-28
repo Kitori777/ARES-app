@@ -5247,6 +5247,32 @@ body.we-resizing-columns .we-col-resize-handle::after,
     line-height: 1;
 }
 
+.we-ribbon-panel[data-panel="team"] .we-innovations-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 12px;
+}
+
+.we-ribbon-panel[data-panel="team"] .we-innovation-card {
+    border-radius: 14px;
+    border: 1px solid color-mix(in srgb, var(--line, rgba(255,255,255,.16)) 82%, transparent);
+    background: color-mix(in srgb, var(--panel-2, #172033) 76%, transparent);
+    box-shadow: 0 8px 20px rgba(0,0,0,.12);
+}
+
+.we-ribbon-panel[data-panel="team"] .we-innovation-card h4 {
+    margin: 0 0 6px;
+    font-size: 1.05rem;
+}
+
+.we-ribbon-panel[data-panel="team"] .we-mini-list {
+    min-height: 120px;
+}
+
+.we-emoji-item {
+    font-family: "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", sans-serif;
+}
+
 .we-start-toolbar {
     align-items: stretch;
 }

@@ -1,6 +1,9 @@
 import json
 import logging
 import random
+import re
+from urllib.parse import quote_plus
+from urllib.request import Request, urlopen
 
 from django.conf import settings
 from django.contrib import messages
@@ -27,6 +30,7 @@ from .forms import RegisterForm, BugReportForm, AccountUpdateForm, AddonSubmissi
 from .models import EmailVerification, PendingRegistration, UserProfile, BugReport, PasswordResetCode
 
 logger = logging.getLogger(__name__)
+YOUTUBE_VIDEO_ID_RE = re.compile(r'"videoId":"([A-Za-z0-9_-]{11})"')
 
 
 def _generate_verification_code() -> str:
@@ -681,6 +685,31 @@ def profile_settings_api(request):
     response = profile.to_payload()
     response['ok'] = True
     return JsonResponse(response)
+
+
+@require_http_methods(['GET'])
+def youtube_search_api(request):
+    query = str(request.GET.get('q') or '').strip()
+    if not query:
+        return JsonResponse({'ok': False, 'error': 'missing_query'}, status=400)
+
+    url = f"https://www.youtube.com/results?search_query={quote_plus(query)}"
+    req = Request(
+        url,
+        headers={
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123 Safari/537.36',
+            'Accept-Language': 'pl-PL,pl;q=0.9,en;q=0.8',
+        },
+    )
+    try:
+        with urlopen(req, timeout=7) as response:
+            html = response.read().decode('utf-8', errors='ignore')
+        match = YOUTUBE_VIDEO_ID_RE.search(html)
+        if not match:
+            return JsonResponse({'ok': False, 'error': 'not_found'}, status=404)
+        return JsonResponse({'ok': True, 'videoId': match.group(1)})
+    except Exception:
+        return JsonResponse({'ok': False, 'error': 'unavailable'}, status=503)
 
 
 

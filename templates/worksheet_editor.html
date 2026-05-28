@@ -5,7 +5,7 @@
 {% block topbar_title %}Edytor arkusza{% endblock %}
 
 {% block extra_head %}
-<link rel="stylesheet" href="{% static 'css/worksheet_editor.css' %}?v=0.8.4-speed">
+<link rel="stylesheet" href="{% static 'css/worksheet_editor.css' %}?v=0.8.10-team-ui">
 {% endblock %}
 
 {% block content %}
@@ -300,7 +300,7 @@
                     <div id="editor-addons-list" class="we-addons-list">
                         <div class="we-addons-empty">Ładowanie dodatków...</div>
                     </div>
-                    <div class="we-sheet-scripts-panel">
+                    <div class="we-sheet-scripts-panel" id="sheet-scripts-panel">
                         <div class="we-addons-head">
                             <div>
                                 <strong>Skrypty tego arkusza</strong>
@@ -811,6 +811,6 @@ window.addEventListener("unhandledrejection", function (event) {
     } catch (_) {}
 });
 </script>
-<script src="{% static 'js/worksheet_editor.js' %}?v=0.8.9-addon-attach"></script>
+<script src="{% static 'js/worksheet_editor.js' %}?v=0.8.10-emoji-addon-team"></script>
 <script src="{% static 'js/worksheet_chat.js' %}?v=0.8.4-speed"></script>
 {% endblock %}
