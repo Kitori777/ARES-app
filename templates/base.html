@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}ARES{% endblock %}</title>
-    <link rel="stylesheet" href="{% static 'css/style.css' %}?v=0.8.12-layout-profilefix2">
+    <link rel="stylesheet" href="{% static 'css/style.css' %}?v=0.8.13-profile-left-hardfix">
     {% block extra_head %}{% endblock %}
 </head>
 <body class="ares-body" data-theme="midnight-blue"{% if demo_mode %} data-demo-mode="1"{% endif %}>
@@ -361,32 +361,15 @@
             function placeProfileDropdown() {
                 dropdown.hidden = false;
                 dropdown.removeAttribute('hidden');
-                dropdown.style.visibility = 'hidden';
                 dropdown.classList.add('is-open');
-
-                const rect = trigger.getBoundingClientRect();
-                const gap = 12;
-                const width = Math.min(360, Math.max(300, Math.min(window.innerWidth - (gap * 2), dropdown.offsetWidth || 320)));
-                // Otwieramy dropdown po LEWEJ stronie triggera.
-                // Gdy zabraknie miejsca, dociskamy go do bezpiecznej krawędzi ekranu.
-                let left = rect.right - width;
-                if (left < gap) left = gap;
-                if ((left + width) > (window.innerWidth - gap)) {
-                    left = window.innerWidth - width - gap;
-                }
-                const top = Math.max(gap, Math.min(rect.bottom + gap, window.innerHeight - 120));
-                const maxHeight = Math.max(220, window.innerHeight - top - gap);
-
-                dropdown.style.setProperty('position', 'fixed', 'important');
-                dropdown.style.setProperty('left', left + 'px', 'important');
-                dropdown.style.setProperty('right', 'auto', 'important');
-                dropdown.style.setProperty('top', top + 'px', 'important');
-                dropdown.style.setProperty('width', width + 'px', 'important');
-                dropdown.style.setProperty('max-height', Math.min(560, maxHeight) + 'px', 'important');
-                dropdown.style.setProperty('overflow-y', 'auto', 'important');
-                dropdown.style.setProperty('transform', 'none', 'important');
-                dropdown.style.visibility = 'visible';
-                dropdown.dataset.anchored = 'left';
+                dropdown.style.removeProperty('position');
+                dropdown.style.removeProperty('left');
+                dropdown.style.removeProperty('right');
+                dropdown.style.removeProperty('top');
+                dropdown.style.removeProperty('width');
+                dropdown.style.removeProperty('max-height');
+                dropdown.style.removeProperty('overflow-y');
+                dropdown.style.removeProperty('transform');
             }
             function openProfileDropdown() {
                 dropdown.hidden = false;

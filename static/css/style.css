@@ -5240,12 +5240,19 @@ html, body {
     .profile-dropdown[hidden] {
         display: none !important;
     }
-    .profile-dropdown {
-        position: fixed !important;
-        right: auto !important;
-        left: 0 !important; /* finalna pozycja i tak jest ustawiana JS-em */
+    .topbar-actions .profile-menu {
+        position: relative !important;
+    }
+    .topbar-actions .profile-menu .profile-dropdown {
+        position: absolute !important;
+        top: calc(100% + 10px) !important;
+        left: auto !important;
+        right: calc(100% + 12px) !important; /* zawsze po lewej stronie avatara */
         transform: none !important;
         z-index: 999999 !important;
+        width: min(360px, calc(100vw - 24px)) !important;
+        max-height: min(72vh, 560px) !important;
+        overflow-y: auto !important;
     }
 }
 body[data-theme="sand-light"] .module-pills span,
