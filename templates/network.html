@@ -1,66 +1,138 @@
 {% extends 'base.html' %}
 
-{% block title %}ARES | Zespół{% endblock %}
-{% block topbar_title %}Zespół{% endblock %}
+{% block title %}ARES | Zespoły{% endblock %}
+{% block topbar_title %}Zespoły{% endblock %}
 
 {% block extra_head %}
 <style>
-.network-shell { display: grid; gap: 14px; }
+.network-shell { display:grid; gap:18px; color:#f8fbff; }
+.network-shell h1, .network-shell h2, .network-shell h3, .network-shell strong, .network-shell label { color:#f8fbff; }
+.network-card, .network-hero {
+    border: 1px solid rgba(148, 163, 184, .22);
+    border-radius: 22px;
+    padding: 20px;
+    background: linear-gradient(180deg, rgba(31, 44, 70, .98), rgba(14, 21, 36, .98));
+    box-shadow: 0 18px 38px rgba(0,0,0,.22);
+}
 .network-hero {
-    border: 1px solid var(--line, rgba(0,0,0,.12));
-    border-radius: 12px;
-    background: color-mix(in srgb, var(--panel, #f7f2e9) 95%, #fff 5%);
-    padding: 16px;
+    background:
+        radial-gradient(circle at top right, rgba(101, 145, 255, .18), transparent 34%),
+        radial-gradient(circle at bottom left, rgba(45, 212, 191, .10), transparent 28%),
+        linear-gradient(180deg, rgba(38, 53, 84, .98), rgba(21, 30, 50, .98));
 }
-.network-main {
-    display: grid;
-    grid-template-columns: 300px 1fr;
-    gap: 14px;
-}
-.network-card {
-    border: 1px solid var(--line, rgba(0,0,0,.12));
-    border-radius: 12px;
-    background: color-mix(in srgb, var(--panel, #f7f2e9) 95%, #fff 5%);
+.network-head { display:flex; justify-content:space-between; gap:14px; align-items:flex-start; }
+.network-title { margin:4px 0 8px; font-size:2rem; }
+.network-subtitle { margin:0; color:#d6e2ff; max-width:860px; }
+.network-actions, .network-inline { display:flex; gap:8px; flex-wrap:wrap; }
+.network-kpis { display:grid; gap:12px; grid-template-columns: repeat(5, minmax(0, 1fr)); margin-top:18px; }
+.network-kpi {
+    border: 1px solid rgba(148, 163, 184, .18);
+    border-radius: 16px;
     padding: 14px;
+    background: rgba(18, 30, 53, .92);
 }
-.network-title { font-size: 1.6rem; margin: 0 0 4px; }
-.network-sub { color: var(--muted, #6b7280); margin: 0; }
-.network-kpi { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 10px; margin-top: 12px; }
-.network-kpi .box { border: 1px solid var(--line, rgba(0,0,0,.12)); border-radius: 10px; padding: 10px; }
-.network-kpi .box strong { display:block; font-size:1.35rem; margin-top:4px; }
-
-.network-sidebar-head { display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:8px; }
-.network-list { display:grid; gap:8px; max-height: 58vh; overflow:auto; }
-.network-item {
-    border: 1px solid var(--line, rgba(0,0,0,.12));
-    border-radius: 10px;
-    padding: 10px;
+.network-kpi strong { display:block; margin-top:4px; font-size:1.5rem; color:#ffffff; }
+.network-tabs { display:flex; gap:10px; flex-wrap:wrap; }
+.network-tab {
+    border: 1px solid rgba(148, 163, 184, .22);
+    border-radius: 999px;
+    padding: 10px 14px;
+    background: rgba(18, 30, 53, .92);
     cursor: pointer;
+    font-weight: 700;
+    color:#eef4ff;
 }
-.network-item.active { border-color: #4f8cff; box-shadow: 0 0 0 2px rgba(79,140,255,.18) inset; }
-.network-item small { color: var(--muted, #6b7280); }
-
-.network-toolbar { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:10px; }
-.network-toolbar input, .network-toolbar select {
-    min-width: 180px;
-    border-radius: 10px;
-    border: 1px solid var(--line, rgba(0,0,0,.14));
-    padding: 10px 12px;
-    background: color-mix(in srgb, var(--panel-2, #fff) 96%, transparent);
-    color: inherit;
+.network-tab.active {
+    border-color: #6da2ff;
+    box-shadow: 0 0 0 2px rgba(109, 162, 255, .18);
+    background: rgba(33, 56, 97, .98);
 }
-.network-grid-two { display:grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-.network-section-title { margin: 0 0 8px; font-size: 1rem; }
-.network-table { width: 100%; border-collapse: collapse; border: 1px solid var(--line, rgba(0,0,0,.12)); border-radius:10px; overflow:hidden; }
-.network-table th, .network-table td { padding: 8px 10px; border-bottom: 1px solid var(--line, rgba(0,0,0,.1)); text-align:left; }
-.network-table tr:last-child td { border-bottom: none; }
-.network-badge { font-size:.78rem; padding:4px 8px; border-radius:999px; border:1px solid var(--line, rgba(0,0,0,.14)); }
-.network-empty { color: var(--muted, #6b7280); border: 1px dashed var(--line, rgba(0,0,0,.18)); border-radius: 10px; padding: 12px; }
-
-@media (max-width: 1100px) {
-    .network-main { grid-template-columns: 1fr; }
-    .network-grid-two { grid-template-columns: 1fr; }
-    .network-kpi { grid-template-columns: repeat(2, minmax(0,1fr)); }
+.network-panel[hidden] { display:none !important; }
+.network-grid-2 { display:grid; grid-template-columns: 1.1fr .9fr; gap:18px; }
+.network-grid-3 { display:grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap:18px; }
+.network-stack { display:grid; gap:18px; }
+.network-card h2, .network-card h3 { margin:0 0 10px; }
+.network-copy { color:#d3def7; margin:0 0 12px; }
+.network-form { display:grid; gap:12px; }
+.network-form input, .network-form textarea, .network-form select, .network-toolbar input, .network-toolbar select, .network-toolbar textarea {
+    width:100%;
+    border-radius: 14px;
+    border: 1px solid rgba(148, 163, 184, .22);
+    padding: 11px 12px;
+    background: rgba(10, 17, 30, .96);
+    color: #f8fbff;
+}
+.network-toolbar { display:grid; gap:10px; }
+.network-list { display:grid; gap:10px; max-height:58vh; overflow:auto; }
+.network-list-item {
+    width:100%;
+    text-align:left;
+    border: 1px solid rgba(148, 163, 184, .18);
+    border-radius: 16px;
+    padding: 14px;
+    background: rgba(18, 30, 53, .92);
+    cursor:pointer;
+    color:#f8fbff;
+}
+.network-list-item.active {
+    border-color: #75a8ff;
+    box-shadow: 0 0 0 2px rgba(117, 168, 255, .18);
+}
+.network-list-item strong { display:block; margin-bottom:4px; }
+.network-muted { color:#bfd0f4; }
+.network-badges, .network-chip-row { display:flex; gap:8px; flex-wrap:wrap; }
+.network-badge {
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+    border: 1px solid rgba(148, 163, 184, .2);
+    border-radius: 999px;
+    padding: 5px 10px;
+    font-size:.82rem;
+    background: rgba(12, 19, 33, .96);
+    color:#f8fbff;
+}
+.network-empty {
+    border: 1px dashed rgba(148, 163, 184, .28);
+    border-radius: 16px;
+    padding: 16px;
+    color: #d6e2ff;
+    background: rgba(11, 18, 32, .72);
+}
+.network-detail {
+    border: 1px solid rgba(148, 163, 184, .16);
+    border-radius: 18px;
+    padding: 16px;
+    background: rgba(18, 30, 53, .88);
+}
+.network-detail h3 { margin-bottom:6px; }
+.network-spec {
+    white-space: pre-wrap;
+    border: 1px dashed rgba(148, 163, 184, .22);
+    border-radius: 16px;
+    padding: 14px;
+    min-height: 120px;
+    color:#f8fbff;
+    background: rgba(11, 18, 32, .76);
+}
+.network-table { width:100%; border-collapse:collapse; }
+.network-table th, .network-table td {
+    padding: 10px 8px;
+    border-bottom: 1px solid rgba(148, 163, 184, .14);
+    text-align:left;
+    vertical-align:top;
+    color:#f8fbff;
+}
+.network-table th {
+    font-size:.8rem;
+    text-transform:uppercase;
+    letter-spacing:.04em;
+    color:#b8c8ec;
+}
+.network-table tr:last-child td { border-bottom:none; }
+@media (max-width: 1180px) {
+    .network-grid-2, .network-grid-3 { grid-template-columns: 1fr; }
+    .network-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 </style>
 {% endblock %}
@@ -68,68 +140,213 @@
 {% block content %}
 <section class="network-shell">
     <article class="network-hero">
-        <div class="section-kicker">Współpraca globalna</div>
-        <h1 class="network-title">Organizacja pracy jak w repo</h1>
-        <p class="network-sub">Znajomi, grupy, role i przypisane arkusze w jednym miejscu — globalnie dla całej aplikacji.</p>
-        <div class="network-kpi">
-            <div class="box"><small>Znajomi</small><strong id="kpi-friends">0</strong></div>
-            <div class="box"><small>Grupy</small><strong id="kpi-groups">0</strong></div>
-            <div class="box"><small>Członkostwa</small><strong id="kpi-members">0</strong></div>
-            <div class="box"><small>Przypisane arkusze</small><strong id="kpi-sheets">0</strong></div>
+        <div class="network-head">
+            <div>
+                <div class="section-kicker">Organizacje i zespoły</div>
+                <h1 class="network-title">Współpraca bez chaosu</h1>
+                <p class="network-subtitle">Twórz organizacje, układaj zespoły w hierarchię, przypinaj arkusze i zarządzaj członkami w osobnych, czytelnych widokach zamiast w jednym przeładowanym ekranie.</p>
+            </div>
+            <div class="network-actions">
+                <a class="btn btn-secondary" href="{% url 'worksheet_editor' %}">Wróć do arkusza</a>
+                <a class="btn btn-primary" href="{% url 'reports' %}">Przejdź do raportów</a>
+            </div>
+        </div>
+        <div class="network-kpis">
+            <div class="network-kpi"><small>Organizacje</small><strong id="kpi-orgs">0</strong></div>
+            <div class="network-kpi"><small>Zespoły</small><strong id="kpi-groups">0</strong></div>
+            <div class="network-kpi"><small>Członkowie</small><strong id="kpi-members">0</strong></div>
+            <div class="network-kpi"><small>Arkusze zespołowe</small><strong id="kpi-sheets">0</strong></div>
+            <div class="network-kpi"><small>Raporty zespołowe</small><strong id="kpi-reports">0</strong></div>
         </div>
     </article>
 
-    <section class="network-main">
-        <aside class="network-card">
-            <div class="network-sidebar-head">
-                <strong>Grupy</strong>
-                <button id="watch-toggle-btn" class="btn btn-secondary" type="button">Obserwuj</button>
-            </div>
-            <div class="network-toolbar">
-                <input id="group-name-input" type="text" placeholder="Nazwa grupy">
-                <button id="group-create-btn" class="btn btn-primary" type="button">Utwórz</button>
-            </div>
-            <div id="group-list" class="network-list"></div>
-        </aside>
+    <nav class="network-tabs" aria-label="Sekcje współpracy">
+        <button class="network-tab active" type="button" data-network-tab="overview">Przegląd</button>
+        <button class="network-tab" type="button" data-network-tab="organizations">Organizacje</button>
+        <button class="network-tab" type="button" data-network-tab="teams">Zespoły</button>
+    </nav>
 
-        <article class="network-card">
-            <div id="group-header" class="network-sidebar-head">
-                <strong>Wybierz grupę</strong>
-            </div>
+    <section class="network-panel" data-network-panel="overview">
+        <div class="network-grid-3">
+            <article class="network-card">
+                <h2>Wybrana organizacja</h2>
+                <p class="network-copy">Tutaj zobaczysz kontener dla zespołów, widoczność i podstawowe ustawienia.</p>
+                <div id="overview-org-card" class="network-detail">
+                    <div class="network-empty">Wybierz albo utwórz organizację.</div>
+                </div>
+            </article>
 
-            <div class="network-grid-two">
+            <article class="network-card">
+                <h2>Wybrany zespół</h2>
+                <p class="network-copy">Szybki podgląd składu, uprawnień i przypiętych arkuszy.</p>
+                <div id="overview-group-card" class="network-detail">
+                    <div class="network-empty">Wybierz zespół, aby zobaczyć jego podsumowanie.</div>
+                </div>
+            </article>
+
+            <article class="network-card">
+                <h2>Szybkie akcje</h2>
+                <p class="network-copy">Najczęściej używane przejścia bez przeklikiwania się przez cały interfejs.</p>
+                <div class="network-stack">
+                    <button class="btn btn-primary" type="button" data-network-jump="organizations">Nowa organizacja</button>
+                    <button class="btn btn-secondary" type="button" data-network-jump="teams">Nowy zespół</button>
+                    <a class="btn btn-secondary" href="{% url 'reports' %}">Raporty użytkownika</a>
+                    <a class="btn btn-secondary" href="{% url 'history' %}">Historia zmian</a>
+                </div>
+            </article>
+        </div>
+    </section>
+
+    <section class="network-panel" data-network-panel="organizations" hidden>
+        <div class="network-grid-2">
+            <article class="network-card">
+                <h2>Nowa organizacja</h2>
+                <p class="network-copy">Kontener dla zespołów, raportów i zasad pracy.</p>
+                <div class="network-form">
+                    <input id="org-name-input" type="text" placeholder="Np. ARES Labs">
+                    <textarea id="org-description-input" rows="4" placeholder="Krótki opis organizacji i jej celu"></textarea>
+                    <select id="org-visibility-input">
+                        <option value="private">Prywatna</option>
+                        <option value="internal">Wewnętrzna</option>
+                        <option value="public">Publiczna</option>
+                    </select>
+                    <button id="org-create-btn" class="btn btn-primary" type="button">Utwórz organizację</button>
+                </div>
+            </article>
+
+            <article class="network-card">
+                <div class="network-head">
+                    <div>
+                        <h2>Lista organizacji</h2>
+                        <p class="network-copy">Każda organizacja może mieć własne zespoły, raporty i ustawienia widoczności.</p>
+                    </div>
+                </div>
+                <div id="organization-list" class="network-list"></div>
+            </article>
+        </div>
+
+        <article class="network-card" style="margin-top:18px;">
+            <div class="network-grid-2">
                 <section>
-                    <h3 class="network-section-title">Członkowie</h3>
+                    <h2 id="organization-detail-title">Szczegóły organizacji</h2>
+                    <div id="organization-detail-card" class="network-detail">
+                        <div class="network-empty">Wybierz organizację z listy.</div>
+                    </div>
+                    <div id="organization-settings-card" class="network-detail" style="margin-top:12px;">
+                        <div class="network-empty">Po wybraniu organizacji zobaczysz tutaj jej ustawienia.</div>
+                    </div>
+                </section>
+
+                <section>
+                    <h2>Znajomi</h2>
+                    <p class="network-copy">Szybkie dodawanie osób, które później przypniesz do zespołów.</p>
+                    <div class="network-toolbar">
+                        <input id="friend-input" type="text" placeholder="Nick lub e-mail">
+                        <button id="friend-add-btn" class="btn btn-secondary" type="button">Dodaj znajomego</button>
+                    </div>
+                    <div id="friends-wrap" style="margin-top:12px;"></div>
+                </section>
+            </div>
+        </article>
+    </section>
+
+    <section class="network-panel" data-network-panel="teams" hidden>
+        <div class="network-grid-2">
+            <article class="network-card">
+                <h2>Nowy zespół</h2>
+                <p class="network-copy">Zespół może działać samodzielnie albo być częścią większej struktury.</p>
+                <div class="network-form">
+                    <input id="group-name-input" type="text" placeholder="Np. Solver Core">
+                    <textarea id="group-spec-input" rows="5" placeholder="Specyfikacja, odpowiedzialności, zasady pracy"></textarea>
+                    <select id="group-org-select"></select>
+                    <select id="group-parent-select"></select>
+                    <div class="network-inline">
+                        <select id="group-visibility-select">
+                            <option value="visible">Widoczny</option>
+                            <option value="secret">Ukryty</option>
+                        </select>
+                        <select id="group-notify-select">
+                            <option value="enabled">Powiadomienia włączone</option>
+                            <option value="disabled">Powiadomienia wyłączone</option>
+                        </select>
+                    </div>
+                    <button id="group-create-btn" class="btn btn-primary" type="button">Utwórz zespół</button>
+                </div>
+            </article>
+
+            <article class="network-card">
+                <div class="network-head">
+                    <div>
+                        <h2>Lista zespołów</h2>
+                        <p class="network-copy">Widok wszystkich zespołów, do których masz dostęp.</p>
+                    </div>
+                    <button id="watch-toggle-btn" class="btn btn-secondary" type="button">Obserwuj</button>
+                </div>
+                <div id="group-list" class="network-list"></div>
+            </article>
+        </div>
+
+        <article class="network-card" style="margin-top:18px;">
+            <div class="network-head">
+                <div>
+                    <h2 id="group-title">Wybierz zespół</h2>
+                    <p id="group-subtitle" class="network-copy">Po wyborze zobaczysz członków, ustawienia i przypięte arkusze.</p>
+                </div>
+                <div class="network-badges">
+                    <span id="group-role-badge" class="network-badge">member</span>
+                    <span id="group-visibility-badge" class="network-badge">visible</span>
+                </div>
+            </div>
+
+            <div class="network-grid-3">
+                <section class="network-detail">
+                    <h3>Ustawienia zespołu</h3>
+                    <div class="network-form">
+                        <textarea id="group-description-input" rows="3" placeholder="Opis zespołu"></textarea>
+                        <textarea id="group-settings-spec-input" rows="6" placeholder="Specyfikacja zespołu"></textarea>
+                        <div class="network-inline">
+                            <select id="group-settings-visibility">
+                                <option value="visible">Widoczny</option>
+                                <option value="secret">Ukryty</option>
+                            </select>
+                            <select id="group-settings-notify">
+                                <option value="enabled">Powiadomienia włączone</option>
+                                <option value="disabled">Powiadomienia wyłączone</option>
+                            </select>
+                        </div>
+                        <button id="group-save-settings-btn" class="btn btn-primary" type="button">Zapisz ustawienia</button>
+                    </div>
+                </section>
+
+                <section class="network-detail">
+                    <h3>Członkowie</h3>
                     <div class="network-toolbar">
                         <input id="member-input" type="text" placeholder="Nick lub e-mail">
                         <select id="member-role">
                             <option value="member">member</option>
+                            <option value="maintainer">maintainer</option>
                             <option value="admin">admin</option>
                         </select>
-                        <button id="member-add-btn" class="btn btn-secondary" type="button">Dodaj</button>
+                        <button id="member-add-btn" class="btn btn-secondary" type="button">Dodaj do zespołu</button>
                     </div>
-                    <div id="members-wrap"></div>
+                    <div id="members-wrap" style="margin-top:12px;"></div>
                 </section>
-                <section>
-                    <h3 class="network-section-title">Arkusze grupy</h3>
+
+                <section class="network-detail">
+                    <h3>Arkusze i podzespoły</h3>
                     <div class="network-toolbar">
                         <select id="sheet-select"></select>
-                        <button id="sheet-assign-btn" class="btn btn-secondary" type="button">Przypisz</button>
+                        <button id="sheet-assign-btn" class="btn btn-secondary" type="button">Przypnij arkusz</button>
                     </div>
-                    <div id="sheets-wrap"></div>
+                    <div id="children-wrap" style="margin-top:12px;"></div>
+                    <div id="sheets-wrap" style="margin-top:12px;"></div>
                 </section>
             </div>
 
-            <hr style="border:none;border-top:1px solid var(--line, rgba(0,0,0,.12));margin:14px 0;">
-
-            <section>
-                <h3 class="network-section-title">Znajomi</h3>
-                <div class="network-toolbar">
-                    <input id="friend-input" type="text" placeholder="Nick lub e-mail">
-                    <button id="friend-add-btn" class="btn btn-primary" type="button">Dodaj</button>
-                </div>
-                <div id="friends-wrap"></div>
-            </section>
+            <div style="margin-top:18px;">
+                <h3>Specyfikacja zespołu</h3>
+                <div id="group-spec-preview" class="network-spec">Brak specyfikacji.</div>
+            </div>
         </article>
     </section>
 </section>
@@ -138,233 +355,394 @@
 {% block extra_js %}
 <script>
 document.addEventListener("DOMContentLoaded", () => {
-  const el = (id) => document.getElementById(id);
-  let summary = { friends: [], groups: [] };
-  let sheets = [];
-  let selectedGroupId = null;
+    const el = (id) => document.getElementById(id);
+    let summary = { friends: [], groups: [], organizations: [] };
+    let sheets = [];
+    let selectedGroupId = null;
+    let selectedOrgId = null;
 
-  async function api(url, method = "GET", payload = null) {
-    const options = { method, headers: { "X-Requested-With": "XMLHttpRequest" }, credentials: "same-origin" };
-    if (payload) {
-      options.headers["Content-Type"] = "application/json";
-      options.body = JSON.stringify(payload);
-    }
-    const res = await fetch(url, options);
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok) throw new Error(data.error || `Błąd ${res.status}`);
-    return data;
-  }
-
-  function escapeHtml(value) {
-    return String(value ?? "").replace(/[&<>"']/g, (ch) => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", "\"":"&quot;", "'":"&#39;" }[ch]));
-  }
-
-  function renderKpi() {
-    const memberCount = summary.groups.reduce((acc, g) => acc + (g.members?.length || 0), 0);
-    const assignedCount = summary.groups.reduce((acc, g) => acc + (g.assignedSheets?.length || 0), 0);
-    el("kpi-friends").textContent = summary.friends.length;
-    el("kpi-groups").textContent = summary.groups.length;
-    el("kpi-members").textContent = memberCount;
-    el("kpi-sheets").textContent = assignedCount;
-  }
-
-  function renderGroups() {
-    const wrap = el("group-list");
-    if (!summary.groups.length) {
-      wrap.innerHTML = `<div class="network-empty">Brak grup. Utwórz pierwszą grupę.</div>`;
-      selectedGroupId = null;
-      renderGroupDetails();
-      return;
-    }
-    if (!selectedGroupId || !summary.groups.some(g => g.id === selectedGroupId)) selectedGroupId = summary.groups[0].id;
-    wrap.innerHTML = summary.groups.map(g => `
-      <button class="network-item ${g.id === selectedGroupId ? "active" : ""}" data-group-id="${g.id}">
-        <div><strong>${escapeHtml(g.name)}</strong></div>
-        <small>${g.members?.length || 0} członków • ${g.assignedSheets?.length || 0} arkuszy</small>
-      </button>
-    `).join("");
-    renderGroupDetails();
-  }
-
-  function renderFriends() {
-    const wrap = el("friends-wrap");
-    if (!summary.friends.length) {
-      wrap.innerHTML = `<div class="network-empty">Brak znajomych.</div>`;
-      return;
-    }
-    wrap.innerHTML = `
-      <table class="network-table">
-        <thead><tr><th>Użytkownik</th><th>E-mail</th><th></th></tr></thead>
-        <tbody>
-          ${summary.friends.map(f => `
-            <tr>
-              <td>${escapeHtml(f.username)}</td>
-              <td>${escapeHtml(f.email || "")}</td>
-              <td><button class="btn btn-secondary" data-remove-friend="${f.id}" type="button">Usuń</button></td>
-            </tr>
-          `).join("")}
-        </tbody>
-      </table>`;
-  }
-
-  function renderGroupDetails() {
-    const group = summary.groups.find(g => g.id === selectedGroupId);
-    const header = el("group-header");
-    const watchBtn = el("watch-toggle-btn");
-    const membersWrap = el("members-wrap");
-    const sheetsWrap = el("sheets-wrap");
-
-    if (!group) {
-      header.innerHTML = `<strong>Wybierz grupę</strong>`;
-      watchBtn.disabled = true;
-      membersWrap.innerHTML = `<div class="network-empty">Brak wybranej grupy.</div>`;
-      sheetsWrap.innerHTML = `<div class="network-empty">Brak wybranej grupy.</div>`;
-      return;
+    async function api(url, method = "GET", payload = null) {
+        const options = { method, headers: { "X-Requested-With": "XMLHttpRequest" }, credentials: "same-origin" };
+        if (payload) {
+            options.headers["Content-Type"] = "application/json";
+            options.body = JSON.stringify(payload);
+        }
+        const res = await fetch(url, options);
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.error || `Błąd ${res.status}`);
+        return data;
     }
 
-    header.innerHTML = `<strong>${escapeHtml(group.name)}</strong><span class="network-badge">${escapeHtml(group.role || "member")}</span>`;
-    watchBtn.disabled = false;
-    watchBtn.textContent = group.watching ? "Obserwujesz" : "Obserwuj";
-
-    if (!group.members?.length) {
-      membersWrap.innerHTML = `<div class="network-empty">Brak członków.</div>`;
-    } else {
-      membersWrap.innerHTML = `
-        <table class="network-table">
-          <thead><tr><th>Użytkownik</th><th>Rola</th><th></th></tr></thead>
-          <tbody>
-            ${group.members.map(m => `
-              <tr>
-                <td>${escapeHtml(m.username)}</td>
-                <td><span class="network-badge">${escapeHtml(m.role)}</span></td>
-                <td>${group.canManage && m.role !== "owner" ? `<button class="btn btn-secondary" data-remove-member="${m.id}" type="button">Usuń</button>` : ""}</td>
-              </tr>
-            `).join("")}
-          </tbody>
-        </table>`;
+    function escapeHtml(value) {
+        return String(value ?? "").replace(/[&<>\"']/g, (ch) => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", "\"":"&quot;", "'":"&#39;" }[ch]));
     }
 
-    if (!group.assignedSheets?.length) {
-      sheetsWrap.innerHTML = `<div class="network-empty">Brak przypisanych arkuszy.</div>`;
-    } else {
-      sheetsWrap.innerHTML = `
-        <table class="network-table">
-          <thead><tr><th>Arkusz</th><th>Kategoria</th><th></th></tr></thead>
-          <tbody>
-            ${group.assignedSheets.map(s => `
-              <tr>
-                <td>${escapeHtml(s.name)}</td>
-                <td>${escapeHtml(s.category || "")}</td>
-                <td>${group.canManage ? `<button class="btn btn-secondary" data-unassign-sheet="${s.id}" type="button">Odepnij</button>` : ""}</td>
-              </tr>
-            `).join("")}
-          </tbody>
-        </table>`;
+    function currentGroup() {
+        return summary.groups.find((group) => group.id === selectedGroupId) || null;
     }
 
-    const selector = el("sheet-select");
-    const assigned = new Set((group.assignedSheets || []).map(s => String(s.id)));
-    const available = sheets.filter(s => !assigned.has(String(s.id)));
-    selector.innerHTML = available.length
-      ? available.map(s => `<option value="${s.id}">${escapeHtml(s.name)}</option>`).join("")
-      : `<option value="">Brak wolnych arkuszy</option>`;
-    selector.disabled = !group.canManage || !available.length;
-    el("sheet-assign-btn").disabled = !group.canManage || !available.length;
-    el("member-add-btn").disabled = !group.canManage;
-  }
+    function currentOrganization() {
+        return summary.organizations.find((org) => org.id === selectedOrgId) || null;
+    }
 
-  async function loadAll() {
-    const [net, sheetRows] = await Promise.all([
-      api("/ares/api/network/summary/"),
-      api("/ares/api/sheets/")
-    ]);
-    summary = net;
-    sheets = Array.isArray(sheetRows) ? sheetRows : [];
-    renderKpi();
-    renderGroups();
-    renderFriends();
-  }
+    function switchTab(name) {
+        document.querySelectorAll("[data-network-tab]").forEach((btn) => btn.classList.toggle("active", btn.dataset.networkTab === name));
+        document.querySelectorAll("[data-network-panel]").forEach((panel) => { panel.hidden = panel.dataset.networkPanel !== name; });
+    }
 
-  el("group-create-btn").addEventListener("click", async () => {
-    const name = (el("group-name-input").value || "").trim();
-    if (!name) return;
-    await api("/ares/api/network/groups/create/", "POST", { name });
-    el("group-name-input").value = "";
-    await loadAll();
-  });
+    function renderKpi() {
+        const memberCount = summary.groups.reduce((sum, group) => sum + (group.members?.length || 0), 0);
+        const sheetCount = summary.groups.reduce((sum, group) => sum + (group.assignedSheets?.length || 0), 0);
+        const reportCount = summary.organizations.reduce((sum, org) => sum + (org.reportCount || 0), 0);
+        el("kpi-orgs").textContent = summary.organizations.length;
+        el("kpi-groups").textContent = summary.groups.length;
+        el("kpi-members").textContent = memberCount;
+        el("kpi-sheets").textContent = sheetCount;
+        el("kpi-reports").textContent = reportCount;
+    }
 
-  el("friend-add-btn").addEventListener("click", async () => {
-    const query = (el("friend-input").value || "").trim();
-    if (!query) return;
-    await api("/ares/api/network/friends/add/", "POST", { query });
-    el("friend-input").value = "";
-    await loadAll();
-  });
+    function renderOverview() {
+        const org = currentOrganization();
+        const group = currentGroup();
 
-  el("member-add-btn").addEventListener("click", async () => {
-    const group = summary.groups.find(g => g.id === selectedGroupId);
-    if (!group) return;
-    const query = (el("member-input").value || "").trim();
-    if (!query) return;
-    const role = el("member-role").value || "member";
-    await api(`/ares/api/network/groups/${group.id}/members/add/`, "POST", { query, role });
-    el("member-input").value = "";
-    await loadAll();
-  });
+        el("overview-org-card").innerHTML = org ? `
+            <h3>${escapeHtml(org.name)}</h3>
+            <p class="network-copy">${escapeHtml(org.description || "Brak opisu organizacji.")}</p>
+            <div class="network-chip-row">
+                <span class="network-badge">${escapeHtml(org.visibilityLabel || org.visibility)}</span>
+                <span class="network-badge">${org.teamCount || 0} zespołów</span>
+                <span class="network-badge">${org.memberCount || 0} osób</span>
+            </div>
+        ` : `<div class="network-empty">Wybierz albo utwórz organizację.</div>`;
 
-  el("sheet-assign-btn").addEventListener("click", async () => {
-    const group = summary.groups.find(g => g.id === selectedGroupId);
-    const sheetId = el("sheet-select").value;
-    if (!group || !sheetId) return;
-    await api(`/ares/api/network/groups/${group.id}/assign-sheet/`, "POST", { sheetId });
-    await loadAll();
-  });
+        el("overview-group-card").innerHTML = group ? `
+            <h3>${escapeHtml(group.name)}</h3>
+            <p class="network-copy">${escapeHtml(group.description || "Brak opisu zespołu.")}</p>
+            <div class="network-chip-row">
+                <span class="network-badge">${escapeHtml(group.organizationName || "Bez organizacji")}</span>
+                <span class="network-badge">${escapeHtml(group.role || "member")}</span>
+                <span class="network-badge">${group.members?.length || 0} członków</span>
+            </div>
+        ` : `<div class="network-empty">Wybierz zespół, aby zobaczyć jego podsumowanie.</div>`;
+    }
 
-  el("watch-toggle-btn").addEventListener("click", async () => {
-    const group = summary.groups.find(g => g.id === selectedGroupId);
-    if (!group) return;
-    await api(`/ares/api/network/groups/${group.id}/watch/toggle/`, "POST");
-    await loadAll();
-  });
+    function renderOrganizations() {
+        const list = el("organization-list");
+        const orgSelect = el("group-org-select");
+        const organizations = Array.isArray(summary.organizations) ? summary.organizations : [];
+        if (!selectedOrgId && organizations.length) selectedOrgId = organizations[0].id;
 
-  el("group-list").addEventListener("click", (event) => {
-    const btn = event.target.closest("[data-group-id]");
-    if (!btn) return;
-    selectedGroupId = Number(btn.dataset.groupId);
-    renderGroups();
-  });
+        list.innerHTML = organizations.length ? organizations.map((org) => `
+            <button class="network-list-item ${org.id === selectedOrgId ? "active" : ""}" type="button" data-org-id="${org.id}">
+                <strong>${escapeHtml(org.name)}</strong>
+                <div class="network-muted">${escapeHtml(org.visibilityLabel)} · ${org.teamCount || 0} zespołów · ${org.memberCount || 0} osób</div>
+            </button>
+        `).join("") : `<div class="network-empty">Nie masz jeszcze organizacji.</div>`;
 
-  el("friends-wrap").addEventListener("click", async (event) => {
-    const btn = event.target.closest("[data-remove-friend]");
-    if (!btn) return;
-    await api(`/ares/api/network/friends/${btn.dataset.removeFriend}/remove/`, "POST");
-    await loadAll();
-  });
+        orgSelect.innerHTML = ['<option value="">Bez organizacji</option>'].concat(
+            organizations.map((org) => `<option value="${org.id}" ${org.id === selectedOrgId ? "selected" : ""}>${escapeHtml(org.name)}</option>`)
+        ).join("");
 
-  el("members-wrap").addEventListener("click", async (event) => {
-    const btn = event.target.closest("[data-remove-member]");
-    if (!btn) return;
-    const group = summary.groups.find(g => g.id === selectedGroupId);
-    if (!group) return;
-    await api(`/ares/api/network/groups/${group.id}/members/${btn.dataset.removeMember}/remove/`, "POST");
-    await loadAll();
-  });
+        const org = currentOrganization();
+        el("organization-detail-title").textContent = org ? `Szczegóły: ${org.name}` : "Szczegóły organizacji";
+        el("organization-detail-card").innerHTML = org ? `
+            <div class="network-stack">
+                <div>
+                    <h3>${escapeHtml(org.name)}</h3>
+                    <p class="network-copy">${escapeHtml(org.description || "Brak opisu organizacji.")}</p>
+                </div>
+                <div class="network-chip-row">
+                    <span class="network-badge">${escapeHtml(org.visibilityLabel || org.visibility)}</span>
+                    <span class="network-badge">${org.teamCount || 0} zespołów</span>
+                    <span class="network-badge">${org.memberCount || 0} osób</span>
+                    <span class="network-badge">${org.reportCount || 0} raportów</span>
+                </div>
+            </div>
+        ` : `<div class="network-empty">Wybierz organizację z listy.</div>`;
+        el("organization-settings-card").innerHTML = org ? `
+            <h3>Ustawienia organizacji</h3>
+            <p class="network-copy">Zmień opis albo widoczność bez przechodzenia do innego ekranu.</p>
+            <div class="network-form">
+                <textarea id="org-settings-description" rows="4" placeholder="Opis organizacji">${escapeHtml(org.description || "")}</textarea>
+                <select id="org-settings-visibility">
+                    <option value="private" ${org.visibility === "private" ? "selected" : ""}>Prywatna</option>
+                    <option value="internal" ${org.visibility === "internal" ? "selected" : ""}>Wewnętrzna</option>
+                    <option value="public" ${org.visibility === "public" ? "selected" : ""}>Publiczna</option>
+                </select>
+                <button id="org-save-settings-btn" class="btn btn-primary" type="button" ${org.canManage ? "" : "disabled"}>Zapisz ustawienia</button>
+            </div>
+        ` : `<div class="network-empty">Po wybraniu organizacji zobaczysz tutaj jej ustawienia.</div>`;
+    }
 
-  el("sheets-wrap").addEventListener("click", async (event) => {
-    const btn = event.target.closest("[data-unassign-sheet]");
-    if (!btn) return;
-    const group = summary.groups.find(g => g.id === selectedGroupId);
-    if (!group) return;
-    await api(`/ares/api/network/groups/${group.id}/unassign-sheet/`, "POST", { sheetId: Number(btn.dataset.unassignSheet) });
-    await loadAll();
-  });
+    function renderGroups() {
+        const list = el("group-list");
+        const parentSelect = el("group-parent-select");
+        if (!selectedGroupId && summary.groups.length) selectedGroupId = summary.groups[0].id;
 
-  loadAll().catch(() => {
-    el("group-list").innerHTML = `<div class="network-empty">Nie udało się pobrać danych sieciowych.</div>`;
-    el("members-wrap").innerHTML = `<div class="network-empty">Odśwież stronę i spróbuj ponownie.</div>`;
-    el("sheets-wrap").innerHTML = `<div class="network-empty">Odśwież stronę i spróbuj ponownie.</div>`;
-    el("friends-wrap").innerHTML = `<div class="network-empty">Odśwież stronę i spróbuj ponownie.</div>`;
-  });
+        list.innerHTML = summary.groups.length ? summary.groups.map((group) => `
+            <button class="network-list-item ${group.id === selectedGroupId ? "active" : ""}" type="button" data-group-id="${group.id}">
+                <strong>${escapeHtml(group.name)}</strong>
+                <div class="network-muted">${escapeHtml(group.organizationName || "Bez organizacji")} · ${escapeHtml(group.role || "member")} · ${group.members?.length || 0} osób</div>
+            </button>
+        `).join("") : `<div class="network-empty">Brak zespołów. Utwórz pierwszy zespół.</div>`;
+
+        parentSelect.innerHTML = ['<option value="">Bez zespołu nadrzędnego</option>'].concat(
+            summary.groups.map((group) => `<option value="${group.id}">${escapeHtml(group.name)}</option>`)
+        ).join("");
+
+        renderGroupDetails();
+    }
+
+    function renderFriends() {
+        const wrap = el("friends-wrap");
+        if (!summary.friends.length) {
+            wrap.innerHTML = `<div class="network-empty">Brak znajomych.</div>`;
+            return;
+        }
+        wrap.innerHTML = `
+            <table class="network-table">
+                <thead><tr><th>Użytkownik</th><th>E-mail</th><th></th></tr></thead>
+                <tbody>
+                    ${summary.friends.map((friend) => `
+                        <tr>
+                            <td>${escapeHtml(friend.username)}</td>
+                            <td>${escapeHtml(friend.email || "")}</td>
+                            <td><button class="btn btn-secondary" type="button" data-remove-friend="${friend.id}">Usuń</button></td>
+                        </tr>
+                    `).join("")}
+                </tbody>
+            </table>
+        `;
+    }
+
+    function renderGroupDetails() {
+        const group = currentGroup();
+        const membersWrap = el("members-wrap");
+        const sheetsWrap = el("sheets-wrap");
+        const childrenWrap = el("children-wrap");
+        const watchBtn = el("watch-toggle-btn");
+        const sheetSelect = el("sheet-select");
+
+        if (!group) {
+            el("group-title").textContent = "Wybierz zespół";
+            el("group-subtitle").textContent = "Po wyborze zobaczysz członków, ustawienia i przypięte arkusze.";
+            el("group-role-badge").textContent = "member";
+            el("group-visibility-badge").textContent = "visible";
+            el("group-spec-preview").textContent = "Brak specyfikacji.";
+            membersWrap.innerHTML = `<div class="network-empty">Brak wybranego zespołu.</div>`;
+            sheetsWrap.innerHTML = `<div class="network-empty">Brak wybranego zespołu.</div>`;
+            childrenWrap.innerHTML = `<div class="network-empty">Brak wybranego zespołu.</div>`;
+            watchBtn.disabled = true;
+            renderOverview();
+            return;
+        }
+
+        watchBtn.disabled = false;
+        watchBtn.textContent = group.watching ? "Obserwujesz" : "Obserwuj";
+        el("group-title").textContent = group.name;
+        el("group-subtitle").textContent = `${group.organizationName || "Bez organizacji"} · ${group.notificationSettingLabel || group.notificationSetting}`;
+        el("group-role-badge").textContent = group.role || "member";
+        el("group-visibility-badge").textContent = group.visibilityLabel || group.visibility;
+        el("group-description-input").value = group.description || "";
+        el("group-settings-spec-input").value = group.specification || "";
+        el("group-settings-visibility").value = group.visibility || "visible";
+        el("group-settings-notify").value = group.notificationSetting || "enabled";
+        el("group-spec-preview").textContent = group.specification || "Brak specyfikacji.";
+        el("member-add-btn").disabled = !group.canManage;
+        el("sheet-assign-btn").disabled = !group.canManage;
+
+        membersWrap.innerHTML = group.members?.length ? `
+            <table class="network-table">
+                <thead><tr><th>Użytkownik</th><th>Rola</th><th></th></tr></thead>
+                <tbody>
+                    ${group.members.map((member) => `
+                        <tr>
+                            <td>${escapeHtml(member.username)}<div class="network-muted">${escapeHtml(member.email || "")}</div></td>
+                            <td><span class="network-badge">${escapeHtml(member.role)}</span></td>
+                            <td>${group.canManage && member.role !== "owner" ? `<button class="btn btn-secondary" type="button" data-remove-member="${member.id}">Usuń</button>` : ""}</td>
+                        </tr>
+                    `).join("")}
+                </tbody>
+            </table>
+        ` : `<div class="network-empty">Brak członków.</div>`;
+
+        const availableSheets = sheets.filter((sheet) => !(group.assignedSheets || []).some((assigned) => String(assigned.id) === String(sheet.id)));
+        sheetSelect.innerHTML = availableSheets.length ? availableSheets.map((sheet) => `<option value="${sheet.id}">${escapeHtml(sheet.name)}</option>`).join("") : `<option value="">Brak wolnych arkuszy</option>`;
+        sheetSelect.disabled = !group.canManage || !availableSheets.length;
+
+        sheetsWrap.innerHTML = group.assignedSheets?.length ? `
+            <table class="network-table">
+                <thead><tr><th>Arkusz</th><th>Kategoria</th><th></th></tr></thead>
+                <tbody>
+                    ${group.assignedSheets.map((sheet) => `
+                        <tr>
+                            <td>${escapeHtml(sheet.name)}</td>
+                            <td>${escapeHtml(sheet.category || "")}</td>
+                            <td>${group.canManage ? `<button class="btn btn-secondary" type="button" data-unassign-sheet="${sheet.id}">Odepnij</button>` : ""}</td>
+                        </tr>
+                    `).join("")}
+                </tbody>
+            </table>
+        ` : `<div class="network-empty">Brak przypiętych arkuszy.</div>`;
+
+        childrenWrap.innerHTML = group.children?.length ? `
+            <div class="network-chip-row">
+                ${group.children.map((child) => `<span class="network-badge">${escapeHtml(child.name)}</span>`).join("")}
+            </div>
+        ` : `<div class="network-empty">Brak podzespołów.</div>`;
+
+        renderOverview();
+    }
+
+    async function loadAll() {
+        const [network, sheetRows] = await Promise.all([
+            api("/ares/api/network/summary/"),
+            api("/ares/api/sheets/")
+        ]);
+        summary = network;
+        sheets = Array.isArray(sheetRows) ? sheetRows : [];
+        renderKpi();
+        renderOrganizations();
+        renderGroups();
+        renderFriends();
+        renderOverview();
+    }
+
+    document.querySelectorAll("[data-network-tab]").forEach((button) => button.addEventListener("click", () => switchTab(button.dataset.networkTab)));
+    document.querySelectorAll("[data-network-jump]").forEach((button) => button.addEventListener("click", () => switchTab(button.dataset.networkJump)));
+
+    el("org-create-btn").addEventListener("click", async () => {
+        const name = (el("org-name-input").value || "").trim();
+        if (!name) return;
+        await api("/ares/api/network/organizations/create/", "POST", {
+            name,
+            description: el("org-description-input").value || "",
+            visibility: el("org-visibility-input").value || "private"
+        });
+        el("org-name-input").value = "";
+        el("org-description-input").value = "";
+        await loadAll();
+        switchTab("organizations");
+    });
+
+    el("group-create-btn").addEventListener("click", async () => {
+        const name = (el("group-name-input").value || "").trim();
+        if (!name) return;
+        await api("/ares/api/network/groups/create/", "POST", {
+            name,
+            specification: el("group-spec-input").value || "",
+            organizationId: el("group-org-select").value || null,
+            parentTeamId: el("group-parent-select").value || null,
+            visibility: el("group-visibility-select").value || "visible",
+            notificationSetting: el("group-notify-select").value || "enabled"
+        });
+        el("group-name-input").value = "";
+        el("group-spec-input").value = "";
+        await loadAll();
+        switchTab("teams");
+    });
+
+    el("friend-add-btn").addEventListener("click", async () => {
+        const query = (el("friend-input").value || "").trim();
+        if (!query) return;
+        await api("/ares/api/network/friends/add/", "POST", { query });
+        el("friend-input").value = "";
+        await loadAll();
+    });
+
+    document.addEventListener("click", async (event) => {
+        const saveOrg = event.target.closest("#org-save-settings-btn");
+        if (!saveOrg) return;
+        const org = currentOrganization();
+        if (!org) return;
+        await api(`/ares/api/network/organizations/${org.id}/update/`, "POST", {
+            description: el("org-settings-description")?.value || "",
+            visibility: el("org-settings-visibility")?.value || "private"
+        });
+        await loadAll();
+    });
+
+    el("member-add-btn").addEventListener("click", async () => {
+        const group = currentGroup();
+        const query = (el("member-input").value || "").trim();
+        if (!group || !query) return;
+        await api(`/ares/api/network/groups/${group.id}/members/add/`, "POST", {
+            query,
+            role: el("member-role").value || "member"
+        });
+        el("member-input").value = "";
+        await loadAll();
+    });
+
+    el("sheet-assign-btn").addEventListener("click", async () => {
+        const group = currentGroup();
+        const sheetId = el("sheet-select").value;
+        if (!group || !sheetId) return;
+        await api(`/ares/api/network/groups/${group.id}/assign-sheet/`, "POST", { sheetId });
+        await loadAll();
+    });
+
+    el("group-save-settings-btn").addEventListener("click", async () => {
+        const group = currentGroup();
+        if (!group) return;
+        await api(`/ares/api/network/groups/${group.id}/update/`, "POST", {
+            description: el("group-description-input").value || "",
+            specification: el("group-settings-spec-input").value || "",
+            visibility: el("group-settings-visibility").value || "visible",
+            notificationSetting: el("group-settings-notify").value || "enabled"
+        });
+        await loadAll();
+    });
+
+    el("watch-toggle-btn").addEventListener("click", async () => {
+        const group = currentGroup();
+        if (!group) return;
+        await api(`/ares/api/network/groups/${group.id}/watch/toggle/`, "POST");
+        await loadAll();
+    });
+
+    el("organization-list").addEventListener("click", (event) => {
+        const button = event.target.closest("[data-org-id]");
+        if (!button) return;
+        selectedOrgId = parseInt(button.dataset.orgId, 10);
+        renderOrganizations();
+        renderOverview();
+    });
+
+    el("group-list").addEventListener("click", (event) => {
+        const button = event.target.closest("[data-group-id]");
+        if (!button) return;
+        selectedGroupId = parseInt(button.dataset.groupId, 10);
+        renderGroups();
+    });
+
+    el("friends-wrap").addEventListener("click", async (event) => {
+        const button = event.target.closest("[data-remove-friend]");
+        if (!button) return;
+        await api(`/ares/api/network/friends/${button.dataset.removeFriend}/remove/`, "POST");
+        await loadAll();
+    });
+
+    el("members-wrap").addEventListener("click", async (event) => {
+        const group = currentGroup();
+        const button = event.target.closest("[data-remove-member]");
+        if (!group || !button) return;
+        await api(`/ares/api/network/groups/${group.id}/members/${button.dataset.removeMember}/remove/`, "POST");
+        await loadAll();
+    });
+
+    el("sheets-wrap").addEventListener("click", async (event) => {
+        const group = currentGroup();
+        const button = event.target.closest("[data-unassign-sheet]");
+        if (!group || !button) return;
+        await api(`/ares/api/network/groups/${group.id}/unassign-sheet/`, "POST", { sheetId: button.dataset.unassignSheet });
+        await loadAll();
+    });
+
+    loadAll().catch(() => {
+        el("organization-list").innerHTML = `<div class="network-empty">Nie udało się pobrać danych współpracy.</div>`;
+        el("group-list").innerHTML = `<div class="network-empty">Nie udało się pobrać danych współpracy.</div>`;
+    });
 });
 </script>
 {% endblock %}

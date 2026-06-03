@@ -151,6 +151,9 @@ class Addon(models.Model):
     KIND_TEMPLATE = 'template'
     KIND_TOOL = 'tool'
     KIND_MACRO = 'macro'
+    HOST_SHEETS = 'sheets'
+    HOST_REPORTS = 'reports'
+    HOST_WORKSPACE = 'workspace'
 
     KIND_CHOICES = [
         (KIND_SCRIPT, 'Skrypt'),
@@ -162,6 +165,11 @@ class Addon(models.Model):
     STATUS_PENDING = 'pending'
     STATUS_APPROVED = 'approved'
     STATUS_REJECTED = 'rejected'
+    HOST_CHOICES = [
+        (HOST_SHEETS, 'Arkusze'),
+        (HOST_REPORTS, 'Raporty'),
+        (HOST_WORKSPACE, 'Workspace'),
+    ]
 
     STATUS_CHOICES = [
         (STATUS_PENDING, 'Oczekuje'),
@@ -172,9 +180,16 @@ class Addon(models.Model):
     title = models.CharField(max_length=160)
     summary = models.TextField(max_length=800)
     kind = models.CharField(max_length=30, choices=KIND_CHOICES, default=KIND_SCRIPT)
+    category = models.CharField(max_length=80, blank=True, default='Automatyzacja')
+    host = models.CharField(max_length=30, choices=HOST_CHOICES, default=HOST_SHEETS)
     version = models.CharField(max_length=40, blank=True, default='1.0.0')
     script_body = models.TextField()
     instructions = models.TextField(blank=True, default='')
+    entry_point = models.CharField(max_length=120, blank=True, default='onOpen')
+    auth_mode = models.CharField(max_length=40, blank=True, default='user')
+    scopes = models.TextField(blank=True, default='')
+    menu_items = models.JSONField(default=list, blank=True)
+    installation_count = models.PositiveIntegerField(default=0)
     author = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
@@ -222,10 +237,18 @@ class Addon(models.Model):
             'summary': self.summary,
             'kind': self.kind,
             'kindLabel': self.get_kind_display(),
+            'category': self.category,
+            'host': self.host,
+            'hostLabel': self.get_host_display(),
             'version': self.version,
             'author': author_name,
             'instructions': self.instructions,
             'scriptBody': self.script_body,
+            'entryPoint': self.entry_point,
+            'authMode': self.auth_mode,
+            'scopes': [line.strip() for line in self.scopes.splitlines() if line.strip()],
+            'menuItems': self.menu_items if isinstance(self.menu_items, list) else [],
+            'installationCount': self.installation_count,
             'createdAt': self.created_at.isoformat(),
             'updatedAt': self.updated_at.isoformat(),
         }
@@ -258,12 +281,79 @@ class FriendLink(models.Model):
         return f'{self.owner.username} -> {self.friend.username}'
 
 
-class WorkspaceGroup(models.Model):
-    """Globalna grupa robocza (organizacja/projekt) z członkami i arkuszami."""
+class WorkspaceOrganization(models.Model):
+    VISIBILITY_PRIVATE = 'private'
+    VISIBILITY_INTERNAL = 'internal'
+    VISIBILITY_PUBLIC = 'public'
+    VISIBILITY_CHOICES = [
+        (VISIBILITY_PRIVATE, 'Prywatna'),
+        (VISIBILITY_INTERNAL, 'WewnÄ™trzna'),
+        (VISIBILITY_PUBLIC, 'Publiczna'),
+    ]
 
     name = models.CharField(max_length=160)
     slug = models.SlugField(max_length=190, unique=True)
     description = models.TextField(blank=True, default='')
+    website = models.URLField(blank=True, default='')
+    visibility = models.CharField(max_length=20, choices=VISIBILITY_CHOICES, default=VISIBILITY_PRIVATE)
+    allow_member_team_creation = models.BooleanField(default=False)
+    settings_json = models.JSONField(default=dict, blank=True)
+    owner = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='owned_workspace_organizations'
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['name', '-created_at']
+        indexes = [
+            models.Index(fields=['owner']),
+            models.Index(fields=['slug']),
+            models.Index(fields=['visibility']),
+        ]
+
+    def __str__(self):
+        return self.name
+
+
+class WorkspaceGroup(models.Model):
+    """Globalna grupa robocza (organizacja/projekt) z członkami i arkuszami."""
+
+    VISIBILITY_VISIBLE = 'visible'
+    VISIBILITY_SECRET = 'secret'
+    VISIBILITY_CHOICES = [
+        (VISIBILITY_VISIBLE, 'Visible'),
+        (VISIBILITY_SECRET, 'Secret'),
+    ]
+    NOTIFY_ENABLED = 'enabled'
+    NOTIFY_DISABLED = 'disabled'
+    NOTIFY_CHOICES = [
+        (NOTIFY_ENABLED, 'Enabled'),
+        (NOTIFY_DISABLED, 'Disabled'),
+    ]
+    name = models.CharField(max_length=160)
+    slug = models.SlugField(max_length=190, unique=True)
+    description = models.TextField(blank=True, default='')
+    specification = models.TextField(blank=True, default='')
+    organization = models.ForeignKey(
+        WorkspaceOrganization,
+        on_delete=models.CASCADE,
+        related_name='teams',
+        null=True,
+        blank=True,
+    )
+    parent = models.ForeignKey(
+        'self',
+        on_delete=models.SET_NULL,
+        related_name='children',
+        null=True,
+        blank=True,
+    )
+    visibility = models.CharField(max_length=20, choices=VISIBILITY_CHOICES, default=VISIBILITY_VISIBLE)
+    notification_setting = models.CharField(max_length=20, choices=NOTIFY_CHOICES, default=NOTIFY_ENABLED)
+    settings_json = models.JSONField(default=dict, blank=True)
     owner = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
@@ -277,6 +367,9 @@ class WorkspaceGroup(models.Model):
         indexes = [
             models.Index(fields=['owner']),
             models.Index(fields=['slug']),
+            models.Index(fields=['organization']),
+            models.Index(fields=['parent']),
+            models.Index(fields=['visibility']),
         ]
 
     def __str__(self):
@@ -286,10 +379,12 @@ class WorkspaceGroup(models.Model):
 class WorkspaceGroupMembership(models.Model):
     ROLE_OWNER = 'owner'
     ROLE_ADMIN = 'admin'
+    ROLE_MAINTAINER = 'maintainer'
     ROLE_MEMBER = 'member'
     ROLE_CHOICES = [
         (ROLE_OWNER, 'Owner'),
         (ROLE_ADMIN, 'Admin'),
+        (ROLE_MAINTAINER, 'Maintainer'),
         (ROLE_MEMBER, 'Member'),
     ]
 
@@ -344,3 +439,92 @@ class GroupWatch(models.Model):
 
     def __str__(self):
         return f'{self.user.username} watches {self.group.name}'
+
+
+class AddonInstallation(models.Model):
+    addon = models.ForeignKey(Addon, on_delete=models.CASCADE, related_name='installations')
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='addon_installations')
+    sheet = models.ForeignKey(Sheet, on_delete=models.CASCADE, related_name='addon_installations', null=True, blank=True)
+    enabled = models.BooleanField(default=True)
+    config_json = models.JSONField(default=dict, blank=True)
+    installed_at = models.DateTimeField(auto_now_add=True)
+    last_used_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ['-installed_at']
+        unique_together = ('addon', 'user', 'sheet')
+        indexes = [
+            models.Index(fields=['addon']),
+            models.Index(fields=['user']),
+            models.Index(fields=['sheet']),
+        ]
+
+    def __str__(self):
+        scope = self.sheet.name if self.sheet_id else 'global'
+        return f'{self.user.username} -> {self.addon.title} ({scope})'
+
+
+class UserReport(models.Model):
+    TYPE_EXECUTIVE = 'executive'
+    TYPE_ANALYTICAL = 'analytical'
+    TYPE_DASHBOARD = 'dashboard'
+    TYPE_NOTEBOOK = 'notebook'
+    TYPE_CHOICES = [
+        (TYPE_EXECUTIVE, 'Executive'),
+        (TYPE_ANALYTICAL, 'Analytical'),
+        (TYPE_DASHBOARD, 'Dashboard'),
+        (TYPE_NOTEBOOK, 'Notebook / Quarto'),
+    ]
+    VISIBILITY_PRIVATE = 'private'
+    VISIBILITY_TEAM = 'team'
+    VISIBILITY_ORG = 'organization'
+    VISIBILITY_CHOICES = [
+        (VISIBILITY_PRIVATE, 'Prywatny'),
+        (VISIBILITY_TEAM, 'Team'),
+        (VISIBILITY_ORG, 'Organizacja'),
+    ]
+
+    owner = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='user_reports')
+    sheet = models.ForeignKey(Sheet, on_delete=models.SET_NULL, related_name='reports', null=True, blank=True)
+    group = models.ForeignKey(WorkspaceGroup, on_delete=models.SET_NULL, related_name='reports', null=True, blank=True)
+    organization = models.ForeignKey(WorkspaceOrganization, on_delete=models.SET_NULL, related_name='reports', null=True, blank=True)
+    title = models.CharField(max_length=180)
+    description = models.TextField(blank=True, default='')
+    report_type = models.CharField(max_length=20, choices=TYPE_CHOICES, default=TYPE_ANALYTICAL)
+    visibility = models.CharField(max_length=20, choices=VISIBILITY_CHOICES, default=VISIBILITY_PRIVATE)
+    config_json = models.JSONField(default=dict, blank=True)
+    snapshot_json = models.JSONField(default=dict, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-updated_at']
+        indexes = [
+            models.Index(fields=['owner', 'updated_at']),
+            models.Index(fields=['report_type']),
+            models.Index(fields=['visibility']),
+        ]
+
+    def __str__(self):
+        return f'{self.title} ({self.owner.username})'
+
+    def to_payload(self):
+        return {
+            'id': self.id,
+            'title': self.title,
+            'description': self.description,
+            'reportType': self.report_type,
+            'reportTypeLabel': self.get_report_type_display(),
+            'visibility': self.visibility,
+            'visibilityLabel': self.get_visibility_display(),
+            'sheetId': self.sheet_id,
+            'sheetName': self.sheet.name if self.sheet_id else '',
+            'groupId': self.group_id,
+            'groupName': self.group.name if self.group_id else '',
+            'organizationId': self.organization_id,
+            'organizationName': self.organization.name if self.organization_id else '',
+            'config': self.config_json if isinstance(self.config_json, dict) else {},
+            'snapshot': self.snapshot_json if isinstance(self.snapshot_json, dict) else {},
+            'createdAt': self.created_at.isoformat(),
+            'updatedAt': self.updated_at.isoformat(),
+        }

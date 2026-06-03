@@ -5,253 +5,429 @@
 
 {% block extra_head %}
 <style>
-.reports-layout { display: grid; gap: 16px; }
-.reports-card {
-    border: 1px solid var(--line, rgba(0,0,0,.12));
-    border-radius: 12px;
-    padding: 16px;
-    background: color-mix(in srgb, var(--panel, #f7f2e9) 95%, #fff 5%);
-}
-.reports-head { display: flex; justify-content: space-between; gap: 12px; align-items: flex-start; }
-.reports-actions { display: flex; gap: 8px; flex-wrap: wrap; }
-.kpi-grid { display: grid; gap: 10px; grid-template-columns: repeat(6, minmax(120px, 1fr)); }
-.kpi { border: 1px solid var(--line, rgba(0,0,0,.14)); border-radius: 10px; padding: 10px 12px; background: color-mix(in srgb, var(--panel-2, #fff) 96%, transparent); }
-.kpi strong { display:block; margin-top:4px; font-size:1.4rem; }
-.reports-grid { display: grid; gap: 12px; grid-template-columns: 1fr 1fr; }
-.insight-list { display: grid; gap: 8px; }
-.insight { border: 1px solid var(--line, rgba(0,0,0,.13)); border-radius: 10px; padding: 10px 12px; }
-.bar-list { display: grid; gap: 8px; }
-.bar-top { display: flex; justify-content: space-between; gap: 10px; font-size: .92rem; }
-.bar-track { height: 8px; border-radius: 999px; background: color-mix(in srgb, var(--line, #d1d5db) 55%, transparent); overflow: hidden; }
-.bar-fill { height: 100%; border-radius: 999px; background: linear-gradient(90deg, #1982c4, #8ac926); }
-.chip-list { display: flex; flex-wrap: wrap; gap: 8px; }
-.chip { border-radius: 999px; border: 1px solid var(--line, rgba(0,0,0,.14)); padding: 6px 10px; font-size: .85rem; }
-.sparkline { width: 100%; height: 160px; border-radius: 10px; border: 1px solid var(--line, rgba(0,0,0,.14)); background: color-mix(in srgb, var(--panel-2, #fff) 96%, transparent); }
-.chart-caption { margin-top: 8px; color: var(--muted, #6b7280); font-size: .85rem; }
-.daily-axis { display:flex; justify-content:space-between; gap:8px; margin-top:6px; color: var(--muted,#6b7280); font-size:.78rem; }
-
-@media (max-width: 1100px) {
-    .kpi-grid { grid-template-columns: repeat(2, minmax(120px, 1fr)); }
-    .reports-grid { grid-template-columns: 1fr; }
-}
-
-@media print {
-    .topbar-right, .reports-actions, .bottom-dock, .music-player, .quick-actions, #chat-launcher { display: none !important; }
-    .reports-card { break-inside: avoid; }
-}
+.reports-shell{display:grid;gap:18px;color:#f8fbff}
+.reports-shell h1,.reports-shell h2,.reports-shell h3,.reports-shell strong,.reports-shell label{color:#fff}
+.reports-card{border:1px solid rgba(148,163,184,.22);border-radius:24px;padding:22px;background:linear-gradient(180deg,rgba(31,44,70,.98),rgba(14,21,36,.98));box-shadow:0 18px 38px rgba(0,0,0,.22)}
+.reports-hero{background:radial-gradient(circle at top right,rgba(101,145,255,.18),transparent 34%),radial-gradient(circle at bottom left,rgba(45,212,191,.1),transparent 28%),linear-gradient(180deg,rgba(38,53,84,.98),rgba(21,30,50,.98))}
+.reports-head{display:flex;justify-content:space-between;gap:14px;align-items:flex-start}
+.reports-actions,.reports-inline{display:flex;gap:8px;flex-wrap:wrap}
+.reports-copy{margin:8px 0 0;color:#d8e5ff}
+.reports-kpis{display:grid;gap:12px;grid-template-columns:repeat(6,minmax(0,1fr))}
+.reports-kpi{border:1px solid rgba(148,163,184,.18);border-radius:16px;padding:14px;background:rgba(18,30,53,.92)}
+.reports-kpi strong{display:block;margin-top:6px;font-size:1.45rem}
+.reports-grid{display:grid;gap:18px;grid-template-columns:1.05fr .95fr}
+.reports-builder,.reports-stack{display:grid;gap:12px}
+.reports-builder input,.reports-builder textarea,.reports-builder select{width:100%;border-radius:14px;border:1px solid rgba(148,163,184,.22);padding:11px 12px;background:rgba(10,17,30,.96);color:#f8fbff}
+.reports-mini-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.reports-export-grid{display:grid;gap:10px;grid-template-columns:repeat(2,minmax(0,1fr))}
+.reports-export-tile,.report-item{border:1px solid rgba(148,163,184,.18);border-radius:18px;padding:16px;background:rgba(18,30,53,.92)}
+.reports-export-tile p,.report-item p{margin:0;color:#d3def7}
+.reports-empty{border:1px dashed rgba(148,163,184,.28);border-radius:16px;padding:16px;color:#d6e2ff;background:rgba(11,18,32,.72)}
+.sparkline{width:100%;height:180px;border-radius:16px;border:1px solid rgba(148,163,184,.18);background:rgba(15,24,41,.96)}
+.bar-list{display:grid;gap:10px}
+.bar-track{height:8px;border-radius:999px;overflow:hidden;background:color-mix(in srgb,var(--line,#d1d5db) 55%,transparent)}
+.bar-fill{height:100%;border-radius:999px;background:linear-gradient(90deg,#1d78ff,#14b8a6)}
+.report-item h3{margin:0 0 6px}
+.report-meta,.report-kpis{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0 12px}
+.report-chip{display:inline-flex;align-items:center;border:1px solid rgba(148,163,184,.2);border-radius:999px;padding:5px 10px;font-size:.8rem;background:rgba(12,19,33,.96);color:#f8fbff}
+.report-insights{border-radius:14px;border:1px dashed rgba(148,163,184,.22);padding:12px 14px;white-space:pre-wrap;background:rgba(11,18,32,.76);color:#f8fbff}
+.report-section{display:block;margin-top:10px;color:#fff}
+@media (max-width:1180px){.reports-grid{grid-template-columns:1fr}.reports-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.reports-mini-grid,.reports-export-grid{grid-template-columns:1fr}}
+@media print{.topbar-right,.bottom-dock,.music-player,.quick-actions,#chat-launcher,.reports-actions,.btn{display:none !important}}
 </style>
 {% endblock %}
 
 {% block content %}
-<section class="reports-layout" id="report-print-root">
-    <article class="reports-card">
+<section class="reports-shell" id="report-print-root">
+    <article class="reports-card reports-hero">
         <div class="reports-head">
             <div>
-                <div class="section-kicker">Raport aktywności</div>
-                <h1 style="margin:0">Panel użytkownika i pracy na arkuszach</h1>
-                <p style="margin:8px 0 0;color:var(--muted,#6b7280)">Statystyki zapisów, działań, aktywności dziennej i użycia dodatków.</p>
+                <div class="section-kicker">Raporty</div>
+                <h1 style="margin:4px 0 8px;">Raport od szkicu do PDF albo DOCX</h1>
+                <p class="reports-copy">Twórz raporty prywatne, zespołowe albo organizacyjne. Po zapisaniu dostajesz serwerowy podgląd i eksport PDF lub DOCX.</p>
             </div>
             <div class="reports-actions">
                 <button id="report-refresh-btn" class="btn btn-secondary" type="button">Odśwież</button>
-                <button id="report-pdf-btn" class="btn btn-primary" type="button">Pobierz PDF</button>
+                <button id="report-pdf-btn" class="btn btn-primary" type="button">Drukuj widok</button>
             </div>
         </div>
     </article>
 
     <article class="reports-card">
-        <div class="kpi-grid">
-            <div class="kpi"><small>Arkusze</small><strong id="kpi-sheets">0</strong></div>
-            <div class="kpi"><small>Wszystkie akcje</small><strong id="kpi-actions">0</strong></div>
-            <div class="kpi"><small>Akcje dziś</small><strong id="kpi-today">0</strong></div>
-            <div class="kpi"><small>Akcje 30 dni</small><strong id="kpi-month">0</strong></div>
-            <div class="kpi"><small>Zapisy arkusza</small><strong id="kpi-saves">0</strong></div>
-            <div class="kpi"><small>Uruchomienia skryptów</small><strong id="kpi-scripts">0</strong></div>
+        <div class="reports-kpis">
+            <div class="reports-kpi"><small>Arkusze</small><strong id="kpi-sheets">0</strong></div>
+            <div class="reports-kpi"><small>Akcje razem</small><strong id="kpi-actions">0</strong></div>
+            <div class="reports-kpi"><small>Akcje 30 dni</small><strong id="kpi-month">0</strong></div>
+            <div class="reports-kpi"><small>Zapisy</small><strong id="kpi-saves">0</strong></div>
+            <div class="reports-kpi"><small>Dodatki</small><strong id="kpi-addons">0</strong></div>
+            <div class="reports-kpi"><small>Twoje raporty</small><strong id="kpi-user-reports">0</strong></div>
         </div>
     </article>
 
     <section class="reports-grid">
         <article class="reports-card">
-            <div class="section-kicker">Aktywność dzienna (30 dni)</div>
-            <svg id="daily-activity-chart" class="sparkline" viewBox="0 0 900 160" preserveAspectRatio="none"></svg>
-            <div id="daily-activity-axis" class="daily-axis"></div>
-            <div class="chart-caption">Liczba akcji wykonanych każdego dnia. Oś pokazuje większe progi dni (co tydzień).</div>
+            <div class="section-kicker">Kreator raportu</div>
+            <p class="reports-copy">Możesz zacząć tutaj albo wygodniej z poziomu edytora arkusza, gdzie wybierzesz konkretne wykresy i tabele przestawne.</p>
+            <div class="reports-builder">
+                <input id="report-title-input" type="text" placeholder="Np. Raport tygodniowy Solver">
+                <textarea id="report-description-input" rows="4" placeholder="O czym jest raport, dla kogo i jaka decyzja ma z niego wyniknąć"></textarea>
+                <div class="reports-mini-grid">
+                    <select id="report-sheet-select"></select>
+                    <select id="report-type-select">
+                        <option value="analytical">Analytical</option>
+                        <option value="executive">Executive</option>
+                        <option value="dashboard">Dashboard</option>
+                        <option value="notebook">Notebook / Quarto</option>
+                    </select>
+                    <select id="report-visibility-select">
+                        <option value="private">Prywatny</option>
+                        <option value="team">Zespół</option>
+                        <option value="organization">Organizacja</option>
+                    </select>
+                    <select id="report-scope-select"></select>
+                </div>
+                <textarea id="report-kpis-input" rows="4" placeholder="KPI, po jednym w wierszu, np. Zapisy dzienne|42"></textarea>
+                <textarea id="report-insights-input" rows="5" placeholder="Wnioski, po jednym w wierszu"></textarea>
+                <div class="reports-actions">
+                    <button id="report-create-btn" class="btn btn-primary" type="button">Utwórz raport</button>
+                    <button id="report-clear-btn" class="btn btn-secondary" type="button">Wyczyść formularz</button>
+                </div>
+            </div>
         </article>
-        <article class="reports-card">
-            <div class="section-kicker">Najczęstsze typy akcji</div>
-            <div id="action-bars" class="bar-list"></div>
-        </article>
-        <article class="reports-card">
-            <div class="section-kicker">Wnioski</div>
-            <div id="insights" class="insight-list"></div>
-        </article>
-        <article class="reports-card">
-            <div class="section-kicker">Top arkusze</div>
-            <div id="sheet-bars" class="bar-list"></div>
-        </article>
+
+        <div class="reports-stack">
+            <article class="reports-card">
+                <div class="section-kicker">Szkic roboczy</div>
+                <p class="reports-copy">Przed zapisaniem możesz nadal pobrać lżejsze wersje HTML, Markdown albo LaTeX.</p>
+                <div class="reports-export-grid">
+                    <div class="reports-export-tile">
+                        <strong>HTML</strong>
+                        <p>Dobry do szybkiego podglądu i poprawek.</p>
+                        <button class="btn btn-secondary" type="button" data-draft-export="html">Pobierz HTML</button>
+                    </div>
+                    <div class="reports-export-tile">
+                        <strong>Markdown</strong>
+                        <p>Przydatny do wiki, README i notatek.</p>
+                        <button class="btn btn-secondary" type="button" data-draft-export="md">Pobierz MD</button>
+                    </div>
+                    <div class="reports-export-tile">
+                        <strong>LaTeX</strong>
+                        <p>Wersja robocza do dalszego składu.</p>
+                        <button class="btn btn-secondary" type="button" data-draft-export="tex">Pobierz TEX</button>
+                    </div>
+                    <div class="reports-export-tile">
+                        <strong>PDF i DOCX</strong>
+                        <p>Po zapisaniu raportu dostajesz podgląd i eksport po stronie serwera.</p>
+                    </div>
+                </div>
+            </article>
+
+            <article class="reports-card">
+                <div class="section-kicker">Aktywność 30 dni</div>
+                <svg id="daily-activity-chart" class="sparkline" viewBox="0 0 900 180" preserveAspectRatio="none"></svg>
+                <div id="top-actions" class="bar-list" style="margin-top:12px;"></div>
+            </article>
+        </div>
     </section>
 
     <article class="reports-card">
-        <div class="section-kicker">Dodatki i skrypty</div>
-        <div id="addon-chips" class="chip-list"></div>
+        <div class="reports-head">
+            <div>
+                <div class="section-kicker">Lista raportów</div>
+                <h2 style="margin:4px 0 0;">Twoje zapisane raporty</h2>
+            </div>
+        </div>
+        <div id="report-list" class="reports-stack" style="margin-top:12px;"></div>
     </article>
 </section>
 {% endblock %}
 
 {% block extra_js %}
 <script>
-document.addEventListener("DOMContentLoaded", function () {
+document.addEventListener("DOMContentLoaded", () => {
     const el = (id) => document.getElementById(id);
-    const kpiSheets = el("kpi-sheets");
-    const kpiActions = el("kpi-actions");
-    const kpiToday = el("kpi-today");
-    const kpiMonth = el("kpi-month");
-    const kpiSaves = el("kpi-saves");
-    const kpiScripts = el("kpi-scripts");
-    const insightsEl = el("insights");
-    const actionBarsEl = el("action-bars");
-    const sheetBarsEl = el("sheet-bars");
-    const addonChipsEl = el("addon-chips");
-    const dailyChartEl = el("daily-activity-chart");
-    const dailyAxisEl = el("daily-activity-axis");
-    const refreshBtn = el("report-refresh-btn");
-    const pdfBtn = el("report-pdf-btn");
+    let latestNetwork = { groups: [], organizations: [] };
 
-    const actionNames = {
-        save_sheet: "Zapisy",
-        csv_import: "Import CSV",
-        csv_export: "Eksport CSV",
-        solver_run: "Solver",
-        restore_sheet_version: "Przywracanie wersji",
-        script_run: "Skrypty arkusza"
-    };
-
-    const getJson = async (url) => {
-        const r = await fetch(url, { method: "GET", headers: { "X-Requested-With": "XMLHttpRequest" }, credentials: "same-origin" });
-        if (!r.ok) throw new Error(`GET ${url} -> ${r.status}`);
-        const data = await r.json();
-        if (Array.isArray(data)) return data;
-        if (Array.isArray(data?.entries)) return data.entries;
-        if (Array.isArray(data?.results)) return data.results;
-        return [];
-    };
-
-    const daysAgo = (v) => (Date.now() - new Date(v).getTime()) / (1000 * 60 * 60 * 24);
-
-    function countBy(arr, fn) {
-        const map = new Map();
-        arr.forEach(item => {
-            const key = fn(item);
-            map.set(key, (map.get(key) || 0) + 1);
-        });
-        return map;
+    async function getJson(url) {
+        const res = await fetch(url, { method: "GET", headers: { "X-Requested-With": "XMLHttpRequest" }, credentials: "same-origin" });
+        if (!res.ok) throw new Error(`GET ${url} -> ${res.status}`);
+        return res.json();
     }
 
-    function renderBars(elm, rows) {
+    async function postJson(url, payload) {
+        const res = await fetch(url, {
+            method: "POST",
+            headers: { "X-Requested-With": "XMLHttpRequest", "Content-Type": "application/json" },
+            credentials: "same-origin",
+            body: JSON.stringify(payload || {})
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.error || `POST ${url} -> ${res.status}`);
+        return data;
+    }
+
+    function escapeHtml(value) {
+        return String(value ?? "").replace(/[&<>\"']/g, (ch) => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", "\"":"&quot;", "'":"&#39;" }[ch]));
+    }
+
+    function parseLines(raw) {
+        return String(raw || "").split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
+    }
+
+    function parseKpis(raw) {
+        return parseLines(raw).map((line) => {
+            const [label, value] = line.split("|");
+            return { label: (label || "").trim(), value: (value || "").trim() };
+        }).filter((row) => row.label);
+    }
+
+    function renderBars(container, rows) {
         if (!rows.length) {
-            elm.innerHTML = `<div class="insight">Brak danych.</div>`;
+            container.innerHTML = `<div class="reports-empty">Brak danych.</div>`;
             return;
         }
-        const max = Math.max(...rows.map(r => r.value), 1);
-        elm.innerHTML = rows.map(row => `
-            <div class="bar-row">
-                <div class="bar-top"><span>${row.label}</span><b>${row.value}</b></div>
+        const max = Math.max(...rows.map((row) => row.value), 1);
+        container.innerHTML = rows.map((row) => `
+            <div>
+                <div class="reports-inline" style="justify-content:space-between;">
+                    <span>${escapeHtml(row.label)}</span>
+                    <strong>${row.value}</strong>
+                </div>
                 <div class="bar-track"><div class="bar-fill" style="width:${(row.value / max) * 100}%"></div></div>
             </div>
         `).join("");
     }
 
-    function renderDailyChart(historyRows) {
+    function renderChart(historyRows) {
+        const svg = el("daily-activity-chart");
         const labels = [];
-        const buckets = [];
+        const counts = [];
         for (let i = 29; i >= 0; i -= 1) {
             const date = new Date(Date.now() - i * 86400000);
             const key = date.toISOString().slice(0, 10);
             labels.push(key);
-            buckets.push(0);
+            counts.push(0);
         }
-        const index = new Map(labels.map((d, i) => [d, i]));
-        historyRows.forEach(row => {
+        const index = new Map(labels.map((label, idx) => [label, idx]));
+        historyRows.forEach((row) => {
             const key = new Date(row.createdAt).toISOString().slice(0, 10);
             const idx = index.get(key);
-            if (idx != null) buckets[idx] += 1;
+            if (idx != null) counts[idx] += 1;
         });
-        const max = Math.max(...buckets, 1);
-        const points = buckets.map((v, i) => {
-            const x = (i / (buckets.length - 1)) * 880 + 10;
-            const y = 145 - ((v / max) * 125);
+        const max = Math.max(...counts, 1);
+        const polyline = counts.map((value, idx) => {
+            const x = (idx / (counts.length - 1)) * 860 + 20;
+            const y = 155 - ((value / max) * 120);
             return `${x},${y}`;
         }).join(" ");
-        const grid = [0, 1, 2, 3, 4].map(i => {
-            const y = 20 + i * 30;
-            return `<line x1="10" y1="${y}" x2="890" y2="${y}" stroke="rgba(120,120,120,.2)" stroke-width="1"/>`;
-        }).join("");
-        dailyChartEl.innerHTML = `${grid}<polyline fill="none" stroke="#1982c4" stroke-width="3" points="${points}" />`;
-
-        const tickIndexes = [0, 7, 14, 21, 29];
-        const ticks = tickIndexes.map(i => labels[i]).map(d => {
-            const dt = new Date(d);
-            return dt.toLocaleDateString("pl-PL", { day: "2-digit", month: "2-digit" });
-        });
-        dailyAxisEl.innerHTML = ticks.map(t => `<span>${t}</span>`).join("");
+        svg.innerHTML = `<line x1="20" y1="155" x2="880" y2="155" stroke="rgba(120,120,120,.22)" /><polyline fill="none" stroke="#1d78ff" stroke-width="4" points="${polyline}" />`;
     }
 
-    async function loadReport() {
-        try {
-            const [history, sheets, addons] = await Promise.all([
-                getJson("/ares/api/history/"),
-                getJson("/ares/api/sheets/"),
-                getJson("/ares/api/addons/")
-            ]);
-
-            const sorted = [...history].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-            const today = sorted.filter(e => daysAgo(e.createdAt) < 1);
-            const month = sorted.filter(e => daysAgo(e.createdAt) <= 30);
-            const saves = sorted.filter(e => (e.details?.type) === "save_sheet");
-            const scriptRuns = sorted.filter(e => (e.details?.type) === "script_run");
-
-            kpiSheets.textContent = sheets.length;
-            kpiActions.textContent = sorted.length;
-            kpiToday.textContent = today.length;
-            kpiMonth.textContent = month.length;
-            kpiSaves.textContent = saves.length;
-            kpiScripts.textContent = scriptRuns.length;
-
-            const byType = countBy(sorted, e => actionNames[e.details?.type] || e.details?.type || e.action || "Inne");
-            const bySheet = countBy(sorted.filter(e => e.sheetName || e.details?.sheetName), e => e.sheetName || e.details?.sheetName);
-            const topType = [...byType.entries()].map(([label, value]) => ({ label, value })).sort((a, b) => b.value - a.value).slice(0, 8);
-            const topSheet = [...bySheet.entries()].map(([label, value]) => ({ label, value })).sort((a, b) => b.value - a.value).slice(0, 8);
-
-            renderBars(actionBarsEl, topType);
-            renderBars(sheetBarsEl, topSheet);
-            renderDailyChart(month);
-
-            const lastActivity = sorted[0]?.createdAt ? new Date(sorted[0].createdAt).toLocaleString("pl-PL") : "brak";
-            const topSheetName = topSheet[0]?.label || "brak";
-            const topTypeName = topType[0]?.label || "brak";
-            insightsEl.innerHTML = `
-                <div class="insight"><b>Najczęściej używany arkusz:</b> ${topSheetName}</div>
-                <div class="insight"><b>Najczęstsza akcja:</b> ${topTypeName}</div>
-                <div class="insight"><b>Ostatnia aktywność:</b> ${lastActivity}</div>
-                <div class="insight"><b>Wersje do przywrócenia:</b> ${saves.length} zapisów</div>
-            `;
-
-            const addonRows = Array.isArray(addons?.addons) ? addons.addons.slice(0, 12) : [];
-            addonChipsEl.innerHTML = addonRows.length
-                ? addonRows.map(a => `<span class="chip">${a.title} • ${a.kindLabel || a.kind}</span>`).join("")
-                : `<span class="chip">Brak zatwierdzonych dodatków</span>`;
-        } catch (error) {
-            insightsEl.innerHTML = `<div class="insight">Nie udało się pobrać danych raportowych.</div>`;
-            actionBarsEl.innerHTML = `<div class="insight">Brak danych.</div>`;
-            sheetBarsEl.innerHTML = `<div class="insight">Brak danych.</div>`;
-            addonChipsEl.innerHTML = `<span class="chip">Brak danych</span>`;
-            dailyChartEl.innerHTML = "";
-            dailyAxisEl.innerHTML = "";
+    function fillScopeOptions(network) {
+        const visibility = el("report-visibility-select").value;
+        const scopeSelect = el("report-scope-select");
+        if (visibility === "team") {
+            const rows = network.groups || [];
+            scopeSelect.innerHTML = rows.length ? rows.map((group) => `<option value="group:${group.id}">${escapeHtml(group.name)}</option>`).join("") : `<option value="">Brak zespołów</option>`;
+            return;
         }
+        if (visibility === "organization") {
+            const rows = network.organizations || [];
+            scopeSelect.innerHTML = rows.length ? rows.map((org) => `<option value="organization:${org.id}">${escapeHtml(org.name)}</option>`).join("") : `<option value="">Brak organizacji</option>`;
+            return;
+        }
+        scopeSelect.innerHTML = `<option value="">Prywatny raport</option>`;
     }
 
-    refreshBtn?.addEventListener("click", loadReport);
-    pdfBtn?.addEventListener("click", () => window.print());
-    loadReport();
+    function clearBuilder() {
+        el("report-title-input").value = "";
+        el("report-description-input").value = "";
+        el("report-kpis-input").value = "";
+        el("report-insights-input").value = "";
+    }
+
+    function buildDraftReport() {
+        const visibility = el("report-visibility-select").value || "private";
+        const scopeValue = el("report-scope-select").value || "";
+        const sheetOption = el("report-sheet-select").selectedOptions?.[0];
+        const typeOption = el("report-type-select").selectedOptions?.[0];
+        const visibilityOption = el("report-visibility-select").selectedOptions?.[0];
+        return {
+            title: (el("report-title-input").value || "").trim() || "Raport roboczy",
+            description: el("report-description-input").value || "",
+            reportType: el("report-type-select").value || "analytical",
+            reportTypeLabel: typeOption?.textContent || "Analytical",
+            visibility,
+            visibilityLabel: visibilityOption?.textContent || "Prywatny",
+            sheetName: sheetOption?.value ? sheetOption.textContent : "",
+            groupName: scopeValue.startsWith("group:") ? (latestNetwork.groups.find((group) => `group:${group.id}` === scopeValue)?.name || "") : "",
+            organizationName: scopeValue.startsWith("organization:") ? (latestNetwork.organizations.find((org) => `organization:${org.id}` === scopeValue)?.name || "") : "",
+            snapshot: {
+                kpis: parseKpis(el("report-kpis-input").value),
+                insights: parseLines(el("report-insights-input").value),
+            }
+        };
+    }
+
+    function buildReportHtml(report) {
+        const kpis = Array.isArray(report.snapshot?.kpis) ? report.snapshot.kpis : [];
+        const insights = Array.isArray(report.snapshot?.insights) ? report.snapshot.insights : [];
+        return `<!doctype html><html lang="pl"><head><meta charset="utf-8"><title>${escapeHtml(report.title)}</title><style>body{font-family:Segoe UI,Arial,sans-serif;margin:40px;color:#162033}.chip{display:inline-block;border:1px solid #d6dbe5;border-radius:999px;padding:6px 10px;margin:0 8px 8px 0;font-size:13px}.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin:22px 0}.kpi{border:1px solid #d6dbe5;border-radius:14px;padding:12px}.kpi strong{display:block;font-size:24px;margin-top:6px}.box{border:1px solid #d6dbe5;border-radius:14px;padding:14px;margin-top:18px;white-space:pre-wrap}</style></head><body><h1>${escapeHtml(report.title)}</h1><p>${escapeHtml(report.description || "Bez opisu.")}</p><div><span class="chip">${escapeHtml(report.reportTypeLabel || report.reportType)}</span><span class="chip">${escapeHtml(report.visibilityLabel || report.visibility)}</span></div><h2>KPI</h2><div class="kpis">${kpis.length ? kpis.map((kpi) => `<div class="kpi"><small>${escapeHtml(kpi.label)}</small><strong>${escapeHtml(kpi.value)}</strong></div>`).join("") : "<div>Brak KPI.</div>"}</div><h2>Wnioski</h2><div class="box">${insights.length ? insights.map((item) => escapeHtml(item)).join("<br>") : "Brak wniosków."}</div></body></html>`;
+    }
+
+    function buildReportMarkdown(report) {
+        const kpis = Array.isArray(report.snapshot?.kpis) ? report.snapshot.kpis : [];
+        const insights = Array.isArray(report.snapshot?.insights) ? report.snapshot.insights : [];
+        const lines = [`# ${report.title}`, "", report.description || "Bez opisu.", "", `Typ: ${report.reportTypeLabel || report.reportType}`, `Widoczność: ${report.visibilityLabel || report.visibility}`, "", "## KPI", ""];
+        if (kpis.length) kpis.forEach((kpi) => lines.push(`- ${kpi.label}: ${kpi.value}`)); else lines.push("- Brak KPI");
+        lines.push("", "## Wnioski", "");
+        if (insights.length) insights.forEach((item) => lines.push(`- ${item}`)); else lines.push("- Brak wniosków");
+        return lines.join("\n");
+    }
+
+    function escapeLatex(value) {
+        return String(value ?? "").replace(/[\\{}$&#_%~^]/g, (ch) => ({ "\\": "\\textbackslash{}", "{": "\\{", "}": "\\}", "$": "\\$", "&": "\\&", "#": "\\#", "_": "\\_", "%": "\\%", "~": "\\textasciitilde{}", "^": "\\textasciicircum{}" }[ch]));
+    }
+
+    function buildReportLatex(report) {
+        const kpis = Array.isArray(report.snapshot?.kpis) ? report.snapshot.kpis : [];
+        const insights = Array.isArray(report.snapshot?.insights) ? report.snapshot.insights : [];
+        return `\\documentclass[11pt,a4paper]{article}\n\\usepackage[utf8]{inputenc}\n\\usepackage[T1]{fontenc}\n\\usepackage[margin=2.4cm]{geometry}\n\\begin{document}\n\\title{${escapeLatex(report.title)}}\n\\date{}\n\\maketitle\n\\section*{Opis}\n${escapeLatex(report.description || "Bez opisu.")}\n\\section*{KPI}\n${kpis.length ? kpis.map((kpi) => `${escapeLatex(kpi.label)}: ${escapeLatex(kpi.value)}\\\\`).join("\n") : "Brak KPI"}\n\\section*{Wnioski}\n\\begin{itemize}\n${insights.length ? insights.map((item) => `\\item ${escapeLatex(item)}`).join("\n") : "\\item Brak wniosków"}\n\\end{itemize}\n\\end{document}`;
+    }
+
+    function downloadBlob(filename, mimeType, content) {
+        const blob = new Blob([content], { type: mimeType });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        URL.revokeObjectURL(url);
+    }
+
+    function slugifyName(value) {
+        return String(value || "raport").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || "raport";
+    }
+
+    function exportReport(report, format) {
+        const base = slugifyName(report.title);
+        if (format === "html") return downloadBlob(`${base}.html`, "text/html;charset=utf-8", buildReportHtml(report));
+        if (format === "md") return downloadBlob(`${base}.md`, "text/markdown;charset=utf-8", buildReportMarkdown(report));
+        if (format === "tex") return downloadBlob(`${base}.tex`, "text/plain;charset=utf-8", buildReportLatex(report));
+    }
+
+    async function loadAll() {
+        const [history, sheets, addons, reportsData, network] = await Promise.all([
+            getJson("/ares/api/history/"),
+            getJson("/ares/api/sheets/"),
+            getJson("/ares/api/addons/"),
+            getJson("/ares/api/reports/user/"),
+            getJson("/ares/api/network/summary/")
+        ]);
+        latestNetwork = network;
+        const rows = history.history || [];
+        const sheetsList = Array.isArray(sheets) ? sheets : [];
+        const addonsList = addons.addons || [];
+        const reports = reportsData.reports || [];
+        const monthRows = rows.filter((row) => (Date.now() - new Date(row.createdAt).getTime()) <= 30 * 86400000);
+        const saves = rows.filter((row) => row.details?.type === "save_sheet");
+
+        el("kpi-sheets").textContent = sheetsList.length;
+        el("kpi-actions").textContent = rows.length;
+        el("kpi-month").textContent = monthRows.length;
+        el("kpi-saves").textContent = saves.length;
+        el("kpi-addons").textContent = addonsList.length;
+        el("kpi-user-reports").textContent = reports.length;
+
+        el("report-sheet-select").innerHTML = ['<option value="">Bez arkusza bazowego</option>'].concat(sheetsList.map((sheet) => `<option value="${sheet.id}">${escapeHtml(sheet.name)}</option>`)).join("");
+        fillScopeOptions(network);
+
+        const byAction = new Map();
+        rows.forEach((row) => {
+            const label = row.details?.type || row.action || "inne";
+            byAction.set(label, (byAction.get(label) || 0) + 1);
+        });
+        renderBars(el("top-actions"), [...byAction.entries()].map(([label, value]) => ({ label, value })).sort((a, b) => b.value - a.value).slice(0, 6));
+        renderChart(monthRows);
+
+        el("report-list").innerHTML = reports.length ? reports.map((report) => `
+            <article class="report-item">
+                <div class="reports-head">
+                    <div>
+                        <h3>${escapeHtml(report.title)}</h3>
+                        <p>${escapeHtml(report.description || "Bez opisu")}</p>
+                    </div>
+                    <div class="reports-actions">
+                        <a class="btn btn-secondary" href="/ares/api/reports/user/${report.id}/preview/?format=pdf" target="_blank" rel="noopener">Podgląd PDF</a>
+                        <a class="btn btn-secondary" href="/ares/api/reports/user/${report.id}/preview/?format=docx" target="_blank" rel="noopener">Podgląd DOCX</a>
+                        <a class="btn btn-secondary" href="/ares/api/reports/user/${report.id}/export/?format=pdf">Pobierz PDF</a>
+                        <a class="btn btn-secondary" href="/ares/api/reports/user/${report.id}/export/?format=docx">Pobierz DOCX</a>
+                        <button class="btn btn-secondary" type="button" data-report-delete="${report.id}">Usuń</button>
+                    </div>
+                </div>
+                <div class="report-meta">
+                    <span class="report-chip">${escapeHtml(report.reportTypeLabel || report.reportType)}</span>
+                    <span class="report-chip">${escapeHtml(report.visibilityLabel || report.visibility)}</span>
+                    ${report.sheetName ? `<span class="report-chip">Arkusz: ${escapeHtml(report.sheetName)}</span>` : ""}
+                    ${report.groupName ? `<span class="report-chip">Zespół: ${escapeHtml(report.groupName)}</span>` : ""}
+                    ${report.organizationName ? `<span class="report-chip">Organizacja: ${escapeHtml(report.organizationName)}</span>` : ""}
+                </div>
+                ${(report.snapshot?.kpis || []).length ? `<div class="report-kpis">${report.snapshot.kpis.map((kpi) => `<span class="report-chip">${escapeHtml(kpi.label)}: ${escapeHtml(kpi.value)}</span>`).join("")}</div>` : ""}
+                <div class="report-insights">
+                    <span class="report-section"><strong>Executive summary</strong></span>
+                    ${escapeHtml(report.snapshot?.executiveSummary || "Brak sekcji executive summary.")}
+                    <span class="report-section"><strong>Wnioski</strong></span>
+                    ${(report.snapshot?.insights || []).length ? report.snapshot.insights.map((item) => escapeHtml(item)).join("<br>") : "Brak wniosków."}
+                    <span class="report-section"><strong>Risk</strong></span>
+                    ${escapeHtml(report.snapshot?.risk || "Brak sekcji risk.")}
+                    <span class="report-section"><strong>Rekomendacja</strong></span>
+                    ${escapeHtml(report.snapshot?.recommendation || "Brak sekcji rekomendacji.")}
+                </div>
+            </article>
+        `).join("") : `<div class="reports-empty">Nie masz jeszcze zapisanych raportów.</div>`;
+
+        el("report-visibility-select").onchange = () => fillScopeOptions(network);
+    }
+
+    el("report-create-btn").addEventListener("click", async () => {
+        const title = (el("report-title-input").value || "").trim();
+        if (!title) return;
+        const visibility = el("report-visibility-select").value || "private";
+        const scopeValue = el("report-scope-select").value || "";
+        const payload = {
+            title,
+            description: el("report-description-input").value || "",
+            sheetId: el("report-sheet-select").value || null,
+            reportType: el("report-type-select").value || "analytical",
+            visibility,
+            snapshot: {
+                kpis: parseKpis(el("report-kpis-input").value),
+                insights: parseLines(el("report-insights-input").value),
+            }
+        };
+        if (scopeValue.startsWith("group:")) payload.groupId = scopeValue.split(":")[1];
+        if (scopeValue.startsWith("organization:")) payload.organizationId = scopeValue.split(":")[1];
+        await postJson("/ares/api/reports/user/create/", payload);
+        clearBuilder();
+        await loadAll();
+    });
+
+    el("report-clear-btn").addEventListener("click", clearBuilder);
+    el("report-refresh-btn").addEventListener("click", () => loadAll());
+    el("report-pdf-btn").addEventListener("click", () => window.print());
+    document.querySelectorAll("[data-draft-export]").forEach((button) => button.addEventListener("click", () => exportReport(buildDraftReport(), button.dataset.draftExport)));
+    el("report-list").addEventListener("click", async (event) => {
+        const deleteButton = event.target.closest("[data-report-delete]");
+        if (!deleteButton) return;
+        await postJson(`/ares/api/reports/user/${deleteButton.dataset.reportDelete}/delete/`, {});
+        await loadAll();
+    });
+
+    loadAll().catch(() => {
+        el("report-list").innerHTML = `<div class="reports-empty">Nie udało się pobrać danych raportowych.</div>`;
+    });
 });
 </script>
 {% endblock %}

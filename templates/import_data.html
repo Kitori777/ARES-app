@@ -2,7 +2,7 @@
 {% load static %}
 
 {% block title %}ARES | Import danych{% endblock %}
-{% block topbar_title %}Import CSV/XLSX{% endblock %}
+{% block topbar_title %}Import danych{% endblock %}
 
 {% block extra_head %}
 <style>
@@ -233,8 +233,8 @@
                 </div>
 
                 <div>
-                    <label for="csv-file">Plik CSV / XLSX</label>
-                    <input id="csv-file" type="file" accept=".csv,.txt,.tsv,.xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel">
+                    <label for="csv-file">Plik danych</label>
+                    <input id="csv-file" type="file" accept=".csv,.tsv,.txt,.xlsx,.xls,.xlsb,.ods,.html,.xml,.json,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,application/vnd.ms-excel.sheet.binary.macroEnabled.12,application/vnd.oasis.opendocument.spreadsheet,application/json,text/html,text/xml,application/xml,text/plain,text/csv">
                 </div>
             </div>
 
@@ -361,8 +361,8 @@ document.addEventListener("DOMContentLoaded", function () {
 
     function ensureRectangularGrid(grid) {
         if (!Array.isArray(grid) || !grid.length) return [];
-        const maxCols = Math.max(...grid.map(r => Array.isArray(r) ? r.length : 0), 1);
-        return grid.map(row => {
+        const maxCols = Math.max(...grid.map((row) => Array.isArray(row) ? row.length : 0), 1);
+        return grid.map((row) => {
             const safe = Array.isArray(row) ? [...row] : [];
             while (safe.length < maxCols) safe.push("");
             return safe;
@@ -370,13 +370,13 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     function detectDelimiter(text) {
-        const sample = text.split(/\r?\n/).filter(line => line.trim()).slice(0, 8);
+        const sample = text.split(/\r?\n/).filter((line) => line.trim()).slice(0, 8);
         const candidates = [";", "\t", ","];
         let best = ";";
         let bestScore = -1;
 
-        candidates.forEach(delimiter => {
-            const counts = sample.map(line => {
+        candidates.forEach((delimiter) => {
+            const counts = sample.map((line) => {
                 let count = 0;
                 let inQuotes = false;
                 for (let i = 0; i < line.length; i++) {
@@ -391,7 +391,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 }
                 return count;
             });
-            const positive = counts.filter(v => v > 0);
+            const positive = counts.filter((value) => value > 0);
             const score = positive.length ? positive.reduce((a, b) => a + b, 0) - new Set(positive).size : 0;
             if (score > bestScore) {
                 bestScore = score;
@@ -438,14 +438,12 @@ document.addEventListener("DOMContentLoaded", function () {
         row.push(current);
         rows.push(row);
 
-        return ensureRectangularGrid(
-            rows.filter(r => r.some(cell => String(cell).trim() !== ""))
-        );
+        return ensureRectangularGrid(rows.filter((cells) => cells.some((cell) => String(cell).trim() !== "")));
     }
 
     async function parseWorkbook(file) {
         if (!window.XLSX) {
-            throw new Error("Brak biblioteki XLSX. Sprawdź połączenie z internetem albo użyj CSV.");
+            throw new Error("Brak biblioteki XLSX. Sprawdź połączenie z internetem albo użyj pliku tekstowego.");
         }
         const buffer = await file.arrayBuffer();
         const workbook = XLSX.read(buffer, { type: "array", cellDates: true });
@@ -453,12 +451,35 @@ document.addEventListener("DOMContentLoaded", function () {
         if (!firstSheetName) return [];
         const worksheet = workbook.Sheets[firstSheetName];
         const rows = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: "", raw: false });
-        return ensureRectangularGrid(rows.filter(r => r.some(cell => String(cell).trim() !== "")));
+        return ensureRectangularGrid(rows.filter((r) => r.some((cell) => String(cell).trim() !== "")));
+    }
+
+    function parseJsonGrid(text) {
+        const data = JSON.parse(text);
+        if (Array.isArray(data) && data.every((row) => Array.isArray(row))) {
+            return ensureRectangularGrid(data.map((row) => row.map((cell) => cell == null ? "" : String(cell))));
+        }
+        if (Array.isArray(data) && data.every((row) => row && typeof row === "object" && !Array.isArray(row))) {
+            const keys = Array.from(data.reduce((set, row) => {
+                Object.keys(row || {}).forEach((key) => set.add(key));
+                return set;
+            }, new Set()));
+            return ensureRectangularGrid([keys].concat(
+                data.map((row) => keys.map((key) => row?.[key] == null ? "" : String(row[key])))
+            ));
+        }
+        if (data && Array.isArray(data.rows)) {
+            return ensureRectangularGrid(data.rows.map((row) => Array.isArray(row) ? row.map((cell) => cell == null ? "" : String(cell)) : []));
+        }
+        throw new Error("Unsupported JSON structure");
     }
 
     async function parseSelectedFile(file) {
         const name = file.name.toLowerCase();
-        if (name.endsWith(".xlsx") || name.endsWith(".xls")) {
+        if (name.endsWith(".json")) {
+            return parseJsonGrid(await file.text());
+        }
+        if (name.endsWith(".xlsx") || name.endsWith(".xls") || name.endsWith(".xlsb") || name.endsWith(".ods") || name.endsWith(".html") || name.endsWith(".xml")) {
             return await parseWorkbook(file);
         }
         const text = await file.text();
@@ -480,9 +501,9 @@ document.addEventListener("DOMContentLoaded", function () {
         }
         previewHead.appendChild(headRow);
 
-        grid.slice(0, 10).forEach(row => {
+        grid.slice(0, 10).forEach((row) => {
             const tr = document.createElement("tr");
-            row.forEach(cell => {
+            row.forEach((cell) => {
                 const td = document.createElement("td");
                 td.textContent = cell;
                 tr.appendChild(td);
@@ -493,14 +514,14 @@ document.addEventListener("DOMContentLoaded", function () {
 
     async function loadSheets() {
         const sheets = await getJson("/ares/api/sheets/");
-        targetSheet.innerHTML = sheets.map(sheet =>
+        targetSheet.innerHTML = sheets.map((sheet) =>
             `<option value="${sheet.id}">${sheet.order}. ${sheet.name} (${sheet.category || "Bez kategorii"})</option>`
         ).join("");
     }
 
-    modeButtons.forEach(btn => {
+    modeButtons.forEach((btn) => {
         btn.addEventListener("click", () => {
-            modeButtons.forEach(b => b.classList.remove("active"));
+            modeButtons.forEach((button) => button.classList.remove("active"));
             btn.classList.add("active");
             importMode = btn.dataset.mode;
 
@@ -530,7 +551,7 @@ document.addEventListener("DOMContentLoaded", function () {
             renderPreview(parsedGrid);
         } catch (e) {
             console.error(e);
-            setStatus("Nie udało się odczytać pliku. Sprawdź format CSV/XLSX.", "err");
+            setStatus("Nie udało się odczytać pliku. Sprawdź, czy format jest obsługiwany.", "err");
         }
     });
 
@@ -542,7 +563,7 @@ document.addEventListener("DOMContentLoaded", function () {
         clearStatus();
 
         if (!parsedGrid.length) {
-            setStatus("Najpierw wybierz i wczytaj plik CSV/XLSX.", "err");
+            setStatus("Najpierw wybierz i wczytaj plik danych.", "err");
             return;
         }
 
@@ -574,12 +595,12 @@ document.addEventListener("DOMContentLoaded", function () {
 
             await postJson(`/ares/api/sheets/${targetId}/save/`, {
                 grid: parsedGrid,
-                action: "Zaimportowano plik CSV/XLSX"
+                action: "Zaimportowano plik danych"
             });
 
             await postJson("/ares/api/history/add/", {
                 sheetId: targetId,
-                action: "Zaimportowano plik CSV/XLSX",
+                action: "Zaimportowano plik danych",
                 details: {
                     type: "file_import",
                     rows: parsedGrid.length,
@@ -599,7 +620,7 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     });
 
-    loadSheets().catch(err => {
+    loadSheets().catch((err) => {
         console.error(err);
         setStatus("Nie udało się pobrać listy arkuszy.", "err");
     });

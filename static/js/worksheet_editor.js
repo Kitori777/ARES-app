@@ -22,6 +22,7 @@
 
     const saveBtn = document.getElementById("save-sheet-btn");
     const exportBtn = document.getElementById("export-csv-btn");
+    const exportFormatSelect = document.getElementById("export-format-select");
     const renameBtn = document.getElementById("rename-sheet-btn");
     const importInput = document.getElementById("csv-import-input");
     const formulaInput = document.getElementById("formula-input");
@@ -103,6 +104,8 @@
     const sheetScriptDeleteBtn = document.getElementById("sheet-script-delete-btn");
     const sheetScriptSaveBtn = document.getElementById("sheet-script-save-btn");
     const sheetScriptRunBtn = document.getElementById("sheet-script-run-btn");
+    const teamOrgInput = document.getElementById("team-org-input");
+    const teamOrgAddBtn = document.getElementById("team-org-add-btn");
     const teamFriendInput = document.getElementById("team-friend-input");
     const teamFriendAddBtn = document.getElementById("team-friend-add-btn");
     const teamGroupInput = document.getElementById("team-group-input");
@@ -120,6 +123,25 @@
     const workflowCleanReportBtn = document.getElementById("workflow-clean-report-btn");
     const workflowSaveReportBtn = document.getElementById("workflow-save-report-btn");
     const workflowStatusEl = document.getElementById("workflow-status");
+    const reportModal = document.getElementById("report-modal");
+    const reportModalTitleInput = document.getElementById("report-modal-title");
+    const reportModalTypeSelect = document.getElementById("report-modal-type");
+    const reportModalVisibilitySelect = document.getElementById("report-modal-visibility");
+    const reportModalScopeSelect = document.getElementById("report-modal-scope");
+    const reportModalDescriptionInput = document.getElementById("report-modal-description");
+    const reportModalKpisInput = document.getElementById("report-modal-kpis");
+    const reportModalInsightsInput = document.getElementById("report-modal-insights");
+    const reportModalExecutiveSummaryInput = document.getElementById("report-modal-executive-summary");
+    const reportModalRiskInput = document.getElementById("report-modal-risk");
+    const reportModalRecommendationInput = document.getElementById("report-modal-recommendation");
+    const reportIncludeSelectionInput = document.getElementById("report-include-selection");
+    const reportIncludeActivityInput = document.getElementById("report-include-activity");
+    const reportModalChartList = document.getElementById("report-modal-chart-list");
+    const reportModalPivotList = document.getElementById("report-modal-pivot-list");
+    const reportModalHints = document.getElementById("report-modal-hints");
+    const reportModalPreview = document.getElementById("report-modal-preview");
+    const reportModalSaveBtn = document.getElementById("report-modal-save-btn");
+    const reportModalSaveOpenBtn = document.getElementById("report-modal-save-open-btn");
     const smartInsertModal = document.getElementById("smart-insert-modal");
     const smartInsertTitle = document.getElementById("smart-insert-title");
     const smartInsertSubtitle = document.getElementById("smart-insert-subtitle");
@@ -3482,6 +3504,9 @@
             if (pivotRangeInput && !pivotRangeInput.value.trim()) pivotRangeInput.value = getCurrentSelectionRangeText();
             renderPivotEditor();
         }
+        if (modalEl === reportModal) {
+            populateReportBuilder();
+        }
         modalEl?.classList.add("open");
     }
 
@@ -3802,7 +3827,11 @@
             list.innerHTML = (pivotConfig[zone] || []).map((item, idx) => `
                 <div class="we-pivot-pill">
                     <span>${escapeHtml(item.name)} ${zone === "values" ? `<small>${escapeHtml(item.agg || "sum")}</small>` : ""}</span>
-                    <button type="button" data-pivot-remove="${zone}" data-pivot-remove-index="${idx}">×</button>
+                    <span class="we-pivot-pill-actions">
+                        <button type="button" title="Przenieś wyżej" data-pivot-move="${zone}" data-pivot-move-index="${idx}" data-pivot-move-delta="-1">↑</button>
+                        <button type="button" title="Przenieś niżej" data-pivot-move="${zone}" data-pivot-move-index="${idx}" data-pivot-move-delta="1">↓</button>
+                        <button type="button" title="Usuń" data-pivot-remove="${zone}" data-pivot-remove-index="${idx}">×</button>
+                    </span>
                 </div>
             `).join("");
         });
@@ -3822,6 +3851,18 @@
 
     function removePivotField(zone, index) {
         pivotConfig[zone].splice(index, 1);
+        renderPivotEditor();
+    }
+
+    function movePivotField(zone, index, delta) {
+        const rows = pivotConfig[zone] || [];
+        const from = Number(index);
+        const shift = Number(delta);
+        const to = from + shift;
+        if (!rows.length || !Number.isInteger(from) || !Number.isInteger(shift)) return;
+        if (from < 0 || from >= rows.length || to < 0 || to >= rows.length) return;
+        const [item] = rows.splice(from, 1);
+        rows.splice(to, 0, item);
         renderPivotEditor();
     }
 
@@ -4086,24 +4127,30 @@
     function renderEditorAddons(addons) {
         if (!editorAddonsList) return;
         if (!addons.length) {
-            editorAddonsList.innerHTML = '<div class="we-addons-empty">Nie ma jeszcze zatwierdzonych dodatków. Możesz zgłosić pierwszy na forum dodatków.</div>';
+            editorAddonsList.innerHTML = '<div class="we-addons-empty">Nie ma jeszcze dostępnych dodatków.</div>';
             return;
         }
         editorAddonsCache = Array.isArray(addons) ? addons : [];
         editorAddonsList.innerHTML = addons.map(addon => `
             <article class="we-addon-card">
                 <div class="we-addon-card-head">
-                    <span>${escapeHtml(addon.kindLabel || "Dodatek")}</span>
+                    <span>${escapeHtml(addon.kindLabel || "Dodatek")} • ${escapeHtml(addon.hostLabel || "Arkusze")}</span>
                     <small>v${escapeHtml(addon.version || "1.0.0")}</small>
                 </div>
                 <strong>${escapeHtml(addon.title)}</strong>
                 <p>${escapeHtml(addon.summary)}</p>
-                <small>${addon.author ? `Autor: ${escapeHtml(addon.author)}` : "Autor: ARES"}</small>
-                ${addon.instructions ? `<details><summary>Instrukcja</summary><p>${escapeHtml(addon.instructions).replace(/\n/g, "<br>")}</p></details>` : ""}
-                <div class="we-sheet-script-actions">
-                    <button class="btn btn-secondary" type="button" data-addon-attach-id="${escapeHtml(String(addon.id || ""))}">Przypisz do arkusza</button>
-                    <button class="btn btn-primary" type="button" data-addon-run-id="${escapeHtml(String(addon.id || ""))}">Przypisz i uruchom</button>
+                <small>${addon.author ? `Autor: ${escapeHtml(addon.author)}` : "Autor: ARES"} • ${escapeHtml(addon.category || "Automatyzacja")} • instalacje: ${escapeHtml(String(addon.installationCount || 0))}</small>
+                <div class="we-addon-meta-row">
+                    <span class="we-addon-pill">${escapeHtml(addon.entryPoint || "onOpen")}</span>
+                    <span class="we-addon-pill">${escapeHtml(addon.authMode || "user")}</span>
+                    ${(addon.scopes || []).slice(0, 2).map(scope => `<span class="we-addon-pill">${escapeHtml(scope)}</span>`).join("")}
                 </div>
+                <div class="we-sheet-script-actions">
+                    <button class="btn btn-secondary" type="button" data-addon-install-id="${escapeHtml(String(addon.id || ""))}">${addon.installed ? "Zainstalowany" : "Zainstaluj"}</button>
+                    <button class="btn btn-secondary" type="button" data-addon-attach-id="${escapeHtml(String(addon.id || ""))}">Przypisz do arkusza</button>
+                    <button class="btn btn-primary" type="button" data-addon-run-id="${escapeHtml(String(addon.id || ""))}">Uruchom</button>
+                </div>
+                ${addon.instructions ? `<details><summary>Szczegóły</summary><p>${escapeHtml(addon.instructions).replace(/\n/g, "<br>")}</p></details>` : ""}
                 <details>
                     <summary>Podgląd skryptu</summary>
                     <pre>${escapeHtml(addon.scriptBody || "")}</pre>
@@ -4114,12 +4161,12 @@
 
     async function loadEditorAddons() {
         if (!editorAddonsList || DEMO_MODE) {
-            if (editorAddonsList) editorAddonsList.innerHTML = '<div class="we-addons-empty">Dodatki społeczności są dostępne po zalogowaniu.</div>';
+            if (editorAddonsList) editorAddonsList.innerHTML = '<div class="we-addons-empty">Zaloguj się, aby instalować dodatki.</div>';
             editorAddonsLoaded = true;
             return;
         }
         try {
-            const data = await getJson("/ares/api/addons/");
+            const data = await getJson(`/ares/api/addons/?sheet=${encodeURIComponent(sheetId || "")}`);
             renderEditorAddons(Array.isArray(data.addons) ? data.addons : []);
             editorAddonsLoaded = true;
         } catch (error) {
@@ -4181,25 +4228,85 @@
         }
     }
 
-    function downloadCsv() {
-        if (!currentSheet) return;
+    function getSheetFileBaseName() {
+        return String(currentSheet?.name || "arkusz")
+            .trim()
+            .replace(/[<>:"/\\|?*\x00-\x1F]/g, "_")
+            .replace(/\s+/g, "_")
+            || "arkusz";
+    }
 
-        const csv = currentSheet.grid.map(row => row.map(cell => {
-            const value = String(cell  || "");
-            if (value.includes(";") || value.includes('"') || value.includes("\n")) {
+    function buildDelimitedText(delimiter = ";") {
+        return (currentSheet?.grid || []).map(row => row.map(cell => {
+            const value = String(cell || "");
+            if (value.includes(delimiter) || value.includes('"') || value.includes("\n")) {
                 return `"${value.replace(/"/g, '""')}"`;
             }
             return value;
-        }).join(";")).join("\n");
+        }).join(delimiter)).join("\n");
+    }
 
-        const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    function triggerDownload(content, fileName, mimeType = "application/octet-stream") {
+        const blob = content instanceof Blob ? content : new Blob([content], { type: mimeType });
         const url = URL.createObjectURL(blob);
         const link = document.createElement("a");
         link.href = url;
-        link.download = `${currentSheet.name || "arkusz"}.csv`;
+        link.download = fileName;
         link.click();
         URL.revokeObjectURL(url);
-        logUserAction("Eksport CSV", { type: "csv_export", rows: currentSheet.grid.length, cols: currentSheet.grid[0]?.length || 0 });
+    }
+
+    function buildWorkbookFromCurrentSheet() {
+        if (!window.XLSX) {
+            throw new Error("Brak biblioteki XLSX.");
+        }
+        const workbookXlsx = window.XLSX.utils.book_new();
+        const worksheet = window.XLSX.utils.aoa_to_sheet((currentSheet?.grid || []).map(row => row.map(cell => cell == null ? "" : String(cell))));
+        window.XLSX.utils.book_append_sheet(workbookXlsx, worksheet, String(currentSheet?.name || "Arkusz").slice(0, 31) || "Arkusz");
+        return workbookXlsx;
+    }
+
+    function exportSheetData() {
+        if (!currentSheet) return;
+        const format = String(exportFormatSelect?.value || "csv").toLowerCase();
+        const baseName = getSheetFileBaseName();
+
+        if (format === "csv") {
+            triggerDownload(buildDelimitedText(";"), `${baseName}.csv`, "text/csv;charset=utf-8;");
+        } else if (format === "tsv") {
+            triggerDownload(buildDelimitedText("\t"), `${baseName}.tsv`, "text/tab-separated-values;charset=utf-8;");
+        } else if (format === "txt") {
+            triggerDownload(buildDelimitedText("\t"), `${baseName}.txt`, "text/plain;charset=utf-8;");
+        } else if (format === "json") {
+            triggerDownload(JSON.stringify({ name: currentSheet.name, rows: currentSheet.grid || [] }, null, 2), `${baseName}.json`, "application/json;charset=utf-8;");
+        } else {
+            if (!window.XLSX) {
+                alert("Eksport do tego formatu wymaga biblioteki XLSX.");
+                return;
+            }
+            const workbookXlsx = buildWorkbookFromCurrentSheet();
+            const bookTypeMap = {
+                xlsx: "xlsx",
+                xls: "biff8",
+                xlsb: "xlsb",
+                ods: "ods",
+                html: "html",
+                xml: "xlml",
+            };
+            const bookType = bookTypeMap[format];
+            if (!bookType) {
+                alert("Ten format eksportu nie jest jeszcze obsługiwany.");
+                return;
+            }
+            window.XLSX.writeFile(workbookXlsx, `${baseName}.${format}`, { bookType });
+        }
+
+        logUserAction("Eksport pliku", {
+            type: "file_export",
+            format,
+            rows: currentSheet.grid.length,
+            cols: currentSheet.grid[0]?.length || 0
+        });
     }
 
     function detectCsvDelimiter(text) {
@@ -4259,6 +4366,24 @@
         return rows;
     }
 
+    function parseJsonRows(text) {
+        const data = JSON.parse(String(text || ""));
+        if (Array.isArray(data) && data.every(row => Array.isArray(row))) {
+            return data.map(row => row.map(cell => cell == null ? "" : String(cell)));
+        }
+        if (Array.isArray(data) && data.every(row => row && typeof row === "object" && !Array.isArray(row))) {
+            const keys = Array.from(data.reduce((set, row) => {
+                Object.keys(row || {}).forEach(key => set.add(key));
+                return set;
+            }, new Set()));
+            return [keys].concat(data.map(row => keys.map(key => row?.[key] == null ? "" : String(row[key]))));
+        }
+        if (data && Array.isArray(data.rows)) {
+            return data.rows.map(row => Array.isArray(row) ? row.map(cell => cell == null ? "" : String(cell)) : []);
+        }
+        throw new Error("Nieobsługiwany układ JSON.");
+    }
+
     function importRowsIntoSheet(rows, sourceInfo = {}) {
         if (!currentSheet) return;
         const sourceRowCount = rows.length;
@@ -4291,9 +4416,24 @@
         logUserAction("Import pliku w edytorze", { type: "file_import", fileName: sourceInfo.fileName || "plik", rows: safeRows.length, cols: Math.max(...safeRows.map(row => row.length), 0) });
     }
 
-    function importCsv(file) {
+    function importDataFile(file) {
         const name = String(file?.name || "").toLowerCase();
-        if ((name.endsWith(".xlsx") || name.endsWith(".xls")) && window.XLSX) {
+        if (name.endsWith(".json")) {
+            const reader = new FileReader();
+            reader.onload = event => {
+                try {
+                    const text = String(event.target?.result || "");
+                    importRowsIntoSheet(parseJsonRows(text), { fileName: file.name });
+                } catch (error) {
+                    console.error(error);
+                    alert("Nie udało się odczytać pliku JSON. Sprawdź strukturę danych.");
+                }
+            };
+            reader.readAsText(file, "utf-8");
+            return;
+        }
+
+        if ((name.endsWith(".xlsx") || name.endsWith(".xls") || name.endsWith(".xlsb") || name.endsWith(".ods") || name.endsWith(".html") || name.endsWith(".xml")) && window.XLSX) {
             const reader = new FileReader();
             reader.onload = event => {
                 try {
@@ -4306,7 +4446,7 @@
                     importRowsIntoSheet(rows, { fileName: file.name });
                 } catch (error) {
                     console.error(error);
-                    alert("Nie udało się odczytać pliku XLSX/XLS. Sprawdź, czy plik nie jest uszkodzony.");
+                    alert("Nie udało się odczytać pliku arkuszowego. Sprawdź, czy plik nie jest uszkodzony.");
                 }
             };
             reader.readAsArrayBuffer(file);
@@ -4438,6 +4578,7 @@
 
         if (action === "chart") return openModal(chartModal);
         if (action === "pivot") return openModal(pivotModal);
+        if (action === "report-builder") return openModal(reportModal);
         if (action === "solver") return openModal(solverModal);
 
         if (action === "function-helper") return openSmartInsert("function");
@@ -5058,7 +5199,7 @@
             });
         });
 
-        [chartModal, pivotModal, solverModal, commentModal, emojiModal, smartInsertModal].forEach(modal => {
+        [chartModal, pivotModal, solverModal, reportModal, commentModal, emojiModal, smartInsertModal].forEach(modal => {
             modal?.addEventListener("click", event => {
                 if (event.target === modal) closeModal(modal);
             });
@@ -5592,7 +5733,7 @@
     function applyRibbonAction(action) {
         if (!action) return;
         if (action === "merge-sheets") return mergeWorkbookSheetsIntoOneTable();
-        if (["chart", "pivot", "solver", "dropdown", "checkbox", "function-helper", "link", "comment", "note", "emoji"].includes(action)) {
+        if (["chart", "pivot", "solver", "report-builder", "dropdown", "checkbox", "function-helper", "link", "comment", "note", "emoji"].includes(action)) {
             return applyInsertAction(action);
         }
         if (action === "group-view") return alert("Widok grupowania: zaznacz zakres i użyj sortowania, aby grupować dane logicznie.");
@@ -5812,8 +5953,15 @@
 
     function renderTeamPanel() {
         if (!teamListEl) return;
+        const organizations = Array.isArray(networkSummaryCache.organizations) ? networkSummaryCache.organizations : [];
         const friends = Array.isArray(networkSummaryCache.friends) ? networkSummaryCache.friends : [];
         const groups = Array.isArray(networkSummaryCache.groups) ? networkSummaryCache.groups : [];
+        const organizationHtml = organizations.map((org) => `
+            <div class="we-mini-list-item">
+                <span>🏢 ${escapeHtml(org.name)} <small>${escapeHtml(org.visibilityLabel || "")}</small></span>
+                <div><span class="we-addon-pill">${org.teamCount || 0} teamów</span></div>
+            </div>
+        `).join("");
         const friendHtml = friends.map((f) => `
             <div class="we-mini-list-item">
                 <span>👤 ${escapeHtml(f.username)} <small>${escapeHtml(f.email || "")}</small></span>
@@ -5824,7 +5972,7 @@
             const assignedCurrentSheet = (g.assignedSheets || []).some(s => String(s.id) === String(sheetId));
             return `
             <div class="we-mini-list-item">
-                <span>👥 ${escapeHtml(g.name)} <small>${escapeHtml(g.role || "")}</small></span>
+                <span>👥 ${escapeHtml(g.name)} <small>${escapeHtml(g.organizationName || g.role || "")}</small></span>
                 <div>
                     <button class="btn btn-secondary" type="button" data-group-watch-id="${g.id}">${g.watching ? "Unwatch" : "Watch"}</button>
                     <button class="btn btn-secondary" type="button" data-group-member-add-id="${g.id}">Dodaj osobę</button>
@@ -5832,7 +5980,7 @@
                 </div>
             </div>`;
         }).join("");
-        teamListEl.innerHTML = (friendHtml + groupHtml) || '<div class="we-addons-empty">Brak znajomych i globalnych grup.</div>';
+        teamListEl.innerHTML = (organizationHtml + friendHtml + groupHtml) || '<div class="we-addons-empty">Brak znajomych, organizacji i globalnych grup.</div>';
     }
 
     async function addFriend() {
@@ -5846,8 +5994,19 @@
     async function addGroup() {
         const value = String(teamGroupInput?.value || "").trim();
         if (!value) return;
-        await postJson("/ares/api/network/groups/create/", { name: value, description: "" });
+        const firstOrg = Array.isArray(networkSummaryCache.organizations) && networkSummaryCache.organizations.length
+            ? networkSummaryCache.organizations[0].id
+            : null;
+        await postJson("/ares/api/network/groups/create/", { name: value, description: "", organizationId: firstOrg });
         if (teamGroupInput) teamGroupInput.value = "";
+        await loadNetworkSummary();
+    }
+
+    async function addOrganization() {
+        const value = String(teamOrgInput?.value || "").trim();
+        if (!value) return;
+        await postJson("/ares/api/network/organizations/create/", { name: value, visibility: "private" });
+        if (teamOrgInput) teamOrgInput.value = "";
         await loadNetworkSummary();
     }
 
@@ -5994,20 +6153,295 @@
 
     function runWorkflowSaveReport() {
         saveSheet();
-        if (workflowStatusEl) workflowStatusEl.textContent = "Workflow wykonany: zapisano arkusz. Przejdź do Raportów, aby pobrać PDF.";
+        populateReportBuilder();
+        openModal(reportModal);
+        if (workflowStatusEl) workflowStatusEl.textContent = "Workflow wykonany: zapisano arkusz i przygotowano raport w edytorze.";
         logUserAction("Workflow: zapis + raport", { type: "workflow_save_report" });
+    }
+
+    function countFilledCells(grid) {
+        return (grid || []).reduce((sum, row) => sum + (Array.isArray(row) ? row.filter(cell => String(cell || "").trim() !== "").length : 0), 0);
+    }
+
+    function getSelectionStats() {
+        const rangeText = getCurrentSelectionRangeText();
+        const matrix = getRangeMatrix(rangeText, true);
+        const rows = matrix.length;
+        const cols = matrix[0]?.length || 0;
+        return { rangeText, rows, cols };
+    }
+
+    function buildSuggestedKpis() {
+        if (!currentSheet) return [];
+        const filledCells = countFilledCells(currentSheet.grid || []);
+        const selection = getSelectionStats();
+        const rows = (currentSheet.grid || []).length;
+        const cols = Math.max(...((currentSheet.grid || []).map(row => row.length || 0)), 0);
+        const kpis = [
+            { label: "Wiersze arkusza", value: rows },
+            { label: "Kolumny arkusza", value: cols },
+            { label: "Niepuste komórki", value: filledCells },
+            { label: "Wykresy", value: chartObjects.length },
+            { label: "Tabele przestawne", value: pivotObjects.length },
+        ];
+        if (selection.rows && selection.cols) {
+            kpis.push({ label: "Bieżące zaznaczenie", value: `${selection.rangeText} (${selection.rows}×${selection.cols})` });
+        }
+        return kpis;
+    }
+
+    function buildSuggestedInsights() {
+        if (!currentSheet) return [];
+        const selection = getSelectionStats();
+        const notes = [
+            `Arkusz roboczy: ${currentSheet.name || "Arkusz"}.`,
+            chartObjects.length ? `W arkuszu są ${chartObjects.length} wykres(y), które można opisać jako wizualne podsumowanie analizy.` : "Brak wykresów — warto rozważyć dodanie wizualizacji do raportu.",
+            pivotObjects.length ? `W arkuszu są ${pivotObjects.length} tabela(e) przestawna(e), więc raport może odwoływać się do agregacji i przekrojów danych.` : "Brak tabel przestawnych — raport będzie oparty głównie na siatce danych i wykresach.",
+        ];
+        if (selection.rows && selection.cols) {
+            notes.push(`Aktualnie zaznaczony zakres ${selection.rangeText} może zostać użyty jako główny fragment raportu.`);
+        }
+        if (currentSheet.category) {
+            notes.push(`Kategoria arkusza: ${currentSheet.category}.`);
+        }
+        return notes;
+    }
+
+    function buildExecutiveSummary() {
+        if (!currentSheet) return "";
+        const selection = getSelectionStats();
+        const filledCells = countFilledCells(currentSheet.grid || []);
+        return [
+            `Arkusz ${currentSheet.name || "Arkusz"} zawiera ${filledCells} niepustych komórek i ${chartObjects.length} wykres(y), co daje gotową bazę do krótkiego podsumowania decyzji.`,
+            selection.rows && selection.cols ? `Najbardziej aktualny zakres pracy to ${selection.rangeText} (${selection.rows}×${selection.cols}).` : "Raport obejmuje cały bieżący arkusz.",
+            pivotObjects.length ? `Dostępne są też ${pivotObjects.length} tabela(e) przestawna(e), więc można pokazać agregacje i przekroje bez ręcznego liczenia.` : "Brak tabel przestawnych, więc nacisk raportu będzie na siatkę danych i wykresy.",
+        ].join(" ");
+    }
+
+    function buildRiskSummary() {
+        if (!currentSheet) return "";
+        if (!chartObjects.length && !pivotObjects.length) {
+            return "Ryzykiem raportu jest brak dodatkowych obiektów analitycznych, więc odbiorca będzie opierał się głównie na surowej siatce danych.";
+        }
+        const selection = getSelectionStats();
+        if (selection.rangeText === "A1") {
+            return "Sprawdź, czy zakres źródłowy raportu jest właściwy. Przy pojedynczej komórce łatwo przypadkiem oprzeć opis na zbyt małym fragmencie danych.";
+        }
+        return "Przed eksportem warto potwierdzić, że wybrane wykresy i tabele przestawne pokazują ten sam zakres danych i nie mieszają różnych wersji analizy.";
+    }
+
+    function buildRecommendationSummary() {
+        if (!currentSheet) return "";
+        if (chartObjects.length || pivotObjects.length) {
+            return "Pokaż najpierw najważniejszy wykres lub tabelę przestawną, a potem zamknij raport jedną decyzją albo konkretnym następnym krokiem.";
+        }
+        return "Najpierw dodaj jedną wizualizację lub tabelę przestawną do najważniejszego zakresu, a dopiero potem eksportuj raport dla innych osób.";
+    }
+
+    function renderReportObjectSelection(container, items, typeLabel) {
+        if (!container) return;
+        if (!items.length) {
+            container.innerHTML = `<div class="we-report-select-empty">Brak ${typeLabel.toLowerCase()} w tym arkuszu.</div>`;
+            return;
+        }
+        container.innerHTML = items.map((item) => `
+            <label class="we-report-select-item">
+                <input type="checkbox" data-report-object="${escapeHtml(item.kind)}" value="${escapeHtml(String(item.index))}" checked>
+                <span>
+                    <strong>${escapeHtml(item.title)}</strong>
+                    <small>${escapeHtml(item.meta)}</small>
+                </span>
+            </label>
+        `).join("");
+    }
+
+    function renderReportObjectLists() {
+        renderReportObjectSelection(
+            reportModalChartList,
+            chartObjects.map((chart, index) => ({
+                kind: "chart",
+                index,
+                title: chart.title || `Wykres ${index + 1}`,
+                meta: `${chart.type || "chart"} • ${chart.rangeText || "brak zakresu"}`
+            })),
+            "wykresów"
+        );
+        renderReportObjectSelection(
+            reportModalPivotList,
+            pivotObjects.map((pivot, index) => ({
+                kind: "pivot",
+                index,
+                title: `Tabela przestawna ${index + 1}`,
+                meta: `${pivot.agg || "sum"} • ${pivot.rangeText || "brak zakresu"}`
+            })),
+            "tabel przestawnych"
+        );
+    }
+
+    function getSelectedReportObjectIndexes(kind) {
+        const root = kind === "chart" ? reportModalChartList : reportModalPivotList;
+        if (!root) return [];
+        return Array.from(root.querySelectorAll(`[data-report-object="${kind}"]:checked`))
+            .map(input => Number.parseInt(input.value, 10))
+            .filter(Number.isInteger);
+    }
+
+    function getSelectedChartsForReport() {
+        return getSelectedReportObjectIndexes("chart")
+            .map(index => ({ index, chart: chartObjects[index] }))
+            .filter(item => item.chart)
+            .map(({ index, chart }) => ({
+                index,
+                title: chart.title || `Wykres ${index + 1}`,
+                type: chart.type,
+                rangeText: chart.rangeText
+            }));
+    }
+
+    function getSelectedPivotsForReport() {
+        return getSelectedReportObjectIndexes("pivot")
+            .map(index => ({ index, pivot: pivotObjects[index] }))
+            .filter(item => item.pivot)
+            .map(({ index, pivot }) => ({
+                index,
+                title: `Tabela przestawna ${index + 1}`,
+                agg: pivot.agg,
+                rangeText: pivot.rangeText
+            }));
+    }
+
+    function fillReportScopeOptions() {
+        if (!reportModalScopeSelect) return;
+        const visibility = reportModalVisibilitySelect?.value || "private";
+        if (visibility === "team") {
+            const groups = Array.isArray(networkSummaryCache.groups) ? networkSummaryCache.groups : [];
+            reportModalScopeSelect.innerHTML = groups.length
+                ? groups.map(group => `<option value="group:${group.id}">${escapeHtml(group.name)}</option>`).join("")
+                : `<option value="">Brak zespołów</option>`;
+            return;
+        }
+        if (visibility === "organization") {
+            const orgs = Array.isArray(networkSummaryCache.organizations) ? networkSummaryCache.organizations : [];
+            reportModalScopeSelect.innerHTML = orgs.length
+                ? orgs.map(org => `<option value="organization:${org.id}">${escapeHtml(org.name)}</option>`).join("")
+                : `<option value="">Brak organizacji</option>`;
+            return;
+        }
+        reportModalScopeSelect.innerHTML = `<option value="">Prywatny raport</option>`;
+    }
+
+    function renderReportPreview() {
+        if (!reportModalPreview || !reportModalHints) return;
+        const kpis = String(reportModalKpisInput?.value || "").split(/\r?\n/).map(line => line.trim()).filter(Boolean);
+        const insights = String(reportModalInsightsInput?.value || "").split(/\r?\n/).map(line => line.trim()).filter(Boolean);
+        const selectedCharts = getSelectedChartsForReport();
+        const selectedPivots = getSelectedPivotsForReport();
+        const hintRows = [];
+        if (reportIncludeSelectionInput?.checked) hintRows.push(`Zakres: ${getSelectionStats().rangeText}`);
+        hintRows.push(`Wybrane wykresy: ${selectedCharts.length}`);
+        hintRows.push(`Wybrane tabele przestawne: ${selectedPivots.length}`);
+        if (reportIncludeActivityInput?.checked) hintRows.push("Stan arkusza i aktywność bieżącej sesji");
+        reportModalHints.innerHTML = hintRows.map(text => `<div class="we-report-hint">${escapeHtml(text)}</div>`).join("") || `<div class="we-report-hint">Wybierz źródła raportu po prawej stronie.</div>`;
+        reportModalPreview.innerHTML = `
+<strong>${escapeHtml(reportModalTitleInput?.value || "Raport roboczy")}</strong>
+
+${escapeHtml(reportModalDescriptionInput?.value || "Opis raportu pojawi się tutaj.")}
+
+KPI:
+${kpis.length ? kpis.map(item => `• ${escapeHtml(item)}`).join("<br>") : "• Brak KPI"}
+
+Wnioski:
+${insights.length ? insights.map(item => `• ${escapeHtml(item)}`).join("<br>") : "• Brak wniosków"}
+
+Executive summary:
+${escapeHtml(reportModalExecutiveSummaryInput?.value || "Brak sekcji executive summary.")}
+
+Risk:
+${escapeHtml(reportModalRiskInput?.value || "Brak sekcji risk.")}
+
+Rekomendacja:
+${escapeHtml(reportModalRecommendationInput?.value || "Brak sekcji rekomendacji.")}
+
+Obiekty:
+${selectedCharts.length ? selectedCharts.map(item => `• ${escapeHtml(item.title)}`).join("<br>") : "• Brak wybranych wykresów"}
+<br>
+${selectedPivots.length ? selectedPivots.map(item => `• ${escapeHtml(item.title)}`).join("<br>") : "• Brak wybranych tabel przestawnych"}
+        `.trim();
+    }
+
+    function populateReportBuilder() {
+        if (!reportModalTitleInput || !currentSheet) return;
+        const suggestedKpis = buildSuggestedKpis();
+        const suggestedInsights = buildSuggestedInsights();
+        const chartLead = chartObjects[0]?.title || chartObjects[0]?.type || "wykresów";
+        reportModalTitleInput.value = reportModalTitleInput.value || `Raport: ${currentSheet.name || "Arkusz"}${chartObjects.length ? ` + ${chartLead}` : ""}`;
+        reportModalDescriptionInput.value = reportModalDescriptionInput.value || `Raport oparty na arkuszu ${currentSheet.name || "Arkusz"}, bieżących danych i obiektach analitycznych przygotowanych w edytorze.`;
+        reportModalKpisInput.value = suggestedKpis.map(item => `${item.label}|${item.value}`).join("\n");
+        reportModalInsightsInput.value = suggestedInsights.join("\n");
+        reportModalExecutiveSummaryInput.value = reportModalExecutiveSummaryInput.value || buildExecutiveSummary();
+        reportModalRiskInput.value = reportModalRiskInput.value || buildRiskSummary();
+        reportModalRecommendationInput.value = reportModalRecommendationInput.value || buildRecommendationSummary();
+        renderReportObjectLists();
+        fillReportScopeOptions();
+        renderReportPreview();
+    }
+
+    async function saveReportFromEditor(openReportsAfter = false) {
+        if (!currentSheet || DEMO_MODE) return;
+        await saveSheet();
+        const visibility = reportModalVisibilitySelect?.value || "private";
+        const scopeValue = reportModalScopeSelect?.value || "";
+        const selection = getSelectionStats();
+        const selectedCharts = getSelectedChartsForReport();
+        const selectedPivots = getSelectedPivotsForReport();
+        const payload = {
+            title: (reportModalTitleInput?.value || "").trim() || `Raport: ${currentSheet.name || "Arkusz"}`,
+            description: reportModalDescriptionInput?.value || "",
+            sheetId: sheetId,
+            reportType: reportModalTypeSelect?.value || "analytical",
+            visibility,
+            config: {
+                source: "worksheet-editor",
+                includeSelection: !!reportIncludeSelectionInput?.checked,
+                includeActivity: !!reportIncludeActivityInput?.checked,
+                selectedChartIndexes: selectedCharts.map(item => item.index),
+                selectedPivotIndexes: selectedPivots.map(item => item.index),
+            },
+            snapshot: {
+                selection: reportIncludeSelectionInput?.checked ? selection : null,
+                charts: selectedCharts,
+                pivots: selectedPivots,
+                kpis: String(reportModalKpisInput?.value || "").split(/\r?\n/).map(line => line.trim()).filter(Boolean).map(line => {
+                    const [label, value] = line.split("|");
+                    return { label: (label || "").trim(), value: (value || "").trim() };
+                }).filter(item => item.label),
+                insights: String(reportModalInsightsInput?.value || "").split(/\r?\n/).map(line => line.trim()).filter(Boolean),
+                executiveSummary: reportModalExecutiveSummaryInput?.value || "",
+                risk: reportModalRiskInput?.value || "",
+                recommendation: reportModalRecommendationInput?.value || ""
+            }
+        };
+        if (scopeValue.startsWith("group:")) payload.groupId = scopeValue.split(":")[1];
+        if (scopeValue.startsWith("organization:")) payload.organizationId = scopeValue.split(":")[1];
+        await postJson("/ares/api/reports/user/create/", payload);
+        if (workflowStatusEl) workflowStatusEl.textContent = "Raport zapisany z poziomu edytora.";
+        logUserAction("Utworzono raport z edytora", { type: "editor_report_create", reportType: payload.reportType, visibility });
+        closeModal(reportModal);
+        if (openReportsAfter) {
+            window.location.href = "/reports/";
+        }
     }
 
     function initializeEvents() {
         saveBtn?.addEventListener("click", saveSheet);
-        exportBtn?.addEventListener("click", downloadCsv);
+        exportBtn?.addEventListener("click", exportSheetData);
         renameBtn?.addEventListener("click", renameSheet);
         undoBtn?.addEventListener("click", undoLastChange);
         redoBtn?.addEventListener("click", redoLastChange);
 
         importInput?.addEventListener("change", event => {
             const file = event.target.files?.[0];
-            if (file) importCsv(file);
+            if (file) importDataFile(file);
         });
 
         applyFormulaBtn?.addEventListener("click", applyFormulaToActiveCell);
@@ -6189,6 +6623,8 @@
         pivotModal?.addEventListener("click", event => {
             const quick = event.target.closest("[data-pivot-quick]");
             if (quick) addPivotField(quick.dataset.pivotQuick, quick.dataset.fieldIndex);
+            const move = event.target.closest("[data-pivot-move]");
+            if (move) movePivotField(move.dataset.pivotMove, parseInt(move.dataset.pivotMoveIndex || "0", 10), parseInt(move.dataset.pivotMoveDelta || "0", 10));
             const remove = event.target.closest("[data-pivot-remove]");
             if (remove) removePivotField(remove.dataset.pivotRemove, parseInt(remove.dataset.pivotRemoveIndex || "0", 10));
         });
@@ -6221,17 +6657,28 @@
         sheetScriptSaveBtn?.addEventListener("click", saveCurrentScriptFromEditor);
         sheetScriptRunBtn?.addEventListener("click", runCurrentScript);
         editorAddonsList?.addEventListener("click", async event => {
+            const installBtn = event.target.closest("[data-addon-install-id]");
             const attachBtn = event.target.closest("[data-addon-attach-id]");
             const runBtn = event.target.closest("[data-addon-run-id]");
-            if (!attachBtn && !runBtn) return;
+            if (!installBtn && !attachBtn && !runBtn) return;
             if (!currentSheetCanEdit) {
                 setScriptResult("Nie masz uprawnień do edycji tego arkusza.", true);
                 return;
             }
-            const addonId = String(attachBtn?.dataset.addonAttachId || runBtn?.dataset.addonRunId || "").trim();
+            const addonId = String(installBtn?.dataset.addonInstallId || attachBtn?.dataset.addonAttachId || runBtn?.dataset.addonRunId || "").trim();
             const addon = editorAddonsCache.find(item => String(item.id) === addonId);
             if (!addon) {
                 setScriptResult("Nie znaleziono dodatku. Odśwież listę dodatków.", true);
+                return;
+            }
+            if (installBtn) {
+                try {
+                    await postJson(`/ares/api/addons/${addonId}/install/`, { sheetId: Number(sheetId) });
+                    await loadEditorAddons();
+                    setScriptResult(`Dodatek „${addon.title}” został zainstalowany.`, false);
+                } catch (error) {
+                    setScriptResult("Nie udało się zainstalować dodatku.", true);
+                }
                 return;
             }
             const script = attachAddonToCurrentSheet(addon);
@@ -6295,6 +6742,9 @@
             if (solverVariableInput) solverVariableInput.value = "";
         });
 
+        teamOrgAddBtn?.addEventListener("click", async () => {
+            try { await addOrganization(); } catch (error) { alert("Nie udało się utworzyć organizacji."); }
+        });
         teamFriendAddBtn?.addEventListener("click", async () => {
             try { await addFriend(); } catch (error) { alert("Nie udało się dodać znajomego."); }
         });
@@ -6401,6 +6851,28 @@
 
         workflowCleanReportBtn?.addEventListener("click", runWorkflowCleanReport);
         workflowSaveReportBtn?.addEventListener("click", runWorkflowSaveReport);
+        reportModalVisibilitySelect?.addEventListener("change", () => {
+            fillReportScopeOptions();
+            renderReportPreview();
+        });
+        [
+            reportModalTitleInput,
+            reportModalTypeSelect,
+            reportModalDescriptionInput,
+            reportModalKpisInput,
+            reportModalInsightsInput,
+            reportModalExecutiveSummaryInput,
+            reportModalRiskInput,
+            reportModalRecommendationInput,
+            reportIncludeSelectionInput,
+            reportIncludeActivityInput,
+            reportModalScopeSelect
+        ].forEach(control => control?.addEventListener("input", renderReportPreview));
+        [reportIncludeSelectionInput, reportIncludeActivityInput, reportModalScopeSelect].forEach(control => control?.addEventListener("change", renderReportPreview));
+        reportModalChartList?.addEventListener("change", renderReportPreview);
+        reportModalPivotList?.addEventListener("change", renderReportPreview);
+        reportModalSaveBtn?.addEventListener("click", () => saveReportFromEditor(false));
+        reportModalSaveOpenBtn?.addEventListener("click", () => saveReportFromEditor(true));
     }
 
     function safeBoot(stepName, callback) {

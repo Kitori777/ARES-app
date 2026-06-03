@@ -3,7 +3,7 @@ from datetime import timedelta
 from django.contrib.auth.models import User
 from django.utils import timezone
 
-from ares.models import Addon, HistoryEntry, Sheet
+from ares.models import Addon, HistoryEntry, Sheet, UserReport, WorkspaceOrganization, WorkspaceGroup
 from users.models import BugReport, PasswordResetCode, PendingRegistration, UserProfile
 
 
@@ -51,6 +51,27 @@ def test_addon_public_payload_basic_fields():
     assert payload["kind"] == Addon.KIND_SCRIPT
     assert payload["kindLabel"] == "Skrypt"
     assert payload["author"] == "ania"
+
+
+def test_addon_public_payload_includes_workspace_metadata():
+    addon = Addon(
+        title="Menu raportow",
+        summary="Buduje menu",
+        kind=Addon.KIND_TOOL,
+        category="Raportowanie",
+        host=Addon.HOST_REPORTS,
+        script_body="api.notify('ok')",
+        entry_point="onOpen",
+        auth_mode="user",
+        scopes="sheet.read\nreport.write",
+        menu_items=[{"label": "Start"}],
+        installation_count=3,
+    )
+    payload = addon.to_public_payload()
+    assert payload["host"] == Addon.HOST_REPORTS
+    assert payload["category"] == "Raportowanie"
+    assert payload["scopes"] == ["sheet.read", "report.write"]
+    assert payload["installationCount"] == 3
 
 
 def test_pending_registration_and_password_reset_expiry_flags():
@@ -127,3 +148,25 @@ def test_bug_report_mark_resolved_switches_timestamp():
     report.mark_resolved_if_needed()
     assert report.resolved_at is None
 
+
+def test_user_report_payload_includes_scope_names():
+    user = make_user("ola", "ola@example.com")
+    organization = WorkspaceOrganization(name="ARES Labs", slug="ares-labs", owner=user)
+    group = WorkspaceGroup(name="Core", slug="core", owner=user, organization=organization)
+    sheet = Sheet(user=user, name="Analiza", category="Raport")
+    report = UserReport(
+        owner=user,
+        sheet=sheet,
+        group=group,
+        organization=organization,
+        title="Raport",
+        report_type=UserReport.TYPE_NOTEBOOK,
+        visibility=UserReport.VISIBILITY_ORG,
+        config_json={"format": "quarto-like"},
+        snapshot_json={"kpis": [{"label": "A", "value": "1"}]},
+    )
+    payload = report.to_payload()
+    assert payload["reportType"] == UserReport.TYPE_NOTEBOOK
+    assert payload["organizationName"] == "ARES Labs"
+    assert payload["groupName"] == "Core"
+    assert payload["sheetName"] == "Analiza"

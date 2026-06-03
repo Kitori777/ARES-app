@@ -36,7 +36,7 @@
 
         <form method="get" class="settings-card bug-filter-card">
             <label class="field-label">Szukaj po loginie lub e-mailu</label>
-            <input class="settings-input" type="text" name="q" value="{{ query }}" placeholder="np. stasi, Kitori9, gmail">
+            <input class="settings-input" type="text" name="q" value="{{ query }}" placeholder="np. login, email, nazwa">
             <button class="btn btn-secondary" type="submit">Szukaj</button>
             <a class="btn btn-secondary" href="{% url 'admin_users_panel' %}">Wyczyść</a>
         </form>

@@ -5,7 +5,7 @@
 {% block topbar_title %}Edytor arkusza{% endblock %}
 
 {% block extra_head %}
-<link rel="stylesheet" href="{% static 'css/worksheet_editor.css' %}?v=0.8.10-team-ui">
+<link rel="stylesheet" href="{% static 'css/worksheet_editor.css' %}?v=0.9.2-team-ui">
 {% endblock %}
 
 {% block content %}
@@ -85,8 +85,20 @@
                         <button id="redo-btn" class="btn btn-secondary we-icon-btn" type="button" title="Ponów" aria-label="Ponów"><span class="we-svg-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M17 7h4V3"/><path d="M20.5 7.5A8 8 0 1 0 18 19"/></svg></span></button>
                         <button id="rename-sheet-btn" class="btn btn-secondary we-icon-btn" type="button" title="Zmień nazwę" aria-label="Zmień nazwę"><span class="we-svg-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></span></button>
                         <button id="save-sheet-btn" class="btn btn-primary we-icon-btn" type="button" title="Zapisz" aria-label="Zapisz"><span class="we-svg-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2Z"/><path d="M17 21v-8H7v8"/><path d="M7 3v5h8"/></svg></span></button>
-                        <button id="export-csv-btn" class="btn btn-ghost we-icon-btn" type="button" title="Eksport CSV" aria-label="Eksport CSV"><span class="we-svg-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg></span></button>
-                        <label class="we-upload-btn we-icon-btn" title="Import CSV/XLSX" aria-label="Import CSV/XLSX"><span class="we-svg-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 21V9"/><path d="m7 14 5-5 5 5"/><path d="M5 3h14"/></svg></span><input id="csv-import-input" type="file" accept=".csv,.txt,.tsv,.xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel"></label>
+                        <select id="export-format-select" class="we-toolbar-select we-compact-select" title="Format eksportu">
+                            <option value="csv">CSV</option>
+                            <option value="tsv">TSV</option>
+                            <option value="txt">TXT</option>
+                            <option value="xlsx">XLSX</option>
+                            <option value="xls">XLS</option>
+                            <option value="xlsb">XLSB</option>
+                            <option value="ods">ODS</option>
+                            <option value="html">HTML</option>
+                            <option value="xml">XML</option>
+                            <option value="json">JSON</option>
+                        </select>
+                        <button id="export-csv-btn" class="btn btn-ghost we-icon-btn" type="button" title="Eksportuj arkusz" aria-label="Eksportuj arkusz"><span class="we-svg-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg></span></button>
+                        <label class="we-upload-btn we-icon-btn" title="Import wielu formatów" aria-label="Import wielu formatów"><span class="we-svg-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 21V9"/><path d="m7 14 5-5 5 5"/><path d="M5 3h14"/></svg></span><input id="csv-import-input" type="file" accept=".csv,.tsv,.txt,.xlsx,.xls,.xlsb,.ods,.html,.xml,.json,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,application/vnd.ms-excel.sheet.binary.macroEnabled.12,application/vnd.oasis.opendocument.spreadsheet,application/json,text/html,text/xml,application/xml,text/plain,text/csv"></label>
                     </div>
 
                     <div class="we-toolbar-sep"></div>
@@ -274,6 +286,7 @@
                             <button class="btn btn-secondary we-option-card" data-ribbon-action="conditional-format" type="button"><span>◐</span><b>Formatowanie warunkowe</b></button>
                             <button class="btn btn-secondary we-option-card" data-ribbon-action="checkbox" type="button"><span>☑</span><b>Pole wyboru</b></button>
                             <button class="btn btn-secondary we-option-card" data-ribbon-action="chart" type="button"><span>◔</span><b>Wykres</b></button>
+                            <button class="btn btn-secondary we-option-card" data-ribbon-action="report-builder" type="button"><span>▤</span><b>Raport inteligentny</b></button>
                             <button class="btn btn-secondary we-option-card" data-ribbon-action="solver" type="button"><span>∑</span><b>Solver</b></button>
                         </div>
                     </section>
@@ -292,10 +305,10 @@
                 <div class="we-addons-panel">
                     <div class="we-addons-head">
                         <div>
-                            <strong>Dodatki społeczności</strong>
-                            <p>Zatwierdzone przez administratora skrypty, makra i narzędzia od użytkowników ARES.</p>
+                            <strong>Dodatki</strong>
+                            <p>Instaluj dodatki, przypinaj je do arkusza i uruchamiaj potrzebne akcje bez opuszczania edytora.</p>
                         </div>
-                        <a class="btn btn-secondary" href="{% url 'addons_marketplace' %}">Forum dodatków</a>
+                        <a class="btn btn-secondary" href="{% url 'addons_marketplace' %}">Przegląd dodatków</a>
                     </div>
                     <div id="editor-addons-list" class="we-addons-list">
                         <div class="we-addons-empty">Ładowanie dodatków...</div>
@@ -354,52 +367,70 @@
                 <div class="we-addons-panel">
                     <div class="we-addons-head">
                         <div>
-                            <strong>Zespół i automatyzacje arkusza</strong>
-                            <p>Follow-me, zadania, scenariusze i workflowy działające bezpośrednio na bieżącym arkuszu.</p>
+                            <strong>Praca zespołowa</strong>
+                            <p>Lekki hub dla bieżącego arkusza. Pełne zarządzanie organizacjami, teamami i ustawieniami jest w osobnej sekcji, a tutaj zostają tylko szybkie akcje.</p>
                         </div>
                         <a class="btn btn-secondary" href="{% url 'network' %}">Pełna sekcja Zespół</a>
                     </div>
 
-                    <div class="we-innovations-grid">
+                    <div class="we-team-hub-grid">
                         <section class="we-innovation-card">
-                            <h4>1) Znajomi i grupy (globalnie)</h4>
-                            <div class="we-inline-row">
-                                <input id="team-friend-input" type="text" class="we-toolbar-select" placeholder="nick lub e-mail">
-                                <button id="team-friend-add-btn" class="btn btn-secondary" type="button">Dodaj</button>
-                            </div>
-                            <div class="we-inline-row">
-                                <input id="team-group-input" type="text" class="we-toolbar-select" placeholder="nazwa grupy">
-                                <button id="team-group-add-btn" class="btn btn-secondary" type="button">Utwórz</button>
-                            </div>
-                            <div id="team-list" class="we-mini-list">
-                                <div class="we-addons-empty">Brak znajomych i grup.</div>
+                            <h4>Nawigacja</h4>
+                            <p class="we-team-hub-copy">Najważniejsze miejsca do pracy zespołowej i raportowej bez tłoku w jednym panelu.</p>
+                            <div class="we-team-hub-actions">
+                                <a class="btn btn-primary" href="{% url 'network' %}">Organizacje i zespoły</a>
+                                <a class="btn btn-secondary" href="{% url 'reports' %}">Raporty użytkownika</a>
+                                <a class="btn btn-secondary" href="{% url 'history' %}">Historia pracy</a>
                             </div>
                         </section>
 
                         <section class="we-innovation-card">
-                            <h4>2) Follow-me (live)</h4>
+                            <h4>Szybkie utwórz</h4>
+                            <p class="we-team-hub-copy">Dodaj organizację, team albo znajomego bez wychodzenia z arkusza.</p>
+                            <div class="we-inline-row">
+                                <input id="team-org-input" type="text" class="we-toolbar-select" placeholder="Nazwa organizacji">
+                                <button id="team-org-add-btn" class="btn btn-secondary" type="button">Nowa organizacja</button>
+                            </div>
+                            <div class="we-inline-row">
+                                <input id="team-group-input" type="text" class="we-toolbar-select" placeholder="Nazwa teamu">
+                                <button id="team-group-add-btn" class="btn btn-secondary" type="button">Nowy team</button>
+                            </div>
+                            <div class="we-inline-row">
+                                <input id="team-friend-input" type="text" class="we-toolbar-select" placeholder="Nick lub e-mail">
+                                <button id="team-friend-add-btn" class="btn btn-secondary" type="button">Dodaj znajomego</button>
+                            </div>
+                            <div id="team-list" class="we-mini-list">
+                                <div class="we-addons-empty">Brak znajomych, organizacji i teamów.</div>
+                            </div>
+                        </section>
+
+                        <section class="we-innovation-card">
+                            <h4>Live i workflowy</h4>
+                            <p class="we-team-hub-copy">Włącz śledzenie pracy i odpal gotowe przepływy dla aktualnego arkusza.</p>
                             <div class="we-inline-row">
                                 <button id="follow-me-toggle-btn" class="btn btn-secondary" type="button">Włącz nadawanie</button>
                                 <button id="follow-me-join-btn" class="btn btn-secondary" type="button">Śledź ostatni sygnał</button>
                             </div>
+                            <div class="we-inline-row">
+                                <button id="workflow-clean-report-btn" class="btn btn-secondary" type="button">Czyszczenie + profil</button>
+                                <button id="workflow-save-report-btn" class="btn btn-primary" type="button">Zapisz + raport</button>
+                            </div>
                             <div id="follow-me-status" class="we-sheet-script-result">Tryb wyłączony.</div>
+                            <div id="workflow-status" class="we-sheet-script-result">Workflow gotowy do uruchomienia.</div>
                         </section>
 
                         <section class="we-innovation-card">
-                            <h4>3) Zadania w komórkach</h4>
+                            <h4>Kontekst arkusza</h4>
+                            <p class="we-team-hub-copy">Zostaw zadania w komórkach i zapisuj scenariusze, żeby wracać do ważnych wariantów analizy.</p>
                             <div class="we-inline-row">
-                                <input id="cell-task-input" type="text" class="we-toolbar-select" placeholder="np. sprawdź wartość C5">
+                                <input id="cell-task-input" type="text" class="we-toolbar-select" placeholder="Np. sprawdź wartość C5">
                                 <button id="cell-task-add-btn" class="btn btn-secondary" type="button">Dodaj do aktywnej</button>
                             </div>
                             <div id="cell-task-list" class="we-mini-list">
                                 <div class="we-addons-empty">Brak zadań w komórkach.</div>
                             </div>
-                        </section>
-
-                        <section class="we-innovation-card">
-                            <h4>4) Gałęzie / scenariusze</h4>
-                            <div class="we-inline-row">
-                                <input id="scenario-name-input" type="text" class="we-toolbar-select" placeholder="np. Plan A">
+                            <div class="we-inline-row" style="margin-top:12px;">
+                                <input id="scenario-name-input" type="text" class="we-toolbar-select" placeholder="Np. Plan A">
                                 <button id="scenario-save-btn" class="btn btn-secondary" type="button">Zapisz scenariusz</button>
                             </div>
                             <div id="scenario-list" class="we-mini-list">
@@ -407,15 +438,6 @@
                             </div>
                         </section>
                     </div>
-
-                    <section class="we-innovation-card">
-                        <h4>5) Workflowy 1-klik</h4>
-                        <div class="we-sheet-script-actions">
-                            <button id="workflow-clean-report-btn" class="btn btn-secondary" type="button">Czyszczenie + profil</button>
-                            <button id="workflow-save-report-btn" class="btn btn-primary" type="button">Zapisz + raport</button>
-                        </div>
-                        <div id="workflow-status" class="we-sheet-script-result">Workflow gotowy do uruchomienia.</div>
-                    </section>
                 </div>
             </div>
 
@@ -536,7 +558,7 @@ api.notify("Policzono sumę kolumny B.");</code></pre>
             <section class="we-chart-types-panel">
                 <div class="we-chart-types-title">Typ wykresu</div>
                 <div class="we-chart-types-grid" id="chart-type-cards">
-                    <button class="we-chart-type-card active" data-chart-type="line" type="button"><span>đź“</span><strong>Liniowy</strong><small>trend w czasie</small></button>
+                    <button class="we-chart-type-card active" data-chart-type="line" type="button"><span>↗</span><strong>Liniowy</strong><small>trend w czasie</small></button>
                     <button class="we-chart-type-card" data-chart-type="smooth-line" type="button"><span>〽️</span><strong>Liniowy wygładzony</strong><small>miękki trend</small></button>
                     <button class="we-chart-type-card" data-chart-type="area" type="button"><span>🏔️</span><strong>Warstwowy</strong><small>wartość + obszar</small></button>
                     <button class="we-chart-type-card" data-chart-type="stepped-area" type="button"><span>▰</span><strong>Schodkowy</strong><small>zmiany skokowe</small></button>
@@ -661,7 +683,7 @@ api.notify("Policzono sumę kolumny B.");</code></pre>
         <div class="we-modal-top we-pivot-top">
             <div>
                 <strong>Edytor tabeli przestawnej</strong>
-                <div class="we-pivot-subtitle">Wybierz zakres danych, a potem dodawaj pola do wierszy, kolumn, wartości i filtrów.</div>
+                <div class="we-pivot-subtitle">Wybierz zakres danych, a potem dodawaj pola do wierszy, kolumn, wartości i filtrów. Kolejność możesz zmieniać strzałkami przy polach.</div>
             </div>
             <button type="button" class="we-modal-close" data-close-modal="pivot-modal">✕</button>
         </div>
@@ -685,6 +707,91 @@ api.notify("Policzono sumę kolumny B.");</code></pre>
             </section>
         </div>
         <div class="we-modal-actions"><button id="build-pivot-btn" class="btn btn-primary" type="button">Generuj tabelę</button></div>
+    </div>
+</div>
+
+<div class="we-modal" id="report-modal">
+    <div class="we-modal-box we-report-builder-box">
+        <div class="we-modal-top">
+            <div>
+                <strong>Raport inteligentny</strong>
+                <div class="we-pivot-subtitle">Zbuduj raport bez wychodzenia z edytora. ARES podpowie KPI, opis i zakres na podstawie bieżącego arkusza, wykresów oraz tabel przestawnych.</div>
+            </div>
+            <button type="button" class="we-modal-close" data-close-modal="report-modal">✕</button>
+        </div>
+        <div class="we-report-builder-layout">
+            <section class="we-report-builder-main">
+                <div class="we-report-grid">
+                    <label class="we-grid-span-2">Tytuł raportu
+                        <input id="report-modal-title" type="text" placeholder="Np. Podsumowanie sprzedaży i solvera">
+                    </label>
+                    <label>Typ raportu
+                        <select id="report-modal-type">
+                            <option value="analytical">Analytical</option>
+                            <option value="executive">Executive</option>
+                            <option value="dashboard">Dashboard</option>
+                            <option value="notebook">Notebook / Quarto</option>
+                        </select>
+                    </label>
+                    <label>Widoczność
+                        <select id="report-modal-visibility">
+                            <option value="private">Prywatny</option>
+                            <option value="team">Zespół</option>
+                            <option value="organization">Organizacja</option>
+                        </select>
+                    </label>
+                    <label class="we-grid-span-2">Zakres współdzielenia
+                        <select id="report-modal-scope"></select>
+                    </label>
+                    <label class="we-grid-span-2">Opis
+                        <textarea id="report-modal-description" rows="4" placeholder="Dla kogo jest raport i jaka decyzja ma z niego wyniknąć"></textarea>
+                    </label>
+                    <label class="we-grid-span-2">KPI
+                        <textarea id="report-modal-kpis" rows="5" placeholder="KPI, po jednym w wierszu, np. Liczba wykresów|3"></textarea>
+                    </label>
+                    <label class="we-grid-span-2">Wnioski
+                        <textarea id="report-modal-insights" rows="5" placeholder="Najważniejsze obserwacje, po jednej w linii"></textarea>
+                    </label>
+                    <label class="we-grid-span-2">Executive summary
+                        <textarea id="report-modal-executive-summary" rows="4" placeholder="Krótki obraz całości: co się wydarzyło, co widać w danych i co z tego wynika"></textarea>
+                    </label>
+                    <label>Risk
+                        <textarea id="report-modal-risk" rows="4" placeholder="Najważniejsze ryzyko, ograniczenie albo niepewność raportu"></textarea>
+                    </label>
+                    <label>Rekomendacja
+                        <textarea id="report-modal-recommendation" rows="4" placeholder="Najlepszy kolejny krok dla odbiorcy raportu"></textarea>
+                    </label>
+                </div>
+            </section>
+
+            <aside class="we-report-builder-side">
+                <div class="we-report-side-card">
+                    <h4>Źródła do raportu</h4>
+                    <label><input id="report-include-selection" type="checkbox" checked> Bieżące zaznaczenie</label>
+                    <label><input id="report-include-activity" type="checkbox" checked> Aktywność i stan arkusza</label>
+                </div>
+                <div class="we-report-side-card">
+                    <h4>Wybierz wykresy</h4>
+                    <div id="report-modal-chart-list" class="we-report-select-list"></div>
+                </div>
+                <div class="we-report-side-card">
+                    <h4>Wybierz tabele przestawne</h4>
+                    <div id="report-modal-pivot-list" class="we-report-select-list"></div>
+                </div>
+                <div class="we-report-side-card">
+                    <h4>Podpowiedzi ARES</h4>
+                    <div id="report-modal-hints" class="we-report-hints"></div>
+                </div>
+                <div class="we-report-side-card">
+                    <h4>Podgląd</h4>
+                    <div id="report-modal-preview" class="we-report-preview">Podgląd raportu pojawi się po uzupełnieniu danych.</div>
+                </div>
+            </aside>
+        </div>
+        <div class="we-modal-actions">
+            <button id="report-modal-save-btn" class="btn btn-secondary" type="button">Zapisz raport</button>
+            <button id="report-modal-save-open-btn" class="btn btn-primary" type="button">Zapisz i otwórz raporty</button>
+        </div>
     </div>
 </div>
 
@@ -769,15 +876,24 @@ api.notify("Policzono sumę kolumny B.");</code></pre>
 <div class="we-modal" id="solver-modal">
     <div class="we-modal-box we-solver-box">
         <div class="we-modal-top we-solver-top">
-            <strong>Solver</strong>
+            <div>
+                <strong>Solver</strong>
+                <div class="we-solver-subtitle">Cel, zmienne i ograniczenia w jednym panelu roboczym.</div>
+            </div>
             <button type="button" class="we-modal-close" data-close-modal="solver-modal">✕</button>
         </div>
         <div class="we-solver-row we-solver-sheet-row"><label>Arkusz:</label><select id="solver-sheet-select"><option>Arkusz1</option></select><button type="button" class="btn btn-secondary we-solver-small">Bieżący arkusz</button></div>
-        <div class="we-solver-section"><label for="solver-target-input">Komórka celu:</label><div class="we-solver-inline"><input id="solver-target-input" type="text" placeholder="E2"><button type="button" class="btn btn-secondary we-solver-small" id="solver-target-update-btn">Aktualizuj</button><button type="button" class="btn btn-secondary we-solver-small" id="solver-target-clear-btn">Wyczyść</button></div></div>
-        <div class="we-solver-section"><div class="we-solver-section-title">Kierunek optymalizacji:</div><label class="we-solver-radio"><input type="radio" name="solver-objective-sense" value="min"> minimalizuj</label><label class="we-solver-radio"><input type="radio" name="solver-objective-sense" value="max" checked> maksymalizuj</label><label class="we-solver-radio we-solver-target-value"><input type="radio" name="solver-objective-sense" value="target"> wartość docelowa:<input id="solver-target-value-input" type="number" step="any" value="0"></label></div>
-        <div class="we-solver-section"><label for="solver-variable-input">Komórki zmienne:</label><div class="we-solver-list-line"><textarea id="solver-variable-input" rows="5" placeholder="A2:B2"></textarea><div class="we-solver-list-actions"><button type="button" class="btn btn-secondary we-solver-small" id="solver-variable-add-btn">Dodaj</button><button type="button" class="btn btn-secondary we-solver-small" id="solver-variable-update-btn">Aktualizuj</button><button type="button" class="btn btn-secondary we-solver-small" id="solver-variable-delete-btn">Usuń</button></div></div><label class="we-solver-check"><input id="solver-nonnegative-input" type="checkbox" checked> Zmienne bez ograniczeń są nieujemne</label></div>
-        <div class="we-solver-section"><label for="solver-constraints-input">Ograniczenia:</label><textarea id="solver-constraints-input" rows="5" placeholder="G7:G10 <= E7:E10"></textarea></div>
-        <div class="we-solver-advanced"><div><label for="solver-step-input">Krok przeszukiwania</label><input id="solver-step-input" type="number" step="any" value="1"></div><div><label for="solver-min-input">Min</label><input id="solver-min-input" type="number" step="any" value="0"></div><div><label for="solver-max-input">Max</label><input id="solver-max-input" type="number" step="any" value="100"></div></div>
+        <div class="we-solver-layout">
+            <section class="we-solver-panel-block">
+                <div class="we-solver-section"><label for="solver-target-input">Komórka celu:</label><div class="we-solver-inline"><input id="solver-target-input" type="text" placeholder="E2"><button type="button" class="btn btn-secondary we-solver-small" id="solver-target-update-btn">Aktualizuj</button><button type="button" class="btn btn-secondary we-solver-small" id="solver-target-clear-btn">Wyczyść</button></div></div>
+                <div class="we-solver-section"><div class="we-solver-section-title">Kierunek optymalizacji</div><label class="we-solver-radio"><input type="radio" name="solver-objective-sense" value="min"> minimalizuj</label><label class="we-solver-radio"><input type="radio" name="solver-objective-sense" value="max" checked> maksymalizuj</label><label class="we-solver-radio we-solver-target-value"><input type="radio" name="solver-objective-sense" value="target"> wartość docelowa:<input id="solver-target-value-input" type="number" step="any" value="0"></label></div>
+                <div class="we-solver-advanced"><div><label for="solver-step-input">Krok</label><input id="solver-step-input" type="number" step="any" value="1"></div><div><label for="solver-min-input">Min</label><input id="solver-min-input" type="number" step="any" value="0"></div><div><label for="solver-max-input">Max</label><input id="solver-max-input" type="number" step="any" value="100"></div></div>
+            </section>
+            <section class="we-solver-panel-block">
+                <div class="we-solver-section"><label for="solver-variable-input">Komórki zmienne:</label><div class="we-solver-list-line"><textarea id="solver-variable-input" rows="5" placeholder="A2:B2"></textarea><div class="we-solver-list-actions"><button type="button" class="btn btn-secondary we-solver-small" id="solver-variable-add-btn">Dodaj</button><button type="button" class="btn btn-secondary we-solver-small" id="solver-variable-update-btn">Aktualizuj</button><button type="button" class="btn btn-secondary we-solver-small" id="solver-variable-delete-btn">Usuń</button></div></div><label class="we-solver-check"><input id="solver-nonnegative-input" type="checkbox" checked> Zmienne bez ograniczeń są nieujemne</label></div>
+                <div class="we-solver-section"><label for="solver-constraints-input">Ograniczenia:</label><textarea id="solver-constraints-input" rows="6" placeholder="G7:G10 <= E7:E10"></textarea></div>
+            </section>
+        </div>
         <div class="we-modal-actions we-solver-actions"><button type="button" class="btn btn-secondary" data-close-modal="solver-modal">Zamknij</button><button id="run-solver-btn" class="btn btn-primary" type="button">Rozwiąż</button></div>
     </div>
 </div>
@@ -811,6 +927,6 @@ window.addEventListener("unhandledrejection", function (event) {
     } catch (_) {}
 });
 </script>
-<script src="{% static 'js/worksheet_editor.js' %}?v=0.8.10-emoji-addon-team"></script>
+<script src="{% static 'js/worksheet_editor.js' %}?v=0.9.2-emoji-addon-team"></script>
 <script src="{% static 'js/worksheet_chat.js' %}?v=0.8.4-speed"></script>
 {% endblock %}

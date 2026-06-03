@@ -8,7 +8,7 @@
         {
             title: "Jak importować dane?",
             keywords: ["import", "csv", "xlsx", "xls", "txt", "tsv", "plik"],
-            answer: "Dane możesz wczytać z sekcji Import danych albo z poziomu arkusza. ARES obsługuje CSV, TXT, TSV, XLSX oraz XLS. Po imporcie dane trafiają do siatki, którą możesz dalej sortować, formatować, analizować i eksportować."
+            answer: "Dane możesz wczytać z sekcji Import danych albo z poziomu arkusza. ARES obsługuje CSV, TSV, TXT, XLSX, XLS, XLSB, ODS, HTML, XML oraz JSON. Po imporcie dane trafiają do siatki, którą możesz dalej sortować, formatować, analizować i eksportować."
         },
         {
             title: "Jak działają formuły?",
