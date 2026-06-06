@@ -303,6 +303,7 @@
         const prefKey = 'ares_preferences';
         const languageKey = 'ares_language';
         let uploadedAvatarDataUri = '';
+        let avatarImageDirty = false;
 
         const toastStack = document.getElementById('profile-toast-stack');
         function showProfileToast(message, type = 'success', title = 'Zapisano') {
@@ -426,6 +427,11 @@
             displayNameInput.value = profile.displayName || defaultName;
             avatarTextInput.value = profile.avatarText || defaultProfile.avatarText;
             avatarImageInput.value = (profile.avatarImage && !String(profile.avatarImage).startsWith('data:image/')) ? profile.avatarImage : '';
+            avatarImageDirty = false;
+            uploadedAvatarDataUri = '';
+            if (uploadedAvatarObjectUrl) URL.revokeObjectURL(uploadedAvatarObjectUrl);
+            uploadedAvatarObjectUrl = '';
+            if (avatarUploadInput) avatarUploadInput.value = '';
             document.getElementById('pref-show-clock').checked = !!prefs.showClock;
             document.getElementById('pref-compact-sidebar').checked = !!prefs.compactSidebar;
             document.getElementById('pref-confirm-actions').checked = !!prefs.confirmActions;
@@ -505,11 +511,13 @@
         }
 
         function renderProfilePreview() {
+            const typedAvatarImage = (avatarImageInput.value || '').trim();
+            const currentAvatarImage = uploadedAvatarObjectUrl || (avatarImageDirty ? typedAvatarImage : (typedAvatarImage || profile.avatarImage || ''));
             const state = {
                 displayName: (displayNameInput.value || defaultName).trim(),
                 avatarText: (avatarTextInput.value || defaultProfile.avatarText).trim().slice(0, 2),
                 avatarStyle: document.querySelector('.avatar-style-option.active')?.dataset.style || profile.avatarStyle || defaultProfile.avatarStyle,
-                avatarImage: uploadedAvatarObjectUrl || (avatarImageInput.value || '').trim(),
+                avatarImage: currentAvatarImage,
                 avatarShape: document.querySelector('.avatar-shape-option.active')?.dataset.shape || profile.avatarShape || defaultProfile.avatarShape,
             };
             previewName.textContent = state.displayName;
@@ -570,6 +578,7 @@
                 avatarTextInput.value = btn.dataset.symbol || 'A';
                 avatarImageInput.value = '';
                 uploadedAvatarDataUri = '';
+                avatarImageDirty = true;
                 if (uploadedAvatarObjectUrl) URL.revokeObjectURL(uploadedAvatarObjectUrl);
                 uploadedAvatarObjectUrl = '';
                 if (avatarUploadInput) avatarUploadInput.value = '';
@@ -577,8 +586,16 @@
             });
         });
 
-        [displayNameInput, avatarTextInput, avatarImageInput].forEach(input => {
+        [displayNameInput, avatarTextInput].forEach(input => {
             input.addEventListener('input', renderProfilePreview);
+        });
+        avatarImageInput.addEventListener('input', () => {
+            avatarImageDirty = true;
+            uploadedAvatarDataUri = '';
+            if (uploadedAvatarObjectUrl) URL.revokeObjectURL(uploadedAvatarObjectUrl);
+            uploadedAvatarObjectUrl = '';
+            if (avatarUploadInput) avatarUploadInput.value = '';
+            renderProfilePreview();
         });
 
         avatarUploadInput?.addEventListener('change', () => {
@@ -595,6 +612,7 @@
                 return;
             }
             if (uploadedAvatarObjectUrl) URL.revokeObjectURL(uploadedAvatarObjectUrl);
+            avatarImageDirty = true;
             uploadedAvatarObjectUrl = URL.createObjectURL(file);
             avatarImageInput.value = file.name;
             const reader = new FileReader();
@@ -650,7 +668,8 @@
 
         document.getElementById('save-profile-btn').addEventListener('click', async () => {
             const state = renderProfilePreview();
-            const payloadProfile = { ...state, avatarImage: uploadedAvatarDataUri || (avatarImageInput.value || '').trim() };
+            const savedAvatarImage = uploadedAvatarDataUri || (avatarImageDirty ? (avatarImageInput.value || '').trim() : (profile.avatarImage || ''));
+            const payloadProfile = { ...state, avatarImage: savedAvatarImage };
             const saved = await saveServerSettings({ profile: payloadProfile, theme: currentTheme, shortcuts, preferences: prefs });
             if (!saved) return;
             profile = { ...payloadProfile, ...(saved.profile || {}) };
@@ -660,6 +679,7 @@
             if (uploadedAvatarObjectUrl) URL.revokeObjectURL(uploadedAvatarObjectUrl);
             uploadedAvatarObjectUrl = '';
             uploadedAvatarDataUri = '';
+            avatarImageDirty = false;
             hydrateProfileForm();
             showProfileToast('Profil został zapisany i od razu zaktualizowany w prawym górnym rogu.', 'success', 'Zapisano profil');
         });
@@ -667,6 +687,7 @@
         document.getElementById('clear-avatar-image-btn').addEventListener('click', () => {
             avatarImageInput.value = '';
             uploadedAvatarDataUri = '';
+            avatarImageDirty = true;
             if (uploadedAvatarObjectUrl) URL.revokeObjectURL(uploadedAvatarObjectUrl);
             uploadedAvatarObjectUrl = '';
             if (avatarUploadInput) avatarUploadInput.value = '';

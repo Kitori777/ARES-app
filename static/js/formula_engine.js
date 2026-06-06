@@ -300,16 +300,20 @@
         if (!formula.startsWith("=")) return formula;
 
         const body = formula.slice(1).trim();
-        const fnMatch = body.match(/^([A-Za-zĄĆĘŁŃÓŚŹŻąćęłńóśźż._]+)\((.*)\)$/);
+        const fnNamePattern = "[A-Za-zĄĆĘŁŃÓŚŹŻąćęłńóśźż._][0-9A-Za-zĄĆĘŁŃÓŚŹŻąćęłńóśźż._]*";
+        const fnMatch = body.match(new RegExp(`^(${fnNamePattern})\\((.*)\\)$`));
         if (!fnMatch) {
             const ref = ctx.cellRefToIndex(body);
             if (ref) return ctx.getCellComputedValue(ref.row, ref.col, visited);
             let arithmeticSource = body;
-            for (let guard = 0; guard < 12 && /[A-Za-zĄĆĘŁŃÓŚŹŻąćęłńóśźż._]+\([^()]*\)/.test(arithmeticSource); guard += 1) {
-                arithmeticSource = arithmeticSource.replace(/[A-Za-zĄĆĘŁŃÓŚŹŻąćęłńóśźż._]+\([^()]*\)/g, match => {
+            const nestedFnPattern = new RegExp(`${fnNamePattern}\\([^()]*\\)`, "g");
+            for (let guard = 0; guard < 12 && nestedFnPattern.test(arithmeticSource); guard += 1) {
+                nestedFnPattern.lastIndex = 0;
+                arithmeticSource = arithmeticSource.replace(nestedFnPattern, match => {
                     const value = evaluate("=" + match, ctx, visited);
                     return ctx.isNumericValue(value) ? String(ctx.parseNumber(value)) : "0";
                 });
+                nestedFnPattern.lastIndex = 0;
             }
             const arithmetic = arithmeticSource
                 .replace(/\$?[A-Z]+\$?\d+/gi, token => {
