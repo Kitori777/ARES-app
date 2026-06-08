@@ -43,6 +43,7 @@
     const autofitBtn = document.getElementById("autofit-cols-btn");
     const sheetEditorCard = document.getElementById("sheet-editor-card");
     const sheetGridTable = document.getElementById("sheet-grid-table");
+    const sheetImageLayer = document.getElementById("sheet-image-layer");
     const zoomSelectEl = document.getElementById("zoom-select");
     if (zoomSelectEl && !Array.from(zoomSelectEl.options).some(opt => opt.value === "Dopasuj")) {
         const opt = new Option("Dopasuj", "Dopasuj");
@@ -880,10 +881,11 @@
         if (!ext.sheetStates || typeof ext.sheetStates !== "object") ext.sheetStates = {};
         const key = activeSheetStateKey();
         if (!ext.sheetStates[key] || typeof ext.sheetStates[key] !== "object") {
-            ext.sheetStates[key] = { tasks: [], scenarios: [] };
+            ext.sheetStates[key] = { tasks: [], scenarios: [], images: [] };
         }
         if (!Array.isArray(ext.sheetStates[key].tasks)) ext.sheetStates[key].tasks = [];
         if (!Array.isArray(ext.sheetStates[key].scenarios)) ext.sheetStates[key].scenarios = [];
+        if (!Array.isArray(ext.sheetStates[key].images)) ext.sheetStates[key].images = [];
         return ext.sheetStates[key];
     }
 
@@ -2343,6 +2345,91 @@
         return String(text || "").replace(/\r\n/g, "\n").replace(/\r/g, "\n").split("\n").map(row => row.split("\t"));
     }
 
+    function readFileAsDataUrl(file) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = event => resolve(String(event.target?.result || ""));
+            reader.onerror = () => reject(reader.error || new Error("Nie udało się odczytać obrazu."));
+            reader.readAsDataURL(file);
+        });
+    }
+
+    async function readClipboardImageFromNavigator() {
+        if (!navigator.clipboard?.read) return null;
+        try {
+            const items = await navigator.clipboard.read();
+            for (const item of items) {
+                const imageType = item.types.find(type => type.startsWith("image/"));
+                if (!imageType) continue;
+                const blob = await item.getType(imageType);
+                return await readFileAsDataUrl(blob);
+            }
+        } catch (error) {
+            return null;
+        }
+        return null;
+    }
+
+    async function readClipboardImageFromEvent(event) {
+        const items = Array.from(event?.clipboardData?.items || []);
+        const imageItem = items.find(item => item.type?.startsWith("image/"));
+        const file = imageItem?.getAsFile?.();
+        return file ? await readFileAsDataUrl(file) : null;
+    }
+
+    function getCellLayerPosition(row, col) {
+        const td = cellElements[row]?.[col];
+        if (!td || !sheetGridTable) return null;
+        return {
+            x: td.offsetLeft,
+            y: td.offsetTop,
+            width: Math.max(160, Math.round(td.offsetWidth * 1.8)),
+            height: Math.max(110, Math.round(td.offsetHeight * 2.4))
+        };
+    }
+
+    function renderSheetImages() {
+        if (!sheetImageLayer) return;
+        const state = getSheetExtensionState();
+        const images = Array.isArray(state.images) ? state.images : [];
+        sheetImageLayer.style.width = `${sheetGridTable?.offsetWidth || sheetGridTable?.scrollWidth || 0}px`;
+        sheetImageLayer.style.height = `${sheetGridTable?.offsetHeight || sheetGridTable?.scrollHeight || 0}px`;
+        sheetImageLayer.innerHTML = images.map(image => {
+            const pos = getCellLayerPosition(Number(image.row) || 0, Number(image.col) || 0);
+            const left = Number.isFinite(Number(image.x)) ? Number(image.x) : (pos?.x || 0);
+            const top = Number.isFinite(Number(image.y)) ? Number(image.y) : (pos?.y || 0);
+            const width = Math.max(80, Math.min(900, Number(image.width) || pos?.width || 180));
+            const height = Math.max(60, Math.min(700, Number(image.height) || pos?.height || 120));
+            return `
+                <div class="we-sheet-image-object" data-image-id="${escapeHtml(image.id)}" style="left:${left}px;top:${top}px;width:${width}px;height:${height}px">
+                    <img src="${escapeHtml(image.src)}" alt="Wklejony obraz">
+                    <button type="button" class="we-sheet-image-delete" data-delete-image-id="${escapeHtml(image.id)}" title="Usuń obraz">×</button>
+                </div>
+            `;
+        }).join("");
+    }
+
+    function insertImageOverlayAtActiveCell(src) {
+        if (!currentSheet || !src) return false;
+        const state = getSheetExtensionState();
+        const pos = getCellLayerPosition(activeCell.row, activeCell.col) || { x: 0, y: 0, width: 180, height: 120 };
+        state.images.push({
+            id: `img-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+            src,
+            row: activeCell.row,
+            col: activeCell.col,
+            x: pos.x,
+            y: pos.y,
+            width: pos.width,
+            height: pos.height,
+            createdAt: new Date().toISOString()
+        });
+        renderSheetImages();
+        markDirty();
+        logUserAction("Wklejono obraz do arkusza", { type: "image_paste", cell: cellAddress(activeCell.row, activeCell.col) });
+        return true;
+    }
+
     async function copySelectionToClipboard(cut = false) {
         if (!currentSheet) return;
         const { bounds, matrix } = getSelectionMatrix(true);
@@ -2354,6 +2441,8 @@
 
     async function pasteClipboardToActiveCell() {
         if (!currentSheet) return;
+        const imageSrc = await readClipboardImageFromNavigator();
+        if (imageSrc && insertImageOverlayAtActiveCell(imageSrc)) return;
         const text = await readClipboardText();
         const matrix = text ? clipboardTextToMatrix(text) : cellClipboard.matrix;
         if (!matrix || !matrix.length) return;
@@ -3256,6 +3345,7 @@
         body.appendChild(bodyFragment);
         updateSelectionHighlight();
         scheduleApplyColumnWidths(getAutoColumnWidths(false));
+        renderSheetImages();
         if ((chartObjects && chartObjects.length) || (pivotObjects && pivotObjects.length)) {
             if (window.requestIdleCallback) {
                 window.requestIdleCallback(() => rerenderGeneratedObjects(), { timeout: 800 });
@@ -3404,10 +3494,10 @@
         if (!["c", "x", "v", "s", "z", "y"].includes(key)) return;
         if (isPlainEditable && !target?.closest?.(".we-sheet-table")) return;
         if (!insideSheet && key !== "s") return;
+        if (key === "v" && insideSheet) return;
         event.preventDefault();
         if (key === "c") copySelectionToClipboard(false);
         if (key === "x") copySelectionToClipboard(true);
-        if (key === "v") pasteClipboardToActiveCell();
         if (key === "s") saveSheet();
         if (key === "z") undoLastChange();
         if (key === "y") redoLastChange();
@@ -4791,6 +4881,30 @@ h2 { margin: 24px 0 10px; font-size: 16px; }
         );
     }
 
+    function isTechnicalWorkbookSheetName(sheetName) {
+        const name = String(sheetName || "").trim();
+        return /^_?OpenSolver/i.test(name)
+            || /^_xlnm/i.test(name)
+            || /^_FilterDatabase$/i.test(name)
+            || /^~/.test(name);
+    }
+
+    function getWorkbookSheetVisibility(workbookXlsx, sheetName) {
+        const metadata = workbookXlsx?.Workbook?.Sheets;
+        if (!Array.isArray(metadata)) return 0;
+        const entry = metadata.find(item => item?.name === sheetName || item?.Name === sheetName);
+        return Number(entry?.Hidden || entry?.hidden || 0);
+    }
+
+    function getImportableWorkbookSheetNames(workbookXlsx) {
+        const sheetNames = Array.isArray(workbookXlsx?.SheetNames) ? workbookXlsx.SheetNames : [];
+        const visibleUserSheets = sheetNames.filter(sheetName =>
+            getWorkbookSheetVisibility(workbookXlsx, sheetName) === 0 &&
+            !isTechnicalWorkbookSheetName(sheetName)
+        );
+        return visibleUserSheets.length ? visibleUserSheets : sheetNames;
+    }
+
     function buildImportedWorkbookSheet(sheetName, rows, index) {
         const sourceRowCount = rows.length;
         const sourceColCount = Math.max(0, ...rows.map(row => row.length));
@@ -4899,7 +5013,7 @@ h2 { margin: 24px 0 10px; font-size: 16px; }
             reader.onload = event => {
                 try {
                     const workbookXlsx = window.XLSX.read(event.target?.result, { type: "array" });
-                    const sheetNames = Array.isArray(workbookXlsx.SheetNames) ? workbookXlsx.SheetNames : [];
+                    const sheetNames = getImportableWorkbookSheetNames(workbookXlsx);
                     if (!sheetNames.length) {
                         alert("Nie znaleziono arkuszy w pliku.");
                         return;
@@ -5670,6 +5784,7 @@ h2 { margin: 24px 0 10px; font-size: 16px; }
 
         [chartModal, pivotModal, solverModal, reportModal, commentModal, emojiModal, smartInsertModal].forEach(modal => {
             modal?.addEventListener("click", event => {
+                if (modal === solverModal) return;
                 if (event.target === modal) closeModal(modal);
             });
         });
@@ -7001,6 +7116,28 @@ ${selectedPivots.length ? selectedPivots.map(item => `• ${escapeHtml(item.titl
         toggleFullWidthBtn?.addEventListener("click", toggleFullWidth);
         toggleGridBtn?.addEventListener("click", toggleGrid);
         autofitBtn?.addEventListener("click", () => autoFitColumns(true));
+        sheetImageLayer?.addEventListener("click", event => {
+            const deleteBtn = event.target.closest("[data-delete-image-id]");
+            if (!deleteBtn) return;
+            const state = getSheetExtensionState();
+            state.images = (state.images || []).filter(image => image.id !== deleteBtn.dataset.deleteImageId);
+            renderSheetImages();
+            markDirty();
+        });
+        document.addEventListener("paste", async event => {
+            const insideSheet = document.activeElement?.closest?.(".we-sheet-table") || event.target?.closest?.(".we-sheet-table");
+            if (!insideSheet || document.activeElement?.classList?.contains("we-cell-editing")) return;
+            const imageSrc = await readClipboardImageFromEvent(event);
+            const text = event.clipboardData?.getData("text/plain") || "";
+            if (!imageSrc && !text) return;
+            event.preventDefault();
+            if (imageSrc) {
+                insertImageOverlayAtActiveCell(imageSrc);
+                return;
+            }
+            cellClipboard.text = text;
+            await pasteClipboardToActiveCell();
+        });
 
         fontFamilySelect?.addEventListener("change", () => {
             applyStyleToSelectionOrActive({ fontFamily: fontFamilySelect.value });

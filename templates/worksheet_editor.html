@@ -5,7 +5,7 @@
 {% block topbar_title %}Edytor arkusza{% endblock %}
 
 {% block extra_head %}
-<link rel="stylesheet" href="{% static 'css/worksheet_editor.css' %}?v=0.9.2-team-ui">
+<link rel="stylesheet" href="{% static 'css/worksheet_editor.css' %}?v=0.9.14-sheet-images">
 {% endblock %}
 
 {% block content %}
@@ -479,6 +479,7 @@
                 <thead id="sheet-head"></thead>
                 <tbody id="sheet-body"></tbody>
             </table>
+            <div class="we-sheet-image-layer" id="sheet-image-layer" aria-hidden="true"></div>
         </div>
     </section>
 
@@ -880,7 +881,7 @@ api.notify("Policzono sumę kolumny B.");</code></pre>
         <div class="we-modal-top we-solver-top">
             <div>
                 <strong>Solver</strong>
-                <div class="we-solver-subtitle">Cel, zmienne i ograniczenia w jednym panelu roboczym.</div>
+                <div class="we-solver-subtitle">Panel jest z boku, żeby arkusz został widoczny podczas wyboru celu, zmiennych i ograniczeń.</div>
             </div>
             <button type="button" class="we-modal-close" data-close-modal="solver-modal">✕</button>
         </div>
@@ -929,6 +930,6 @@ window.addEventListener("unhandledrejection", function (event) {
     } catch (_) {}
 });
 </script>
-<script src="{% static 'js/worksheet_editor.js' %}?v=0.9.11-editor-logic"></script>
+<script src="{% static 'js/worksheet_editor.js' %}?v=0.9.14-sheet-images"></script>
 <script src="{% static 'js/worksheet_chat.js' %}?v=0.8.4-speed"></script>
 {% endblock %}
