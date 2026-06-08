@@ -776,8 +776,23 @@
         return candidate;
     }
 
+    function ensureWorkbookSheetId(sheet, index = 0) {
+        if (!sheet || typeof sheet !== "object") return `sheet-${index + 1}`;
+        if (!sheet.uid) {
+            const seed = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}-${index + 1}`;
+            sheet.uid = `sheet-${seed}`;
+        }
+        return sheet.uid;
+    }
+
+    function activeSheetStateKey() {
+        const sheet = workbook?.sheets?.[activeWorkbookSheetIndex];
+        return sheet ? ensureWorkbookSheetId(sheet, activeWorkbookSheetIndex) : String(activeWorkbookSheetIndex || 0);
+    }
+
     function normalizeSheetMeta(sheet, index) {
         return {
+            uid: ensureWorkbookSheetId(sheet || {}, index),
             name: safeSheetName(sheet?.name, `Arkusz ${index + 1}`),
             grid: Array.isArray(sheet?.grid) ? sheet.grid : emptyGrid(),
             styles: sanitizeLegacyCellStyles(sheet?.styles || {}),
@@ -863,7 +878,7 @@
     function getSheetExtensionState() {
         const ext = getWorkbookExtensions();
         if (!ext.sheetStates || typeof ext.sheetStates !== "object") ext.sheetStates = {};
-        const key = String(activeWorkbookSheetIndex || 0);
+        const key = activeSheetStateKey();
         if (!ext.sheetStates[key] || typeof ext.sheetStates[key] !== "object") {
             ext.sheetStates[key] = { tasks: [], scenarios: [] };
         }
@@ -877,6 +892,7 @@
         const previous = workbook.sheets[activeWorkbookSheetIndex] || {};
         workbook.sheets[activeWorkbookSheetIndex] = {
             ...previous,
+            uid: ensureWorkbookSheetId(previous, activeWorkbookSheetIndex),
             name: previous.name || currentSheet.activeTabName || currentSheet.name || `Arkusz ${activeWorkbookSheetIndex + 1}`,
             grid: currentSheet.grid,
             styles: currentSheet.styles || {},
@@ -899,7 +915,9 @@
         currentSheet.columnWidths = selected.columnWidths || {};
         currentSheet.rowHeights = selected.rowHeights || {};
         currentSheet.tags = normalizeTags(selected.tags || []);
+        currentSheet.name = selected.name;
         currentSheet.activeTabName = selected.name;
+        if (sheetNameEl) sheetNameEl.textContent = selected.name || "Arkusz";
         const dims = inferDimensionsFromGrid(currentSheet.grid);
         currentRows = dims.rows;
         currentCols = dims.cols;
@@ -1070,7 +1088,7 @@
         commitActiveSheetToWorkbook();
         const nextIndex = workbook.sheets.length + 1;
         const name = makeUniqueSheetName(`Arkusz ${nextIndex}`);
-        workbook.sheets.push({ name, grid: emptyGrid(), styles: {}, color: "", hidden: false, protected: false });
+        workbook.sheets.push({ uid: `sheet-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`, name, grid: emptyGrid(), styles: {}, color: "", hidden: false, protected: false });
         activateWorkbookSheet(workbook.sheets.length - 1);
         markDirty();
     }
@@ -1082,7 +1100,11 @@
         if (!nextName) return;
         const uniqueName = makeUniqueSheetName(nextName.trim(), index);
         workbook.sheets[index].name = uniqueName;
-        if (index === activeWorkbookSheetIndex && currentSheet) currentSheet.activeTabName = uniqueName;
+        if (index === activeWorkbookSheetIndex && currentSheet) {
+            currentSheet.name = uniqueName;
+            currentSheet.activeTabName = uniqueName;
+            if (sheetNameEl) sheetNameEl.textContent = uniqueName;
+        }
         renderWorkbookTabs();
         updateSheetMeta();
         markDirty();
@@ -4362,7 +4384,10 @@
     }
 
     function getSheetFileBaseName() {
-        return String(currentSheet?.name || "arkusz")
+        const name = workbook?.sheets?.length > 1
+            ? (currentSheet?.name || "skoroszyt")
+            : (currentSheet?.activeTabName || currentSheet?.name || "arkusz");
+        return String(name)
             .trim()
             .replace(/[<>:"/\\|?*\x00-\x1F]/g, "_")
             .replace(/\s+/g, "_")
@@ -4394,8 +4419,23 @@
             throw new Error("Brak biblioteki XLSX.");
         }
         const workbookXlsx = window.XLSX.utils.book_new();
-        const worksheet = window.XLSX.utils.aoa_to_sheet((currentSheet?.grid || []).map(row => row.map(cell => cell == null ? "" : String(cell))));
-        window.XLSX.utils.book_append_sheet(workbookXlsx, worksheet, String(currentSheet?.name || "Arkusz").slice(0, 31) || "Arkusz");
+        commitActiveSheetToWorkbook();
+        const sheets = workbook?.sheets?.length
+            ? workbook.sheets
+            : [{ name: currentSheet?.activeTabName || currentSheet?.name || "Arkusz", grid: currentSheet?.grid || [] }];
+        const usedNames = new Set();
+        sheets.forEach((sheet, index) => {
+            const worksheet = window.XLSX.utils.aoa_to_sheet((sheet.grid || []).map(row => row.map(cell => cell == null ? "" : String(cell))));
+            let sheetName = safeSheetName(sheet.name, `Arkusz ${index + 1}`).replace(/[:\\/?*\[\]]/g, " ").trim().slice(0, 31) || `Arkusz ${index + 1}`;
+            const baseName = sheetName.slice(0, 28) || "Arkusz";
+            let suffix = 2;
+            while (usedNames.has(sheetName.toLowerCase())) {
+                sheetName = `${baseName} ${suffix}`.slice(0, 31);
+                suffix += 1;
+            }
+            usedNames.add(sheetName.toLowerCase());
+            window.XLSX.utils.book_append_sheet(workbookXlsx, worksheet, sheetName);
+        });
         return workbookXlsx;
     }
 
@@ -4560,7 +4600,11 @@ h2 { margin: 24px 0 10px; font-size: 16px; }
         } else if (format === "txt") {
             triggerDownload(buildDelimitedText("\t"), `${baseName}.txt`, "text/plain;charset=utf-8;");
         } else if (format === "json") {
-            triggerDownload(JSON.stringify({ name: currentSheet.name, rows: currentSheet.grid || [] }, null, 2), `${baseName}.json`, "application/json;charset=utf-8;");
+            commitActiveSheetToWorkbook();
+            const payload = workbook?.sheets?.length > 1
+                ? { name: currentSheet.name, workbook: workbookPayloadForSave() }
+                : { name: currentSheet.name, rows: currentSheet.grid || [] };
+            triggerDownload(JSON.stringify(payload, null, 2), `${baseName}.json`, "application/json;charset=utf-8;");
         } else if (format === "pdf") {
             if (!exportSheetPdf()) return;
         } else {
@@ -4668,6 +4712,20 @@ h2 { margin: 24px 0 10px; font-size: 16px; }
         throw new Error("Nieobsługiwany układ JSON.");
     }
 
+    function parseJsonWorkbookSheets(text) {
+        const data = JSON.parse(String(text || ""));
+        const workbookData = data?.workbook || data?.grid || data;
+        const sheets = Array.isArray(workbookData?.sheets) ? workbookData.sheets : null;
+        if (!sheets?.length) return null;
+        return sheets.map((sheet, index) =>
+            buildImportedWorkbookSheet(
+                sheet?.name || `Arkusz ${index + 1}`,
+                normalizeImportedRows(sheet?.grid || sheet?.rows || []),
+                index
+            )
+        );
+    }
+
     function importRowsIntoSheet(rows, sourceInfo = {}) {
         if (!currentSheet) return;
         const sourceRowCount = rows.length;
@@ -4688,6 +4746,18 @@ h2 { margin: 24px 0 10px; font-size: 16px; }
         currentCols = Math.max(MIN_COLS, ...safeRows.map(row => row.length));
         currentSheet.grid = emptyGrid(currentRows, currentCols);
         currentSheet.styles = {};
+        currentSheet.conditionalRules = [];
+        currentSheet.columnWidths = {};
+        currentSheet.rowHeights = {};
+        if (sourceInfo.sheetName) {
+            const nextName = safeSheetName(sourceInfo.sheetName, `Arkusz ${activeWorkbookSheetIndex + 1}`);
+            currentSheet.name = nextName;
+            currentSheet.activeTabName = nextName;
+            if (sheetNameEl) sheetNameEl.textContent = nextName;
+            if (workbook?.sheets?.[activeWorkbookSheetIndex]) {
+                workbook.sheets[activeWorkbookSheetIndex].name = nextName;
+            }
+        }
 
         safeRows.forEach((row, r) => {
             row.forEach((cell, c) => {
@@ -4695,9 +4765,109 @@ h2 { margin: 24px 0 10px; font-size: 16px; }
             });
         });
 
+        commitActiveSheetToWorkbook();
+        ensureUniqueWorkbookSheetNames();
+        renderWorkbookTabs();
         renderGrid();
+        renderCellTasks();
+        renderScenarios();
+        updateSheetMeta();
         markDirty();
-        logUserAction("Import pliku w edytorze", { type: "file_import", fileName: sourceInfo.fileName || "plik", rows: safeRows.length, cols: Math.max(...safeRows.map(row => row.length), 0) });
+        logUserAction("Import pliku w edytorze", { type: "file_import", fileName: sourceInfo.fileName || "plik", sheetName: sourceInfo.sheetName || "", rows: safeRows.length, cols: Math.max(...safeRows.map(row => row.length), 0) });
+    }
+
+    function normalizeImportedRows(rows) {
+        const safeRows = (Array.isArray(rows) ? rows : [])
+            .map(row => Array.isArray(row) ? row.map(cell => cell == null ? "" : String(cell)) : [])
+            .filter(row => row.some(value => String(value).trim() !== ""));
+        return safeRows.length ? safeRows : [[]];
+    }
+
+    function workbookSheetToRows(workbookXlsx, sheetName) {
+        const sheet = workbookXlsx.Sheets[sheetName];
+        if (!sheet) return [[]];
+        return normalizeImportedRows(
+            window.XLSX.utils.sheet_to_json(sheet, { header: 1, raw: false, defval: "" })
+        );
+    }
+
+    function buildImportedWorkbookSheet(sheetName, rows, index) {
+        const sourceRowCount = rows.length;
+        const sourceColCount = Math.max(0, ...rows.map(row => row.length));
+        const safeRows = rows.slice(0, MAX_IMPORT_ROWS).map(row => row.slice(0, MAX_IMPORT_COLS));
+        const rowCount = Math.max(safeRows.length, MIN_ROWS);
+        const colCount = Math.max(MIN_COLS, ...safeRows.map(row => row.length));
+        const grid = emptyGrid(rowCount, colCount);
+        safeRows.forEach((row, r) => {
+            row.forEach((cell, c) => {
+                grid[r][c] = cell == null ? "" : String(cell);
+            });
+        });
+        return {
+            uid: `sheet-import-${Date.now()}-${Math.random().toString(36).slice(2, 8)}-${index + 1}`,
+            name: safeSheetName(sheetName, `Arkusz ${index + 1}`),
+            grid,
+            styles: {},
+            conditionalRules: [],
+            color: "",
+            hidden: false,
+            protected: false,
+            columnWidths: {},
+            rowHeights: {},
+            tags: [],
+            _sourceRowCount: sourceRowCount,
+            _sourceColCount: sourceColCount,
+            _importedRows: safeRows.length,
+            _importedCols: Math.max(0, ...safeRows.map(row => row.length))
+        };
+    }
+
+    function importWorkbookSheets(importedSheets, sourceInfo = {}) {
+        if (!currentSheet || !Array.isArray(importedSheets) || !importedSheets.length) return;
+        const clipped = importedSheets.some(sheet => sheet._sourceRowCount > MAX_IMPORT_ROWS || sheet._sourceColCount > MAX_IMPORT_COLS);
+        if (clipped) {
+            alert("Import przycięto do " + MAX_IMPORT_ROWS + " wierszy i " + MAX_IMPORT_COLS + " kolumn na arkusz, żeby układ strony się nie rozjechał. Pełny plik możesz podzielić i importować partiami.");
+        }
+
+        pushHistorySnapshot();
+        workbook = {
+            activeSheetIndex: 0,
+            sheets: importedSheets.map(({ _sourceRowCount, _sourceColCount, _importedRows, _importedCols, ...sheet }) => sheet),
+            extensions: {}
+        };
+        ensureUniqueWorkbookSheetNames();
+        activeWorkbookSheetIndex = 0;
+
+        const first = workbook.sheets[0];
+        currentSheet.name = first.name;
+        if (sheetNameEl) sheetNameEl.textContent = first.name;
+        currentSheet.grid = first.grid;
+        currentSheet.styles = {};
+        currentSheet.conditionalRules = [];
+        currentSheet.columnWidths = {};
+        currentSheet.rowHeights = {};
+        currentSheet.tags = [];
+        currentSheet.activeTabName = first.name;
+        activeCell = { row: 0, col: 0 };
+        clearSelection();
+        const dims = inferDimensionsFromGrid(currentSheet.grid);
+        currentRows = dims.rows;
+        currentCols = dims.cols;
+        ensureDimensions(currentRows, currentCols);
+
+        renderWorkbookTabs();
+        renderSheetTags();
+        renderCellTasks();
+        renderScenarios();
+        renderGrid();
+        updateSheetMeta();
+        markDirty();
+        logUserAction("Import skoroszytu w edytorze", {
+            type: "workbook_import",
+            fileName: sourceInfo.fileName || "plik",
+            sheetCount: workbook.sheets.length,
+            sheets: workbook.sheets.map(sheet => sheet.name)
+        });
     }
 
     function importDataFile(file) {
@@ -4707,7 +4877,14 @@ h2 { margin: 24px 0 10px; font-size: 16px; }
             reader.onload = event => {
                 try {
                     const text = String(event.target?.result || "");
-                    importRowsIntoSheet(parseJsonRows(text), { fileName: file.name });
+                    const importedSheets = parseJsonWorkbookSheets(text);
+                    if (importedSheets?.length > 1) {
+                        importWorkbookSheets(importedSheets, { fileName: file.name });
+                    } else if (importedSheets?.length === 1) {
+                        importRowsIntoSheet(importedSheets[0].grid, { fileName: file.name, sheetName: importedSheets[0].name });
+                    } else {
+                        importRowsIntoSheet(parseJsonRows(text), { fileName: file.name });
+                    }
                 } catch (error) {
                     console.error(error);
                     alert("Nie udało się odczytać pliku JSON. Sprawdź strukturę danych.");
@@ -4722,12 +4899,19 @@ h2 { margin: 24px 0 10px; font-size: 16px; }
             reader.onload = event => {
                 try {
                     const workbookXlsx = window.XLSX.read(event.target?.result, { type: "array" });
-                    const firstSheetName = workbookXlsx.SheetNames[0];
-                    const sheet = workbookXlsx.Sheets[firstSheetName];
-                    const rows = window.XLSX.utils.sheet_to_json(sheet, { header: 1, raw: false, defval: "" })
-                        .map(row => row.map(cell => String(cell  || "")))
-                        .filter(row => row.some(value => String(value).trim() !== ""));
-                    importRowsIntoSheet(rows, { fileName: file.name });
+                    const sheetNames = Array.isArray(workbookXlsx.SheetNames) ? workbookXlsx.SheetNames : [];
+                    if (!sheetNames.length) {
+                        alert("Nie znaleziono arkuszy w pliku.");
+                        return;
+                    }
+                    const importedSheets = sheetNames.map((sheetName, index) =>
+                        buildImportedWorkbookSheet(sheetName, workbookSheetToRows(workbookXlsx, sheetName), index)
+                    );
+                    if (importedSheets.length === 1) {
+                        importRowsIntoSheet(workbookSheetToRows(workbookXlsx, sheetNames[0]), { fileName: file.name, sheetName: sheetNames[0] });
+                    } else {
+                        importWorkbookSheets(importedSheets, { fileName: file.name });
+                    }
                 } catch (error) {
                     console.error(error);
                     alert("Nie udało się odczytać pliku arkuszowego. Sprawdź, czy plik nie jest uszkodzony.");
@@ -4751,8 +4935,15 @@ h2 { margin: 24px 0 10px; font-size: 16px; }
         if (!nextName) return;
 
         pushHistorySnapshot();
-        currentSheet.name = nextName.trim();
+        const uniqueName = makeUniqueSheetName(nextName.trim(), activeWorkbookSheetIndex);
+        currentSheet.name = uniqueName;
+        currentSheet.activeTabName = uniqueName;
+        if (workbook?.sheets?.[activeWorkbookSheetIndex]) {
+            workbook.sheets[activeWorkbookSheetIndex].name = uniqueName;
+        }
         if (sheetNameEl) sheetNameEl.textContent = currentSheet.name;
+        renderWorkbookTabs();
+        updateSheetMeta();
         markDirty();
         logUserAction("Zmieniono nazwę arkusza", { type: "sheet_rename", newName: currentSheet.name });
     }
@@ -5116,10 +5307,12 @@ h2 { margin: 24px 0 10px; font-size: 16px; }
             const parsed = parseDropdownFormula(formula);
             if (parsed.options.length < 2) return alert("Dodaj co najmniej dwie opcje menu.");
         }
-        pushHistorySnapshot();
+        const oldValue = currentSheet.grid[activeCell.row]?.[activeCell.col] || "";
+        pushCellEditHistory(activeCell.row, activeCell.col, oldValue, formula);
         currentSheet.grid[activeCell.row][activeCell.col] = formula;
         closeModal(smartInsertModal);
-        renderGrid();
+        updateCellElement(activeCell.row, activeCell.col);
+        scheduleComputedRefresh(activeCell.row, activeCell.col);
         markDirty();
         logUserAction("Wstawiono element", { type: `smart_insert_${smartInsertMode || "unknown"}`, value: formula, cell: cellAddress(activeCell.row, activeCell.col) });
     }
@@ -5650,10 +5843,13 @@ h2 { margin: 24px 0 10px; font-size: 16px; }
     function openEmojiPicker() { selectedEmoji = selectedEmoji || "📌"; renderEmojiPicker(); openModal(emojiModal); emojiSearchInput?.focus(); }
     function insertSelectedEmoji() {
         if (!currentSheet || !selectedEmoji) return;
-        pushHistorySnapshot();
         const existing = currentSheet.grid[activeCell.row][activeCell.col] || "";
-        currentSheet.grid[activeCell.row][activeCell.col] = String(existing || "") + selectedEmoji;
-        renderGrid(); markDirty(); closeModal(emojiModal);
+        const nextValue = String(existing || "") + selectedEmoji;
+        pushCellEditHistory(activeCell.row, activeCell.col, existing, nextValue);
+        currentSheet.grid[activeCell.row][activeCell.col] = nextValue;
+        updateCellElement(activeCell.row, activeCell.col);
+        markDirty();
+        closeModal(emojiModal);
     }
 
     function openCommentEditor(mode) {
@@ -5677,18 +5873,21 @@ h2 { margin: 24px 0 10px; font-size: 16px; }
     function saveCommentFromModal() {
         if (!currentSheet) return;
         const value = commentTextarea?.value || "";
-        pushHistorySnapshot();
-        currentSheet.grid[activeCell.row][activeCell.col] = value ? (commentEditMode === "note" ? `=NOTE(${value})` : `=COMMENT(${value})`) : "";
-        renderGrid();
+        const oldValue = currentSheet.grid[activeCell.row]?.[activeCell.col] || "";
+        const nextValue = value ? (commentEditMode === "note" ? `=NOTE(${value})` : `=COMMENT(${value})`) : "";
+        pushCellEditHistory(activeCell.row, activeCell.col, oldValue, nextValue);
+        currentSheet.grid[activeCell.row][activeCell.col] = nextValue;
+        updateCellElement(activeCell.row, activeCell.col);
         markDirty();
         closeModal(commentModal);
     }
 
     function deleteCommentFromModal() {
         if (!currentSheet) return;
-        pushHistorySnapshot();
+        const oldValue = currentSheet.grid[activeCell.row]?.[activeCell.col] || "";
+        pushCellEditHistory(activeCell.row, activeCell.col, oldValue, "");
         currentSheet.grid[activeCell.row][activeCell.col] = "";
-        renderGrid();
+        updateCellElement(activeCell.row, activeCell.col);
         markDirty();
         closeModal(commentModal);
     }
