@@ -5,7 +5,7 @@
 {% block topbar_title %}Edytor arkusza{% endblock %}
 
 {% block extra_head %}
-<link rel="stylesheet" href="{% static 'css/worksheet_editor.css' %}?v=0.9.17-formula-ref-colors">
+<link rel="stylesheet" href="{% static 'css/worksheet_editor.css' %}?v=0.9.19-solver-excel-like-zlp">
 {% endblock %}
 
 {% block content %}
@@ -894,10 +894,10 @@ api.notify("Policzono sumę kolumny B.");</code></pre>
             </section>
             <section class="we-solver-panel-block">
                 <div class="we-solver-section"><label for="solver-variable-input">Komórki zmienne:</label><div class="we-solver-list-line"><textarea id="solver-variable-input" rows="5" placeholder="A2:B2"></textarea><div class="we-solver-list-actions"><button type="button" class="btn btn-secondary we-solver-small" id="solver-variable-add-btn">Dodaj</button><button type="button" class="btn btn-secondary we-solver-small" id="solver-variable-update-btn">Aktualizuj</button><button type="button" class="btn btn-secondary we-solver-small" id="solver-variable-delete-btn">Usuń</button></div></div><label class="we-solver-check"><input id="solver-nonnegative-input" type="checkbox" checked> Zmienne bez ograniczeń są nieujemne</label></div>
-                <div class="we-solver-section"><label for="solver-constraints-input">Ograniczenia:</label><textarea id="solver-constraints-input" rows="6" placeholder="G7:G10 <= E7:E10&#10;B2:D2 >= 0"></textarea><div class="we-solver-list-actions we-solver-constraint-actions"><button type="button" class="btn btn-secondary we-solver-small" id="solver-constraint-add-btn">Dodaj z zaznaczenia</button><button type="button" class="btn btn-secondary we-solver-small" id="solver-constraint-update-btn">Aktualizuj</button><button type="button" class="btn btn-secondary we-solver-small" id="solver-constraint-zlp-btn">Wczytaj ZLP</button><button type="button" class="btn btn-secondary we-solver-small" id="solver-constraint-clear-btn">Wyczyść</button></div></div>
+                <div class="we-solver-section"><label for="solver-constraints-input">Ograniczenia:</label><textarea id="solver-constraints-input" rows="6" placeholder="G7:G10 <= E7:E10&#10;B2:D2 >= 0"></textarea><div class="we-solver-list-actions we-solver-constraint-actions"><select id="solver-constraint-op-select" class="we-solver-op-select" title="Operator ograniczenia"><option value="<=">≤</option><option value="=">=</option><option value=">=">≥</option></select><button type="button" class="btn btn-secondary we-solver-small" id="solver-constraint-add-btn">Dodaj z zaznaczenia</button><button type="button" class="btn btn-secondary we-solver-small" id="solver-constraint-update-btn">Aktualizuj</button><button type="button" class="btn btn-secondary we-solver-small" id="solver-constraint-zlp-btn">Wczytaj ZLP</button><button type="button" class="btn btn-secondary we-solver-small" id="solver-constraint-clear-btn">Wyczyść</button></div></div>
             </section>
         </div>
-        <div class="we-modal-actions we-solver-actions"><button type="button" class="btn btn-secondary" data-close-modal="solver-modal">Zamknij</button><button id="run-solver-btn" class="btn btn-primary" type="button">Rozwiąż</button></div>
+        <div id="solver-result-box" class="we-solver-result" hidden></div><div class="we-modal-actions we-solver-actions"><button type="button" class="btn btn-secondary" data-close-modal="solver-modal">Zamknij</button><button id="run-solver-btn" class="btn btn-primary" type="button">Rozwiąż</button></div>
     </div>
 </div>
 {% endblock %}
@@ -930,6 +930,6 @@ window.addEventListener("unhandledrejection", function (event) {
     } catch (_) {}
 });
 </script>
-<script src="{% static 'js/worksheet_editor.js' %}?v=0.9.17-formula-ref-colors"></script>
+<script src="{% static 'js/worksheet_editor.js' %}?v=0.9.19-solver-excel-like-zlp"></script>
 <script src="{% static 'js/worksheet_chat.js' %}?v=0.8.4-speed"></script>
 {% endblock %}

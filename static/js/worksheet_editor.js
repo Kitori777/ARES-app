@@ -188,6 +188,8 @@ document.addEventListener("DOMContentLoaded", function () {
     const solverConstraintUpdateBtn = document.getElementById("solver-constraint-update-btn");
     const solverConstraintZlpBtn = document.getElementById("solver-constraint-zlp-btn");
     const solverConstraintClearBtn = document.getElementById("solver-constraint-clear-btn");
+    const solverConstraintOpSelect = document.getElementById("solver-constraint-op-select");
+    const solverResultBox = document.getElementById("solver-result-box");
     const runSolverBtn = document.getElementById("run-solver-btn");
 
     const modalCloseButtons = document.querySelectorAll("[data-close-modal]");
@@ -1934,27 +1936,36 @@ document.addEventListener("DOMContentLoaded", function () {
         return currentSheet.grid?.[activeCell.row]?.[activeCell.col] || "";
     }
 
+    function getFormulaOverlayGeometry(first, last, scroll) {
+        if (!first || !last || !scroll || !sheetGridTable) return null;
+        const firstRect = first.getBoundingClientRect();
+        const lastRect = last.getBoundingClientRect();
+        const scrollRect = scroll.getBoundingClientRect();
+
+        // Liczymy pozycję względem przewijanego kontenera, a nie całej strony.
+        // To usuwa „rozjeżdżanie” ramek po przewinięciu strony/arkusza oraz przy zoomie arkusza.
+        const left = firstRect.left - scrollRect.left + scroll.scrollLeft - (scroll.clientLeft || 0);
+        const top = firstRect.top - scrollRect.top + scroll.scrollTop - (scroll.clientTop || 0);
+        const width = Math.max(2, lastRect.right - firstRect.left);
+        const height = Math.max(2, lastRect.bottom - firstRect.top);
+        return { left, top, width, height };
+    }
+
     function drawFormulaReferenceOverlay(ref, index, layer, scroll) {
         const bounds = ref.bounds;
         const first = cellElements[bounds.rowStart]?.[bounds.colStart];
         const last = cellElements[bounds.rowEnd]?.[bounds.colEnd];
-        if (!first || !last || !layer || !scroll) return;
+        const geometry = getFormulaOverlayGeometry(first, last, scroll);
+        if (!geometry || !layer) return;
 
-        const firstRect = first.getBoundingClientRect();
-        const lastRect = last.getBoundingClientRect();
-        const scrollRect = scroll.getBoundingClientRect();
-        const left = firstRect.left - scrollRect.left + scroll.scrollLeft;
-        const top = firstRect.top - scrollRect.top + scroll.scrollTop;
-        const width = Math.max(2, lastRect.right - firstRect.left);
-        const height = Math.max(2, lastRect.bottom - firstRect.top);
         const palette = FORMULA_REFERENCE_COLORS[index % FORMULA_REFERENCE_COLORS.length];
 
         const overlay = document.createElement("div");
         overlay.className = "we-formula-ref-overlay";
-        overlay.style.left = `${left}px`;
-        overlay.style.top = `${top}px`;
-        overlay.style.width = `${width}px`;
-        overlay.style.height = `${height}px`;
+        overlay.style.left = `${geometry.left}px`;
+        overlay.style.top = `${geometry.top}px`;
+        overlay.style.width = `${geometry.width}px`;
+        overlay.style.height = `${geometry.height}px`;
         overlay.style.setProperty("--we-formula-ref-color", palette.color);
         overlay.style.setProperty("--we-formula-ref-fill", palette.fill);
         overlay.title = `Zakres ${index + 1}: ${ref.text}`;
@@ -3919,6 +3930,7 @@ document.addEventListener("DOMContentLoaded", function () {
         }
         if (modalEl === solverModal) {
             refreshSolverSheetSelect(activeWorkbookSheetIndex);
+            clearSolverResult();
         }
         if (modalEl === reportModal) {
             populateReportBuilder();
@@ -5707,22 +5719,28 @@ h2 { margin: 24px 0 10px; font-size: 16px; }
         solverConstraintsInput.value = `${solverConstraintsInput.value.trim()}\n${line}`;
     }
 
+    function getSelectedSolverConstraintOperator() {
+        const op = solverConstraintOpSelect?.value || "<=";
+        return ["<=", "=", ">="].includes(op) ? op : "<=";
+    }
+
     function buildConstraintFromSelection() {
+        const op = getSelectedSolverConstraintOperator();
         const bounds = getSelectionBounds();
-        if (!bounds) return `${cellAddress(activeCell.row, activeCell.col)} <= `;
+        if (!bounds) return `${cellAddress(activeCell.row, activeCell.col)} ${op} `;
         const width = bounds.colEnd - bounds.colStart + 1;
         const height = bounds.rowEnd - bounds.rowStart + 1;
         if (width === 2) {
             const left = rangeTextFromBounds(bounds.rowStart, bounds.rowEnd, bounds.colStart, bounds.colStart);
             const right = rangeTextFromBounds(bounds.rowStart, bounds.rowEnd, bounds.colEnd, bounds.colEnd);
-            return `${left} <= ${right}`;
+            return `${left} ${op} ${right}`;
         }
         if (height === 2) {
             const left = rangeTextFromBounds(bounds.rowStart, bounds.rowStart, bounds.colStart, bounds.colEnd);
             const right = rangeTextFromBounds(bounds.rowEnd, bounds.rowEnd, bounds.colStart, bounds.colEnd);
-            return `${left} <= ${right}`;
+            return `${left} ${op} ${right}`;
         }
-        return `${getCurrentSelectionRangeText()} <= `;
+        return `${getCurrentSelectionRangeText()} ${op} `;
     }
 
     function addSolverConstraintFromSelection(replace = false) {
@@ -6042,7 +6060,8 @@ h2 { margin: 24px 0 10px; font-size: 16px; }
             const rhs = findConstraintRightHandCell(item, variableBounds, variableRefs);
             if (!rhs) return;
             let op = "<=";
-            if (item.isNearVariableBelow && mode === "min") op = ">=";
+            if (item.isNearVariableRight && mode === "min") op = "=";
+            if (item.isNearVariableBelow && mode === "min") op = "<=";
             const line = `${item.ref} ${op} ${cellAddress(rhs.row, rhs.col)}`;
             if (!seen.has(line)) {
                 seen.add(line);
@@ -6291,9 +6310,6 @@ h2 { margin: 24px 0 10px; font-size: 16px; }
             }
         }
         variableRefs.forEach((_, idx) => {
-            const upper = Array.from({ length: variableRefs.length }, () => 0);
-            upper[idx] = 1;
-            inequalities.push({ coeffs: upper, rhs: searchMax });
             const lower = Array.from({ length: variableRefs.length }, () => 0);
             lower[idx] = -1;
             inequalities.push({ coeffs: lower, rhs: -searchMin });
@@ -6315,7 +6331,7 @@ h2 { margin: 24px 0 10px; font-size: 16px; }
         });
         let best = null;
         candidates.forEach(values => {
-            if (values.some(value => value < searchMin - 1e-7 || value > searchMax + 1e-7)) return;
+            if (values.some(value => value < searchMin - 1e-7)) return;
             setSolverVariableValues(variableRefs, values);
             const linearOk = model.inequalities.every(item => item.coeffs.reduce((sum, coeff, idx) => sum + coeff * values[idx], 0) <= item.rhs + 1e-6);
             if (!linearOk) return;
@@ -6329,9 +6345,327 @@ h2 { margin: 24px 0 10px; font-size: 16px; }
         return best;
     }
 
+    function showSolverResult(message, details = []) {
+        if (!solverResultBox) return;
+        const detailHtml = details.length
+            ? `<ul>${details.map(item => `<li>${escapeHtml(item)}</li>`).join("")}</ul>`
+            : "";
+        solverResultBox.innerHTML = `<strong>Solver:</strong> ${escapeHtml(message)}${detailHtml}`;
+        solverResultBox.hidden = false;
+    }
+
+    function clearSolverResult() {
+        if (!solverResultBox) return;
+        solverResultBox.hidden = true;
+        solverResultBox.innerHTML = "";
+    }
+
+    function boundsSize(bounds) {
+        return bounds ? { rows: bounds.rowEnd - bounds.rowStart + 1, cols: bounds.colEnd - bounds.colStart + 1 } : { rows: 0, cols: 0 };
+    }
+
+    function boundsEqualSize(a, b) {
+        const aa = boundsSize(a);
+        const bb = boundsSize(b);
+        return aa.rows === bb.rows && aa.cols === bb.cols && aa.rows > 0 && aa.cols > 0;
+    }
+
+    function getBoundsNumbers(bounds) {
+        if (!bounds) return [];
+        const values = [];
+        for (let row = bounds.rowStart; row <= bounds.rowEnd; row += 1) {
+            const current = [];
+            for (let col = bounds.colStart; col <= bounds.colEnd; col += 1) {
+                const value = getCellComputedValue(row, col);
+                const number = solverNumber(value);
+                if (!Number.isFinite(number)) return null;
+                current.push(number);
+            }
+            values.push(current);
+        }
+        return values;
+    }
+
+    function boundsAllNumeric(bounds) {
+        const values = getBoundsNumbers(bounds);
+        return Boolean(values && values.length && values.every(row => row.every(Number.isFinite)));
+    }
+
+    function flattenMatrix(matrix) {
+        return matrix.flatMap(row => row);
+    }
+
+    function parseSumProductRangeArgs(formulaText) {
+        const raw = String(formulaText || "").trim();
+        if (!/^=/.test(raw) || !/SUMA\.ILOCZYN[ÓO]W|SUMPRODUCT/i.test(raw)) return [];
+        const args = splitFormulaArgs(getFormulaArgsText(raw));
+        return args
+            .filter(isRangeArg)
+            .map(arg => ({ text: normalizeCellRefText(arg), bounds: rangeTextToBounds(arg) }))
+            .filter(item => item.bounds);
+    }
+
+    function findNumericSubBounds(containerBounds, wantedRows, wantedCols, preferredBounds = null) {
+        if (!containerBounds || wantedRows <= 0 || wantedCols <= 0) return null;
+        let best = null;
+        for (let row = containerBounds.rowStart; row + wantedRows - 1 <= containerBounds.rowEnd; row += 1) {
+            for (let col = containerBounds.colStart; col + wantedCols - 1 <= containerBounds.colEnd; col += 1) {
+                const bounds = { rowStart: row, rowEnd: row + wantedRows - 1, colStart: col, colEnd: col + wantedCols - 1 };
+                if (!boundsAllNumeric(bounds)) continue;
+                let score = 100;
+                if (preferredBounds) {
+                    score -= Math.abs(bounds.colStart - preferredBounds.colStart) * 4;
+                    score -= Math.abs(bounds.rowStart - Math.max(0, preferredBounds.rowStart - wantedRows - 1)) * 2;
+                }
+                if (!best || score > best.score) best = { bounds, score };
+            }
+        }
+        return best?.bounds || null;
+    }
+
+    function findCostBoundsForSolverTransport(target, variableBounds) {
+        if (!target || !variableBounds) return null;
+        const variableRangeText = boundsToRangeText(variableBounds).toUpperCase();
+        const targetRaw = solverCellRawValue(target.row, target.col);
+        const wanted = boundsSize(variableBounds);
+        const ranges = parseSumProductRangeArgs(targetRaw);
+        const variableArg = ranges.find(item => sameBounds(item.bounds, variableBounds) || item.text.toUpperCase() === variableRangeText);
+        const otherArgs = ranges.filter(item => !sameBounds(item.bounds, variableBounds));
+        for (const item of otherArgs) {
+            if (boundsEqualSize(item.bounds, variableBounds) && boundsAllNumeric(item.bounds)) return item.bounds;
+            const sub = findNumericSubBounds(item.bounds, wanted.rows, wanted.cols, variableBounds);
+            if (sub) return sub;
+        }
+        if (variableArg && ranges.length === 2) {
+            const other = ranges.find(item => item !== variableArg);
+            if (other) {
+                if (boundsEqualSize(other.bounds, variableBounds) && boundsAllNumeric(other.bounds)) return other.bounds;
+                const sub = findNumericSubBounds(other.bounds, wanted.rows, wanted.cols, variableBounds);
+                if (sub) return sub;
+            }
+        }
+        for (let gap = 0; gap <= 4; gap += 1) {
+            const rowStart = variableBounds.rowStart - wanted.rows - gap;
+            if (rowStart < 0) continue;
+            const candidate = { rowStart, rowEnd: rowStart + wanted.rows - 1, colStart: variableBounds.colStart, colEnd: variableBounds.colEnd };
+            if (boundsAllNumeric(candidate)) return candidate;
+        }
+        return null;
+    }
+
+    function constraintBoundsFromParsed(pairSide) {
+        if (pairSide && typeof pairSide === "object" && Number.isInteger(pairSide.row) && Number.isInteger(pairSide.col)) {
+            return { rowStart: pairSide.row, rowEnd: pairSide.row, colStart: pairSide.col, colEnd: pairSide.col };
+        }
+        return rangeTextToBounds(String(pairSide || ""));
+    }
+
+    function getRawConstraintPairs() {
+        const raw = solverConstraintsInput?.value || "";
+        const items = [];
+        raw.split(/\n/).map(line => line.trim()).filter(Boolean).forEach(line => {
+            const split = splitConstraintLine(line);
+            if (!split) return;
+            const leftBounds = rangeTextToBounds(split.leftRaw);
+            const rightBounds = rangeTextToBounds(split.rightRaw);
+            items.push({ line, op: split.op, leftRaw: split.leftRaw, rightRaw: split.rightRaw, leftBounds, rightBounds });
+        });
+        return items;
+    }
+
+    function findTransportationConstraintBounds(variableBounds) {
+        const size = boundsSize(variableBounds);
+        const result = { rowFormulaBounds: null, rowLimitBounds: null, colFormulaBounds: null, colLimitBounds: null };
+        const pairs = getRawConstraintPairs();
+        pairs.forEach(item => {
+            if (item.leftBounds && item.rightBounds) {
+                const leftSize = boundsSize(item.leftBounds);
+                const rightSize = boundsSize(item.rightBounds);
+                const leftIsVertical = leftSize.rows === size.rows && leftSize.cols === 1;
+                const rightIsVertical = rightSize.rows === size.rows && rightSize.cols === 1;
+                const leftIsHorizontal = leftSize.rows === 1 && leftSize.cols === size.cols;
+                const rightIsHorizontal = rightSize.rows === 1 && rightSize.cols === size.cols;
+                if (leftIsVertical && rightIsVertical && item.leftBounds.colStart > variableBounds.colEnd) {
+                    result.rowFormulaBounds = item.leftBounds;
+                    result.rowLimitBounds = item.rightBounds;
+                }
+                if (leftIsHorizontal && rightIsHorizontal && item.leftBounds.rowStart > variableBounds.rowEnd) {
+                    result.colFormulaBounds = item.leftBounds;
+                    result.colLimitBounds = item.rightBounds;
+                }
+            }
+        });
+        return result;
+    }
+
+    function findPlainVerticalBoundsNearCost(costBounds, rowsCount) {
+        if (!costBounds) return null;
+        const rows = currentSheet?.grid?.length || 0;
+        const cols = Math.max(...(currentSheet?.grid || []).map(row => Array.isArray(row) ? row.length : 0), 0);
+        let best = null;
+        for (let col = costBounds.colEnd + 1; col < Math.min(cols, costBounds.colEnd + 6); col += 1) {
+            const bounds = { rowStart: costBounds.rowStart, rowEnd: costBounds.rowStart + rowsCount - 1, colStart: col, colEnd: col };
+            if (bounds.rowEnd >= rows || !boundsAllNumeric(bounds)) continue;
+            let score = 50 - Math.abs(col - (costBounds.colEnd + 1));
+            if (!best || score > best.score) best = { bounds, score };
+        }
+        return best?.bounds || null;
+    }
+
+    function findPlainHorizontalBoundsNearVariables(variableBounds, colsCount) {
+        if (!variableBounds) return null;
+        for (let gap = 0; gap <= 4; gap += 1) {
+            const row = variableBounds.rowStart - 1 - gap;
+            if (row < 0) continue;
+            const bounds = { rowStart: row, rowEnd: row, colStart: variableBounds.colStart, colEnd: variableBounds.colStart + colsCount - 1 };
+            if (boundsAllNumeric(bounds)) return bounds;
+        }
+        return null;
+    }
+
+    function ensureTransportHelperFormulas(variableBounds, rowFormulaBounds, colFormulaBounds) {
+        const size = boundsSize(variableBounds);
+        if (rowFormulaBounds) {
+            for (let i = 0; i < size.rows; i += 1) {
+                const row = rowFormulaBounds.rowStart + i;
+                const col = rowFormulaBounds.colStart;
+                const sumRange = rangeTextFromBounds(variableBounds.rowStart + i, variableBounds.rowStart + i, variableBounds.colStart, variableBounds.colEnd);
+                if (!isFormulaCell(solverCellRawValue(row, col))) currentSheet.grid[row][col] = `=SUMA(${sumRange})`;
+            }
+        }
+        if (colFormulaBounds) {
+            for (let j = 0; j < size.cols; j += 1) {
+                const row = colFormulaBounds.rowStart;
+                const col = colFormulaBounds.colStart + j;
+                const sumRange = rangeTextFromBounds(variableBounds.rowStart, variableBounds.rowEnd, variableBounds.colStart + j, variableBounds.colStart + j);
+                if (!isFormulaCell(solverCellRawValue(row, col))) currentSheet.grid[row][col] = `=SUMA(${sumRange})`;
+            }
+        }
+    }
+
+    function buildSolverTransportModel(target, variableRefs, variableBounds, mode, searchMax) {
+        if (!target || !variableBounds) return null;
+        const size = boundsSize(variableBounds);
+        if (size.rows < 2 || size.cols < 2 || variableRefs.length !== size.rows * size.cols || variableRefs.length > 12) return null;
+        const costBounds = findCostBoundsForSolverTransport(target, variableBounds);
+        if (!costBounds) return null;
+        const costMatrix = getBoundsNumbers(costBounds);
+        if (!costMatrix) return null;
+        const detected = findTransportationConstraintBounds(variableBounds);
+        const rowLimitBounds = detected.rowLimitBounds || findPlainVerticalBoundsNearCost(costBounds, size.rows);
+        const colLimitBounds = detected.colLimitBounds || findPlainHorizontalBoundsNearVariables(variableBounds, size.cols);
+        if (!rowLimitBounds || !colLimitBounds) return null;
+        const suppliesMatrix = getBoundsNumbers(rowLimitBounds);
+        const demandsMatrix = getBoundsNumbers(colLimitBounds);
+        if (!suppliesMatrix || !demandsMatrix) return null;
+        const supplies = suppliesMatrix.map(row => row[0]);
+        const demands = demandsMatrix[0];
+        if (supplies.length !== size.rows || demands.length !== size.cols) return null;
+        const rowFormulaBounds = detected.rowFormulaBounds || {
+            rowStart: variableBounds.rowStart,
+            rowEnd: variableBounds.rowEnd,
+            colStart: variableBounds.colEnd + 1,
+            colEnd: variableBounds.colEnd + 1
+        };
+        const colFormulaBounds = detected.colFormulaBounds || {
+            rowStart: variableBounds.rowEnd + 1,
+            rowEnd: variableBounds.rowEnd + 1,
+            colStart: variableBounds.colStart,
+            colEnd: variableBounds.colEnd
+        };
+        return { target, variableBounds, costBounds, costMatrix, supplies, demands, rowLimitBounds, colLimitBounds, rowFormulaBounds, colFormulaBounds, mode, searchMax };
+    }
+
+    function solveLinearWithEqualitiesAndInequalities(objectiveCoeffs, equalities, inequalities, mode) {
+        const n = objectiveCoeffs.length;
+        const eqCount = equalities.length;
+        if (!n || eqCount > n) return null;
+        const candidates = [];
+        const needActive = n - eqCount;
+        combinationsOfIndexes(inequalities.length, needActive).forEach(combo => {
+            const rows = equalities.map(item => item.coeffs);
+            const rhs = equalities.map(item => item.rhs);
+            combo.forEach(idx => {
+                rows.push(inequalities[idx].coeffs);
+                rhs.push(inequalities[idx].rhs);
+            });
+            const solution = solveLinearSystem(rows, rhs);
+            if (solution && solution.every(Number.isFinite)) candidates.push(solution);
+        });
+        if (needActive === 0) {
+            const solution = solveLinearSystem(equalities.map(item => item.coeffs), equalities.map(item => item.rhs));
+            if (solution && solution.every(Number.isFinite)) candidates.push(solution);
+        }
+        let best = null;
+        candidates.forEach(values => {
+            const eqOk = equalities.every(item => Math.abs(item.coeffs.reduce((sum, coeff, idx) => sum + coeff * values[idx], 0) - item.rhs) <= 1e-6);
+            if (!eqOk) return;
+            const ineqOk = inequalities.every(item => item.coeffs.reduce((sum, coeff, idx) => sum + coeff * values[idx], 0) <= item.rhs + 1e-6);
+            if (!ineqOk) return;
+            const value = objectiveCoeffs.reduce((sum, coeff, idx) => sum + coeff * values[idx], 0);
+            if (!best || (mode === "max" ? value > best.value + 1e-7 : value < best.value - 1e-7)) {
+                best = { values: values.map(value => Math.abs(value) < 1e-9 ? 0 : Number(value.toFixed(10))), value };
+            }
+        });
+        return best;
+    }
+
+    function solveTransportationModel(model) {
+        const m = model.supplies.length;
+        const n = model.demands.length;
+        const variableCount = m * n;
+        const objectiveCoeffs = flattenMatrix(model.costMatrix);
+        const equalities = [];
+        const inequalities = [];
+        for (let i = 0; i < m; i += 1) {
+            const coeffs = Array.from({ length: variableCount }, () => 0);
+            for (let j = 0; j < n; j += 1) coeffs[i * n + j] = 1;
+            equalities.push({ coeffs, rhs: model.supplies[i] });
+        }
+        for (let j = 0; j < n; j += 1) {
+            const coeffs = Array.from({ length: variableCount }, () => 0);
+            for (let i = 0; i < m; i += 1) coeffs[i * n + j] = 1;
+            inequalities.push({ coeffs, rhs: model.demands[j] });
+        }
+        for (let idx = 0; idx < variableCount; idx += 1) {
+            const lower = Array.from({ length: variableCount }, () => 0);
+            lower[idx] = -1;
+            inequalities.push({ coeffs: lower, rhs: 0 });
+        }
+        return solveLinearWithEqualitiesAndInequalities(objectiveCoeffs, equalities, inequalities, model.mode === "max" ? "max" : "min");
+    }
+
+    function runTransportationSolverShortcut(target, variableRefs, variableBounds, mode, searchMax) {
+        const model = buildSolverTransportModel(target, variableRefs, variableBounds, mode, searchMax);
+        if (!model) return null;
+        const solution = solveTransportationModel(model);
+        if (!solution) return null;
+        ensureTransportHelperFormulas(model.variableBounds, model.rowFormulaBounds, model.colFormulaBounds);
+        const variableRange = boundsToRangeText(model.variableBounds);
+        const costRange = boundsToRangeText(model.costBounds);
+        currentSheet.grid[target.row][target.col] = `=SUMA.ILOCZYNÓW(${costRange}; ${variableRange})`;
+        const rowFormulaRange = boundsToRangeText(model.rowFormulaBounds);
+        const rowLimitRange = boundsToRangeText(model.rowLimitBounds);
+        const colFormulaRange = boundsToRangeText(model.colFormulaBounds);
+        const colLimitRange = boundsToRangeText(model.colLimitBounds);
+        if (solverConstraintsInput) {
+            solverConstraintsInput.value = `${rowFormulaRange} = ${rowLimitRange}\n${colFormulaRange} <= ${colLimitRange}`;
+        }
+        return {
+            values: solution.values,
+            value: solution.value,
+            details: [
+                `rozpoznano model transportowy/ZLP: koszt ${costRange}, zmienne ${variableRange}`,
+                `ograniczenia ustawione jak w Solverze: podaż jako równość, zapotrzebowanie jako górny limit`
+            ]
+        };
+    }
+
+
     function runSolverFromModal() {
         if (!currentSheet) return;
         activateSelectedSolverSheet();
+        clearSolverResult();
 
         const targetRef = solverTargetInput?.value?.trim().toUpperCase();
         const variablesRaw = solverVariableInput?.value?.trim().toUpperCase();
@@ -6363,7 +6697,7 @@ h2 { margin: 24px 0 10px; font-size: 16px; }
         }
 
         ensureRefsFitGrid([...variableRefs, target]);
-        const constraints = parseSolverConstraints();
+        let constraints = parseSolverConstraints();
         pushHistorySnapshot();
 
         const originalValues = variableRefs.map(v => currentSheet.grid[v.row][v.col]);
@@ -6371,6 +6705,8 @@ h2 { margin: 24px 0 10px; font-size: 16px; }
         let bestScore = Infinity;
         let bestValue = null;
         let bestCombination = variableRefs.map(() => searchMin);
+        let solverDetails = [];
+        let solverUsedShortcut = false;
 
         function setVariables(values) {
             setSolverVariableValues(variableRefs, values);
@@ -6405,16 +6741,30 @@ h2 { margin: 24px 0 10px; font-size: 16px; }
             }
         }
 
-        const linearCandidate = solveLinearCandidate(variableRefs, constraints, target, mode, searchMin, max);
-        if (linearCandidate) {
+        const variableBounds = rangeBoundsFromRefs(variableRefs);
+        const transportCandidate = mode !== "target"
+            ? runTransportationSolverShortcut(target, variableRefs, variableBounds, mode, max)
+            : null;
+        if (transportCandidate) {
+            bestValue = transportCandidate.value;
+            bestCombination = transportCandidate.values;
+            bestScore = scoreObjective(transportCandidate.value);
+            solverDetails = transportCandidate.details || [];
+            solverUsedShortcut = true;
+            constraints = parseSolverConstraints();
+        }
+
+        const linearCandidate = solverUsedShortcut ? null : solveLinearCandidate(variableRefs, constraints, target, mode, searchMin, max);
+        if (!solverUsedShortcut && linearCandidate) {
             bestValue = linearCandidate.value;
             bestCombination = linearCandidate.values;
             bestScore = scoreObjective(linearCandidate.value);
+            solverDetails = ["rozpoznano liniowy model ZLP z komórki celu, zmiennych i ograniczeń"];
         }
 
         const valuesPerVariable = Math.floor((max - searchMin) / step) + 1;
         const estimatedGridChecks = Math.pow(Math.max(valuesPerVariable, 1), variableRefs.length);
-        if (!linearCandidate && estimatedGridChecks > 200000) {
+        if (!solverUsedShortcut && !linearCandidate && estimatedGridChecks > 200000) {
             originalValues.forEach((value, idx) => {
                 const ref = variableRefs[idx];
                 currentSheet.grid[ref.row][ref.col] = value;
@@ -6422,7 +6772,7 @@ h2 { margin: 24px 0 10px; font-size: 16px; }
             alert("Solver rozpoznał zbyt duży zakres do przeszukiwania krok po kroku. Użyj 'Wczytaj ZLP' albo zmniejsz zakres/krok.");
             return;
         }
-        if (!linearCandidate || mode === "target") {
+        if (!solverUsedShortcut && (!linearCandidate || mode === "target")) {
             search(0, Array.from({ length: variableRefs.length }, () => searchMin));
         }
 
@@ -6438,6 +6788,7 @@ h2 { margin: 24px 0 10px; font-size: 16px; }
         setVariables(bestCombination);
         renderGrid();
         markDirty();
+        showSolverResult(`znaleziono rozwiązanie. Wartość funkcji celu: ${displayFormulaValue(bestValue)}.`, solverDetails);
 
         const card = document.createElement("div");
         card.className = "we-object-card";
@@ -6456,7 +6807,7 @@ h2 { margin: 24px 0 10px; font-size: 16px; }
         generatedObjectsArea.prepend(card);
 
         logUserAction("Uruchomiono solver", { type: "solver_run", target: targetRef, variables: variablesRaw, mode, objectiveValue: bestValue });
-        closeModal(solverModal);
+        // Zostawiamy panel otwarty, żeby było od razu widać wynik i użyte ustawienia.
     }
 
     function initializeMenus() {
@@ -7104,6 +7455,7 @@ h2 { margin: 24px 0 10px; font-size: 16px; }
             const zoom = document.getElementById("zoom-select");
             if (zoom) zoom.value = Math.round(value * 100) + "%";
         }
+        window.requestAnimationFrame(() => scheduleFormulaReferenceHighlights());
     }
 
     function fitSheetToAvailableWidth() {
@@ -8123,8 +8475,16 @@ ${selectedPivots.length ? selectedPivots.map(item => `• ${escapeHtml(item.titl
                 await runScriptCode(script.name, script.code);
             }
         });
-        window.addEventListener("resize", refreshEditorResponsiveLayout);
-        window.visualViewport?.addEventListener("resize", refreshEditorResponsiveLayout);
+        window.addEventListener("resize", () => {
+            refreshEditorResponsiveLayout();
+            scheduleFormulaReferenceHighlights();
+        });
+        window.visualViewport?.addEventListener("resize", () => {
+            refreshEditorResponsiveLayout();
+            scheduleFormulaReferenceHighlights();
+        });
+        const sheetScrollEl = sheetGridTable?.closest(".we-sheet-scroll") || sheetEditorCard?.querySelector(".we-sheet-scroll");
+        sheetScrollEl?.addEventListener("scroll", () => scheduleFormulaReferenceHighlights(), { passive: true });
         setTimeout(refreshEditorResponsiveLayout, 80);
         menuBar?.addEventListener("click", event => {
             const btn = event.target.closest("[data-menu]");
