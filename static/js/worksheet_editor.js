@@ -64,6 +64,7 @@
     const chartYTitleInput = document.getElementById("chart-y-title-input");
     const chartSeriesColorInput = document.getElementById("chart-series-color");
     const chartFirstRowHeaderInput = document.getElementById("chart-first-row-header");
+    const chartFirstColLabelsInput = document.getElementById("chart-first-col-labels");
     const chartShowLegendInput = document.getElementById("chart-show-legend");
     const chartShowGridInput = document.getElementById("chart-show-grid");
     const chartShowLabelsInput = document.getElementById("chart-show-labels");
@@ -235,6 +236,8 @@
     let gridDelegationBound = false;
     let pendingColumnWidths = null;
     let columnWidthFrameId = null;
+    let pendingSingleColumnWidth = null;
+    let singleColumnWidthFrameId = null;
     let computedRefreshTimer = null;
     let computedRefreshPendingCell = null;
     let cellElements = [];
@@ -243,6 +246,9 @@
     let columnElements = [];
     let workbook = null;
     let activeWorkbookSheetIndex = 0;
+    let lastAutosaveNoticeAt = 0;
+    let networkSummaryLoadScheduled = false;
+    let conditionalRulesSortedCache = [];
     let pivotConfig = { rows: [], columns: [], values: [], filters: [] };
     let commentEditMode = "comment";
     let activeEmojiCategory = "popularne";
@@ -1357,7 +1363,11 @@
             if (options.rerenderObjects) rerenderGeneratedObjects();
             return;
         }
-        setAutosaveState("saving", "Niezapisane zmiany — autozapis co 5 min");
+        const now = Date.now();
+        if (now - lastAutosaveNoticeAt > 900) {
+            setAutosaveState("saving", "Niezapisane zmiany — autozapis co 5 min");
+            lastAutosaveNoticeAt = now;
+        }
         scheduleAutosave();
         if (options.rerenderObjects) rerenderGeneratedObjects();
     }
@@ -1381,6 +1391,33 @@
         }
     }
 
+    function pushCellEditHistory(row, col, oldValue, newValue) {
+        if (!currentSheet || isRestoringHistory || oldValue === newValue) return;
+        historyStack.push({
+            kind: "cell-edit",
+            row,
+            col,
+            oldValue,
+            newValue
+        });
+        redoStack = [];
+        if (historyStack.length > 100) {
+            historyStack.shift();
+        }
+    }
+
+    function applyCellEditHistory(entry, value) {
+        if (!currentSheet || !entry) return;
+        ensureDimensions(entry.row + 1, entry.col + 1);
+        currentSheet.grid[entry.row][entry.col] = value ?? "";
+        syncComputedCellRegistry(entry.row, entry.col);
+        updateCellElement(entry.row, entry.col);
+        if (entry.row === activeCell.row && entry.col === activeCell.col) {
+            updateFormulaBar();
+        }
+        scheduleComputedRefresh(entry.row, entry.col);
+    }
+
     function restoreSheetSnapshot(snapshot) {
         currentSheet.grid = snapshot.grid;
         currentSheet.styles = snapshot.styles || {};
@@ -1400,11 +1437,15 @@
         if (!currentSheet || !historyStack.length) return;
 
         isRestoringHistory = true;
-        redoStack.push(cloneSheetState());
         const snapshot = historyStack.pop();
-        restoreSheetSnapshot(snapshot);
-
-        renderGrid();
+        if (snapshot?.kind === "cell-edit") {
+            redoStack.push(snapshot);
+            applyCellEditHistory(snapshot, snapshot.oldValue);
+        } else {
+            redoStack.push(cloneSheetState());
+            restoreSheetSnapshot(snapshot);
+            renderGrid();
+        }
         isRestoringHistory = false;
         setAutosaveState("saving", "Cofnięto zmianę");
         scheduleAutosave();
@@ -1415,11 +1456,15 @@
         if (!currentSheet || !redoStack.length) return;
 
         isRestoringHistory = true;
-        historyStack.push(cloneSheetState());
         const snapshot = redoStack.pop();
-        restoreSheetSnapshot(snapshot);
-
-        renderGrid();
+        if (snapshot?.kind === "cell-edit") {
+            historyStack.push(snapshot);
+            applyCellEditHistory(snapshot, snapshot.newValue);
+        } else {
+            historyStack.push(cloneSheetState());
+            restoreSheetSnapshot(snapshot);
+            renderGrid();
+        }
         isRestoringHistory = false;
         setAutosaveState("saving", "Ponowiono zmianę");
         scheduleAutosave();
@@ -1770,10 +1815,12 @@
     }
 
     function prepareConditionalRulesCache() {
-        ensureConditionalRules().forEach(rule => {
+        const rules = ensureConditionalRules();
+        rules.forEach(rule => {
             rule._bounds = parseRangeBounds(rule.range);
             rule.priority = Number.isFinite(Number(rule.priority)) ? Number(rule.priority) : 2;
         });
+        conditionalRulesSortedCache = rules.slice().sort((a, b) => (Number(a.priority || 2) - Number(b.priority || 2)));
     }
 
     function conditionalRuleMatches(rule, row, col) {
@@ -1800,9 +1847,8 @@
     }
 
     function getConditionalStyleForCell(row, col) {
-        return ensureConditionalRules()
-            .slice()
-            .sort((a, b) => (Number(a.priority || 2) - Number(b.priority || 2)))
+        const rules = conditionalRulesSortedCache.length ? conditionalRulesSortedCache : ensureConditionalRules();
+        return rules
             .reduce((style, rule) => conditionalRuleMatches(rule, row, col) ? { ...style, ...(rule.style || buildConditionalStyle(rule.preset)) } : style, {});
     }
 
@@ -1892,12 +1938,23 @@
     function applyStyleToSelectionOrActive(patch) {
         if (!currentSheet) return;
         pushHistorySnapshot();
+        const touchedCells = [];
 
         forEachSelectedCell((row, col) => {
             setCellStyle(row, col, patch);
+            touchedCells.push([row, col]);
         });
 
-        renderGrid();
+        prepareConditionalRulesCache();
+        if (touchedCells.length > 2500) {
+            renderGrid();
+        } else {
+            touchedCells.forEach(([row, col]) => {
+                const td = cellElements[row]?.[col];
+                if (td) applyCellStyleToElement(td, row, col);
+            });
+            scheduleRefreshStartControls();
+        }
         markDirty();
         logUserAction("Zmieniono styl komórki", { type: "style_change", cell: cellAddress(activeCell.row, activeCell.col) });
     }
@@ -2280,32 +2337,51 @@
         if (!matrix || !matrix.length) return;
 
         pushHistorySnapshot();
-        ensureDimensions(activeCell.row + matrix.length, activeCell.col + Math.max(...matrix.map(row => row.length)));
+        const matrixRows = matrix.length;
+        const matrixCols = Math.max(...matrix.map(row => row.length));
+        const requiredRows = activeCell.row + matrixRows;
+        const requiredCols = activeCell.col + matrixCols;
+        const expandsGrid = requiredRows > currentRows || requiredCols > currentCols;
+        const touchedCells = [];
+        ensureDimensions(requiredRows, requiredCols);
         matrix.forEach((line, rowOffset) => {
             line.forEach((value, colOffset) => {
-                currentSheet.grid[activeCell.row + rowOffset][activeCell.col + colOffset] = value;
+                const row = activeCell.row + rowOffset;
+                const col = activeCell.col + colOffset;
+                currentSheet.grid[row][col] = value;
+                touchedCells.push([row, col]);
             });
         });
 
         if (cellClipboard.cut && cellClipboard.sourceRange) {
             const targetRange = {
                 rowStart: activeCell.row,
-                rowEnd: activeCell.row + matrix.length - 1,
+                rowEnd: activeCell.row + matrixRows - 1,
                 colStart: activeCell.col,
-                colEnd: activeCell.col + Math.max(...matrix.map(row => row.length)) - 1
+                colEnd: activeCell.col + matrixCols - 1
             };
             for (let row = cellClipboard.sourceRange.rowStart; row <= cellClipboard.sourceRange.rowEnd; row += 1) {
                 for (let col = cellClipboard.sourceRange.colStart; col <= cellClipboard.sourceRange.colEnd; col += 1) {
                     const insideTarget = row >= targetRange.rowStart && row <= targetRange.rowEnd && col >= targetRange.colStart && col <= targetRange.colEnd;
-                    if (!insideTarget && currentSheet.grid[row]) currentSheet.grid[row][col] = "";
+                    if (!insideTarget && currentSheet.grid[row]) {
+                        currentSheet.grid[row][col] = "";
+                        touchedCells.push([row, col]);
+                    }
                 }
             }
             cellClipboard.cut = false;
         }
 
         selectionStart = { row: activeCell.row, col: activeCell.col };
-        selectionEnd = { row: activeCell.row + matrix.length - 1, col: activeCell.col + Math.max(...matrix.map(row => row.length)) - 1 };
-        renderGrid();
+        selectionEnd = { row: activeCell.row + matrixRows - 1, col: activeCell.col + matrixCols - 1 };
+        if (expandsGrid || touchedCells.length > 2500) {
+            renderGrid();
+        } else {
+            prepareConditionalRulesCache();
+            touchedCells.forEach(([row, col]) => updateCellElement(row, col));
+            updateSelectionHighlight();
+            scheduleComputedRefresh(activeCell.row, activeCell.col);
+        }
         markDirty();
         logUserAction("Wklejono komórki", { type: "cell_paste", startCell: cellAddress(activeCell.row, activeCell.col) });
     }
@@ -2448,6 +2524,25 @@
         });
     }
 
+    function applySingleColumnWidth(col, width) {
+        const nextWidth = Math.max(64, Math.min(520, Math.round(width || 108)));
+        const header = colHeaderElements[col];
+        const colEl = columnElements[col];
+        if (header) header.style.width = `${nextWidth}px`;
+        if (colEl) colEl.style.width = `${nextWidth}px`;
+    }
+
+    function scheduleApplySingleColumnWidth(col, width) {
+        pendingSingleColumnWidth = { col, width };
+        if (singleColumnWidthFrameId) return;
+        singleColumnWidthFrameId = window.requestAnimationFrame(() => {
+            singleColumnWidthFrameId = null;
+            const pending = pendingSingleColumnWidth;
+            pendingSingleColumnWidth = null;
+            if (pending) applySingleColumnWidth(pending.col, pending.width);
+        });
+    }
+
     function autoFitSingleColumn(col) {
         if (!currentSheet) return;
         const widths = getAutoColumnWidths(true);
@@ -2565,6 +2660,7 @@
             rangeText: chartRangeInput?.value?.trim() || "",
             type: chartTypeSelect?.value || "line",
             useHeader: chartFirstRowHeaderInput?.checked !== false,
+            useFirstColumnAsLabels: chartFirstColLabelsInput?.checked !== false,
             title: chartTitleInput?.value?.trim() || "",
             xTitle: chartXTitleInput?.value?.trim() || "",
             yTitle: chartYTitleInput?.value?.trim() || "",
@@ -2609,6 +2705,7 @@
         if (chartSortSelect) chartSortSelect.value = config.sortOrder || "none";
         if (chartLegendPositionSelect) chartLegendPositionSelect.value = config.legendPosition || "bottom";
         if (chartFirstRowHeaderInput) chartFirstRowHeaderInput.checked = config.useHeader !== false;
+        if (chartFirstColLabelsInput) chartFirstColLabelsInput.checked = config.useFirstColumnAsLabels !== false;
         if (chartShowLegendInput) chartShowLegendInput.checked = config.showLegend !== false;
         if (chartShowGridInput) chartShowGridInput.checked = config.showGrid !== false;
         if (chartShowLabelsInput) chartShowLabelsInput.checked = config.showLabels !== false;
@@ -2670,6 +2767,8 @@
         td.classList.add("we-cell-editing");
         td.contentEditable = "true";
         td.spellcheck = false;
+        td.dataset.originalValue = currentSheet.grid[row][col] || "";
+        td.dataset.editSnapshotPushed = "0";
         td.textContent = initialValue !== null ? initialValue : (currentSheet.grid[row][col] || "");
         td.focus({ preventScroll: true });
         setCaretToEnd(td);
@@ -2821,15 +2920,19 @@
             const { row, col } = coords;
             if (!isCellEditingBlocked(row, col) && td.classList.contains("we-cell-editing")) {
                 const newValue = td.textContent || "";
+                const originalValue = td.dataset.originalValue || "";
+                const changed = newValue !== originalValue;
                 td.classList.remove("we-cell-editing");
                 td.contentEditable = "false";
-                if (newValue !== (currentSheet.grid[row][col] || "")) {
-                    pushHistorySnapshot();
+                if (changed) {
+                    pushCellEditHistory(row, col, originalValue, newValue);
                     currentSheet.grid[row][col] = newValue;
                     syncComputedCellRegistry(row, col);
                     markDirty();
                     logUserAction("Edycja komórki", { type: "cell_edit", cell: cellAddress(row, col), newValue });
                 }
+                delete td.dataset.originalValue;
+                delete td.dataset.editSnapshotPushed;
                 setCellDisplayContent(td, row, col);
                 applyCellStyleToElement(td, row, col);
                 if (row === activeCell.row && col === activeCell.col) {
@@ -2890,12 +2993,28 @@
                 moveActiveCellBy(1, 0);
                 return;
             }
+            if (event.key === "Tab") {
+                event.preventDefault();
+                td.blur();
+                moveActiveCellBy(0, event.shiftKey ? -1 : 1);
+                return;
+            }
             if (event.key === "Escape") {
                 event.preventDefault();
+                const originalValue = td.dataset.originalValue || "";
+                const changed = currentSheet.grid[row]?.[col] !== originalValue;
+                currentSheet.grid[row][col] = originalValue;
                 td.classList.remove("we-cell-editing");
                 td.contentEditable = "false";
+                delete td.dataset.originalValue;
+                delete td.dataset.editSnapshotPushed;
                 setCellDisplayContent(td, row, col);
                 applyCellStyleToElement(td, row, col);
+                updateFormulaBar();
+                if (changed) {
+                    syncComputedCellRegistry(row, col);
+                    scheduleComputedRefresh(row, col);
+                }
                 td.focus({ preventScroll: true });
             }
         });
@@ -3275,12 +3394,17 @@
     document.addEventListener("mousemove", event => {
         if (!activeColumnResize) return;
         const nextWidth = activeColumnResize.startWidth + (event.clientX - activeColumnResize.startX);
-        setStoredColumnWidth(activeColumnResize.col, nextWidth);
-        scheduleApplyColumnWidths(getAutoColumnWidths());
+        const width = Math.max(64, Math.min(520, Math.round(nextWidth)));
+        if (currentSheet) {
+            if (!currentSheet.columnWidths) currentSheet.columnWidths = {};
+            currentSheet.columnWidths[activeColumnResize.col] = width;
+        }
+        scheduleApplySingleColumnWidth(activeColumnResize.col, width);
     });
 
     document.addEventListener("mouseup", () => {
         if (activeColumnResize) {
+            commitActiveSheetToWorkbook();
             activeColumnResize = null;
             document.body.classList.remove("we-resizing-columns");
             markDirty();
@@ -3329,9 +3453,11 @@
             return;
         }
 
-        pushHistorySnapshot();
-
         ensureDimensions(targetCell.row + 1, targetCell.col + 1);
+        const oldValue = currentSheet.grid[targetCell.row]?.[targetCell.col] || "";
+        if (oldValue !== value) {
+            pushCellEditHistory(targetCell.row, targetCell.col, oldValue, value);
+        }
         currentSheet.grid[targetCell.row][targetCell.col] = value;
 
         const activeTd = cellElements[targetCell.row]?.[targetCell.col];
@@ -3543,6 +3669,7 @@
             showLabels,
             color
         } = chart;
+        const useFirstColumnAsLabels = chart.useFirstColumnAsLabels !== false;
 
         const type = chart.type || "line";
         const renderTypeMap = {
@@ -3582,9 +3709,15 @@
         }
 
         function getSingleSeries() {
+            const firstNumericValue = row => {
+                const value = row.find(cell => isNumericValue(cell));
+                return value === undefined ? NaN : parseNumber(value);
+            };
             let series = rows.map((row, index) => ({
-                label: String(row[0] || labels[index] || `P${index + 1}`),
-                value: parseNumber(row[row.length - 1])
+                label: useFirstColumnAsLabels ? String(row[0] || labels[index] || `P${index + 1}`) : String(labels[index] || index + 1),
+                value: useFirstColumnAsLabels && row.length > 1 && isNumericValue(row[row.length - 1])
+                    ? parseNumber(row[row.length - 1])
+                    : firstNumericValue(row)
             })).filter(item => Number.isFinite(item.value));
             if (chart.sortOrder === "asc") series = series.sort((a, b) => a.value - b.value);
             if (chart.sortOrder === "desc" || type === "pareto") series = series.sort((a, b) => b.value - a.value);
@@ -4200,11 +4333,11 @@
             renderWorkbookTabs();
             renderSheetTags();
             renderScriptSelect();
-            loadNetworkSummary();
             renderCellTasks();
             renderScenarios();
 
             renderGrid();
+            scheduleNetworkSummaryLoad();
             repairSheetMetaFromRenderedGrid(DEMO_MODE ? " • Tryb demo — zapis wyłączony" : `${data.isShared ? " • Udostępniony" : ""}${!currentSheetCanEdit ? " • Tylko odczyt" : ""}`);
             activateStartRibbon();
             setAutosaveState("", DEMO_MODE ? "Tryb demo — zmiany nie są zapisywane" : (currentSheetCanEdit ? "Brak zmian" : "Tylko do odczytu"));
@@ -4266,6 +4399,155 @@
         return workbookXlsx;
     }
 
+    function getPdfExportBounds() {
+        const grid = currentSheet?.grid || [];
+        let lastRow = -1;
+        let lastCol = -1;
+        grid.forEach((row, rowIndex) => {
+            (row || []).forEach((cell, colIndex) => {
+                if (String(cell ?? "").trim()) {
+                    lastRow = Math.max(lastRow, rowIndex);
+                    lastCol = Math.max(lastCol, colIndex);
+                }
+            });
+        });
+        return {
+            rows: Math.max(1, lastRow + 1),
+            cols: Math.max(1, lastCol + 1)
+        };
+    }
+
+    function getPdfCellText(row, col) {
+        const raw = currentSheet?.grid?.[row]?.[col] ?? "";
+        if (typeof raw === "string" && raw.trim().startsWith("=")) {
+            return displayFormulaValue(getCellComputedValue(row, col));
+        }
+        return String(raw ?? "");
+    }
+
+    function buildPdfTableHtml(maxRows = 120, maxCols = 18) {
+        const bounds = getPdfExportBounds();
+        const rowsToPrint = Math.min(bounds.rows, maxRows);
+        const colsToPrint = Math.min(bounds.cols, maxCols);
+        const headHtml = Array.from({ length: colsToPrint }, (_, col) => `<th>${escapeHtml(colToLabel(col))}</th>`).join("");
+        const bodyHtml = Array.from({ length: rowsToPrint }, (_, row) => {
+            const cells = Array.from({ length: colsToPrint }, (_, col) => {
+                const value = getPdfCellText(row, col);
+                return `<td>${escapeHtml(value)}</td>`;
+            }).join("");
+            return `<tr><th>${row + 1}</th>${cells}</tr>`;
+        }).join("");
+        const clippedRows = bounds.rows > rowsToPrint;
+        const clippedCols = bounds.cols > colsToPrint;
+        const note = clippedRows || clippedCols
+            ? `<p class="pdf-note">PDF pokazuje pierwsze ${rowsToPrint} z ${bounds.rows} wierszy i ${colsToPrint} z ${bounds.cols} kolumn. Pełne dane eksportuj do XLSX/CSV.</p>`
+            : "";
+        return `
+            ${note}
+            <table class="pdf-sheet-table">
+                <thead><tr><th>#</th>${headHtml}</tr></thead>
+                <tbody>${bodyHtml}</tbody>
+            </table>
+        `;
+    }
+
+    function buildPdfObjectsHtml() {
+        const charts = (chartObjects || []).map((chart, index) => `<li>Wykres ${index + 1}: ${escapeHtml(chart.title || chart.type || "Bez tytułu")}</li>`).join("");
+        const pivots = (pivotObjects || []).map((pivot, index) => `<li>Tabela przestawna ${index + 1}: ${escapeHtml(pivot.title || pivot.agg || "Podsumowanie")}</li>`).join("");
+        if (!charts && !pivots) {
+            return '<p class="pdf-muted">Brak wykresów i tabel przestawnych w arkuszu.</p>';
+        }
+        return `<ul class="pdf-object-list">${charts}${pivots}</ul>`;
+    }
+
+    function buildPdfSummaryHtml() {
+        const bounds = getPdfExportBounds();
+        const filledCells = countFilledCells(currentSheet?.grid || []);
+        const selection = getSelectionStats();
+        const items = [
+            ["Wiersze z danymi", bounds.rows],
+            ["Kolumny z danymi", bounds.cols],
+            ["Niepuste komórki", filledCells],
+            ["Wykresy", chartObjects.length],
+            ["Tabele przestawne", pivotObjects.length],
+            ["Zaznaczenie", selection.rows && selection.cols ? `${selection.rangeText} (${selection.rows}×${selection.cols})` : "brak"]
+        ];
+        return items.map(([label, value]) => `
+            <div class="pdf-kpi">
+                <span>${escapeHtml(label)}</span>
+                <strong>${escapeHtml(String(value))}</strong>
+            </div>
+        `).join("");
+    }
+
+    function exportSheetPdf() {
+        const baseName = getSheetFileBaseName();
+        const pdfWindow = window.open("", "_blank");
+        if (!pdfWindow) {
+            alert("Przeglądarka zablokowała okno PDF. Zezwól na wyskakujące okna i spróbuj ponownie.");
+            return false;
+        }
+        try { pdfWindow.opener = null; } catch (_) {}
+        const generatedAt = new Date().toLocaleString("pl-PL");
+        const title = currentSheet?.name || "Arkusz";
+        const category = currentSheet?.category ? `<p class="pdf-muted">Kategoria: ${escapeHtml(currentSheet.category)}</p>` : "";
+        pdfWindow.document.open();
+        pdfWindow.document.write(`<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<title>${escapeHtml(title)} - PDF</title>
+<style>
+@page { margin: 14mm; }
+* { box-sizing: border-box; }
+body { margin: 0; color: #182033; font: 12px/1.45 Arial, sans-serif; background: #fff; }
+h1 { margin: 0 0 6px; font-size: 26px; }
+h2 { margin: 24px 0 10px; font-size: 16px; }
+.pdf-hero { border-bottom: 2px solid #4f74ff; padding: 0 0 16px; margin: 0 0 18px; }
+.pdf-eyebrow { color: #4f74ff; font-size: 10px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }
+.pdf-muted, .pdf-note { color: #5f6b7a; margin: 4px 0; }
+.pdf-summary { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 14px 0; }
+.pdf-kpi { border: 1px solid #d8deea; border-radius: 8px; padding: 10px; min-height: 54px; }
+.pdf-kpi span { display: block; color: #667085; font-size: 10px; text-transform: uppercase; }
+.pdf-kpi strong { display: block; margin-top: 4px; font-size: 15px; }
+.pdf-object-list { margin: 0; padding-left: 18px; }
+.pdf-sheet-table { width: 100%; border-collapse: collapse; table-layout: fixed; margin-top: 8px; }
+.pdf-sheet-table th, .pdf-sheet-table td { border: 1px solid #d9dfeb; padding: 5px 6px; overflow-wrap: anywhere; vertical-align: top; }
+.pdf-sheet-table thead th, .pdf-sheet-table tbody th { background: #eef3ff; font-weight: 700; }
+.pdf-sheet-table tbody tr:nth-child(even) td { background: #f7f9fc; }
+.pdf-actions { margin: 18px 0; }
+.pdf-actions button { border: 0; border-radius: 8px; background: #4f74ff; color: #fff; font-weight: 700; padding: 10px 16px; cursor: pointer; }
+@media print { .pdf-actions { display: none; } body { print-color-adjust: exact; -webkit-print-color-adjust: exact; } }
+</style>
+</head>
+<body>
+<section class="pdf-hero">
+    <div class="pdf-eyebrow">Eksport PDF ARES</div>
+    <h1>${escapeHtml(title)}</h1>
+    <p class="pdf-muted">Wygenerowano: ${escapeHtml(generatedAt)} · Plik sugerowany: ${escapeHtml(baseName)}.pdf</p>
+    ${category}
+</section>
+<section>
+    <h2>Co jest w środku</h2>
+    <div class="pdf-summary">${buildPdfSummaryHtml()}</div>
+    <p>${escapeHtml(buildExecutiveSummary())}</p>
+</section>
+<section>
+    <h2>Wykresy i podsumowania</h2>
+    ${buildPdfObjectsHtml()}
+</section>
+<section>
+    <h2>Dane arkusza</h2>
+    ${buildPdfTableHtml()}
+</section>
+<div class="pdf-actions"><button onclick="window.print()">Zapisz jako PDF / drukuj</button></div>
+<script>window.addEventListener("load", () => setTimeout(() => window.print(), 250));<\/script>
+</body>
+</html>`);
+        pdfWindow.document.close();
+        return true;
+    }
+
     function exportSheetData() {
         if (!currentSheet) return;
         const format = String(exportFormatSelect?.value || "csv").toLowerCase();
@@ -4279,6 +4561,8 @@
             triggerDownload(buildDelimitedText("\t"), `${baseName}.txt`, "text/plain;charset=utf-8;");
         } else if (format === "json") {
             triggerDownload(JSON.stringify({ name: currentSheet.name, rows: currentSheet.grid || [] }, null, 2), `${baseName}.json`, "application/json;charset=utf-8;");
+        } else if (format === "pdf") {
+            if (!exportSheetPdf()) return;
         } else {
             if (!window.XLSX) {
                 alert("Eksport do tego formatu wymaga biblioteki XLSX.");
@@ -4502,15 +4786,7 @@
     }
 
     function clearActiveCell() {
-        if (!currentSheet) return;
-        pushHistorySnapshot();
-
-        forEachSelectedCell((row, col) => {
-            currentSheet.grid[row][col] = "";
-        });
-
-        renderGrid();
-        markDirty();
+        clearSelectedCellsFast();
     }
 
     function toggleFullWidth() {
@@ -5951,6 +6227,20 @@
         }
     }
 
+    function scheduleNetworkSummaryLoad(delay = 450) {
+        if (networkSummaryLoadScheduled || DEMO_MODE || !teamListEl) return;
+        networkSummaryLoadScheduled = true;
+        const run = () => {
+            networkSummaryLoadScheduled = false;
+            void loadNetworkSummary();
+        };
+        if (window.requestIdleCallback) {
+            window.requestIdleCallback(run, { timeout: 1200 });
+        } else {
+            window.setTimeout(run, delay);
+        }
+    }
+
     function renderTeamPanel() {
         if (!teamListEl) return;
         const organizations = Array.isArray(networkSummaryCache.organizations) ? networkSummaryCache.organizations : [];
@@ -6566,7 +6856,7 @@ ${selectedPivots.length ? selectedPivots.map(item => `• ${escapeHtml(item.titl
             scheduleChartPreviewRefresh();
         });
 
-        [chartRangeInput, chartTypeSelect, chartTitleInput, chartXTitleInput, chartYTitleInput, chartSeriesColorInput, chartBgColorInput, chartWidthInput, chartHeightInput, chartLineWidthInput, chartPointSizeInput, chartSortSelect, chartLegendPositionSelect, chartFirstRowHeaderInput, chartShowLegendInput, chartShowGridInput, chartShowLabelsInput]
+        [chartRangeInput, chartTypeSelect, chartTitleInput, chartXTitleInput, chartYTitleInput, chartSeriesColorInput, chartBgColorInput, chartWidthInput, chartHeightInput, chartLineWidthInput, chartPointSizeInput, chartSortSelect, chartLegendPositionSelect, chartFirstRowHeaderInput, chartFirstColLabelsInput, chartShowLegendInput, chartShowGridInput, chartShowLabelsInput]
             .filter(Boolean)
             .forEach(control => {
                 control.addEventListener("input", scheduleChartPreviewRefresh);
@@ -6911,7 +7201,7 @@ ${selectedPivots.length ? selectedPivots.map(item => `• ${escapeHtml(item.titl
     }
     safeBoot("renderFollowMeStatus", () => renderFollowMeStatus("Tryb wyłączony."));
     safeBoot("loadNetworkSummary", () => {
-        void loadNetworkSummary();
+        scheduleNetworkSummaryLoad(700);
     });
     safeBoot("renderCellTasks", renderCellTasks);
     safeBoot("renderScenarios", renderScenarios);
