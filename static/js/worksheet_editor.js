@@ -337,6 +337,30 @@ document.addEventListener("DOMContentLoaded", function () {
     const SPILL_PREFIX = "__SPILL__:";
     const DEFAULT_CHART_COLOR = "#4f8cff";
     const STATIC_PALETTE = ["#4f8cff", "#7ba8ff", "#54c6eb", "#8a6dff", "#3ccf91", "#f8c156", "#ff8a65"];
+    const CHART_TYPE_LABELS = {
+        line: "Liniowy",
+        "smooth-line": "Liniowy wygładzony",
+        area: "Warstwowy",
+        "stepped-area": "Schodkowy",
+        column: "Kolumnowy",
+        "stacked-column": "Kolumnowy skumulowany",
+        bar: "Słupkowy poziomy",
+        "stacked-bar": "Słupkowy skumulowany",
+        pie: "Kołowy",
+        doughnut: "Pierścieniowy",
+        scatter: "Punktowy XY",
+        bubble: "Bąbelkowy",
+        histogram: "Histogram",
+        pareto: "Pareto",
+        waterfall: "Wodospadowy",
+        radar: "Radarowy",
+        combo: "Kombinowany",
+        sparkline: "Miniwykres"
+    };
+
+    function getChartTypeDisplayName(type) {
+        return CHART_TYPE_LABELS[type] || type || "Wykres";
+    }
 
     window.EditorHelpers = {
         parseNumber,
@@ -3254,9 +3278,10 @@ document.addEventListener("DOMContentLoaded", function () {
         }
         const headerText = analysis.hasHeader ? "wykryto nagłówki" : "bez wyraźnych nagłówków";
         const labelText = analysis.hasLabelColumn ? "pierwsza kolumna jako etykiety" : "brak kolumny etykiet";
+        const displayType = getChartTypeDisplayName(analysis.recommendedType);
         chartRangeInsight.innerHTML = `
             <b>${escapeHtml(analysis.rangeText)}</b> — ${analysis.rows} wiersz(e/y), ${analysis.cols} kolumn(y), ${analysis.numeric} wartości liczbowych; ${headerText}, ${labelText}.<br>
-            <span>Propozycja: <b>${escapeHtml(analysis.recommendedType)}</b> — ${escapeHtml(analysis.recommendation)}</span>
+            <span>Propozycja: <b>${escapeHtml(displayType)}</b> — ${escapeHtml(analysis.recommendation)}</span>
         `;
     }
 
@@ -3284,7 +3309,7 @@ document.addEventListener("DOMContentLoaded", function () {
                         <span class="we-chart-smart-source">${escapeHtml(item.sourceLabel)}</span>
                         <strong>${escapeHtml(item.rangeText)}</strong>
                         <small>${escapeHtml(item.summary)}</small>
-                        <em>${escapeHtml(item.recommendedType)} · ${escapeHtml(item.recommendation)}</em>
+                        <em>${escapeHtml(getChartTypeDisplayName(item.recommendedType))} · ${escapeHtml(item.recommendation)}</em>
                     </button>
                 `).join("")}
             </div>
@@ -4715,7 +4740,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 <div class="we-object-head">
                     <div>
                         <div class="we-chart-object-title">Wykres ${index + 1}</div>
-                        <div class="we-chart-object-subtitle">${escapeHtml(chart.rangeText)} • ${escapeHtml(chart.type)}</div>
+                        <div class="we-chart-object-subtitle">${escapeHtml(chart.rangeText)} • ${escapeHtml(getChartTypeDisplayName(chart.type))}</div>
                     </div>
                     <div class="we-object-actions">
                         <button type="button" class="btn btn-secondary" data-chart-action="embed" data-chart-index="${index}">Wstaw na arkusz</button>
@@ -5097,7 +5122,7 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     function buildPdfObjectsHtml() {
-        const charts = (chartObjects || []).map((chart, index) => `<li>Wykres ${index + 1}: ${escapeHtml(chart.title || chart.type || "Bez tytułu")}</li>`).join("");
+        const charts = (chartObjects || []).map((chart, index) => `<li>Wykres ${index + 1}: ${escapeHtml(chart.title || getChartTypeDisplayName(chart.type) || "Bez tytułu")}</li>`).join("");
         const pivots = (pivotObjects || []).map((pivot, index) => `<li>Tabela przestawna ${index + 1}: ${escapeHtml(pivot.title || pivot.agg || "Podsumowanie")}</li>`).join("");
         if (!charts && !pivots) {
             return '<p class="pdf-muted">Brak wykresów i tabel przestawnych w arkuszu.</p>';
