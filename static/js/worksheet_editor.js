@@ -80,6 +80,10 @@ document.addEventListener("DOMContentLoaded", function () {
     const buildChartBtn = document.getElementById("build-chart-btn");
     const chartLivePreview = document.getElementById("chart-live-preview");
     const chartUseSelectionBtn = document.getElementById("chart-use-selection-btn");
+    const chartSmartPanel = document.getElementById("chart-smart-panel");
+    const chartRangeInsight = document.getElementById("chart-range-insight");
+    const chartPlaceOnSheetInput = document.getElementById("chart-place-on-sheet");
+    const chartPlacementSelect = document.getElementById("chart-placement-select");
 
     const pivotModal = document.getElementById("pivot-modal");
     const pivotRangeInput = document.getElementById("pivot-range-input");
@@ -234,6 +238,7 @@ document.addEventListener("DOMContentLoaded", function () {
     let pivotObjects = [];
     let editingChartIndex = null;
     let chartPreviewTimer = null;
+    let activeSheetChartDrag = null;
     let sheetScripts = [];
     let activeColumnResize = null;
     let draggedColumnIndex = null;
@@ -925,11 +930,12 @@ document.addEventListener("DOMContentLoaded", function () {
         if (!ext.sheetStates || typeof ext.sheetStates !== "object") ext.sheetStates = {};
         const key = activeSheetStateKey();
         if (!ext.sheetStates[key] || typeof ext.sheetStates[key] !== "object") {
-            ext.sheetStates[key] = { tasks: [], scenarios: [], images: [] };
+            ext.sheetStates[key] = { tasks: [], scenarios: [], images: [], sheetCharts: [] };
         }
         if (!Array.isArray(ext.sheetStates[key].tasks)) ext.sheetStates[key].tasks = [];
         if (!Array.isArray(ext.sheetStates[key].scenarios)) ext.sheetStates[key].scenarios = [];
         if (!Array.isArray(ext.sheetStates[key].images)) ext.sheetStates[key].images = [];
+        if (!Array.isArray(ext.sheetStates[key].sheetCharts)) ext.sheetStates[key].sheetCharts = [];
         return ext.sheetStates[key];
     }
 
@@ -2289,10 +2295,10 @@ document.addEventListener("DOMContentLoaded", function () {
 
     function getRangeMatrix(rangeText, computed = true, visited = new Set()) {
         const parts = String(rangeText || "").trim().toUpperCase().split(":");
-        if (parts.length !== 2) return [];
+        if (parts.length < 1 || parts.length > 2) return [];
 
         const start = cellRefToIndex(parts[0]);
-        const end = cellRefToIndex(parts[1]);
+        const end = cellRefToIndex(parts[1] || parts[0]);
         if (!start || !end) return [];
 
         const rowStart = Math.min(start.row, end.row);
@@ -2577,9 +2583,13 @@ document.addEventListener("DOMContentLoaded", function () {
         if (!sheetImageLayer) return;
         const state = getSheetExtensionState();
         const images = Array.isArray(state.images) ? state.images : [];
-        sheetImageLayer.style.width = `${sheetGridTable?.offsetWidth || sheetGridTable?.scrollWidth || 0}px`;
-        sheetImageLayer.style.height = `${sheetGridTable?.offsetHeight || sheetGridTable?.scrollHeight || 0}px`;
-        sheetImageLayer.innerHTML = images.map(image => {
+        const sheetCharts = Array.isArray(state.sheetCharts) ? state.sheetCharts : [];
+        const layerWidth = Math.max(sheetGridTable?.offsetWidth || 0, sheetGridTable?.scrollWidth || 0, ...sheetCharts.map(chart => (Number(chart.x) || 0) + (Number(chart.width) || 0) + 24));
+        const layerHeight = Math.max(sheetGridTable?.offsetHeight || 0, sheetGridTable?.scrollHeight || 0, ...sheetCharts.map(chart => (Number(chart.y) || 0) + (Number(chart.height) || 0) + 24));
+        sheetImageLayer.style.width = `${layerWidth}px`;
+        sheetImageLayer.style.height = `${layerHeight}px`;
+
+        const imageHtml = images.map(image => {
             const pos = getCellLayerPosition(Number(image.row) || 0, Number(image.col) || 0);
             const left = Number.isFinite(Number(image.x)) ? Number(image.x) : (pos?.x || 0);
             const top = Number.isFinite(Number(image.y)) ? Number(image.y) : (pos?.y || 0);
@@ -2592,7 +2602,98 @@ document.addEventListener("DOMContentLoaded", function () {
                 </div>
             `;
         }).join("");
+
+        const chartHtml = sheetCharts.map(sheetChart => {
+            const chart = sheetChart.config || sheetChart.chart || sheetChart;
+            const left = Number.isFinite(Number(sheetChart.x)) ? Number(sheetChart.x) : 0;
+            const top = Number.isFinite(Number(sheetChart.y)) ? Number(sheetChart.y) : 0;
+            const width = Math.max(320, Math.min(900, Number(sheetChart.width) || 520));
+            const height = Math.max(230, Math.min(680, Number(sheetChart.height) || 330));
+            let rendered = "<div>Nie udało się odświeżyć wykresu.</div>";
+            try {
+                rendered = buildChartHtml({
+                    ...chart,
+                    width: Math.max(300, width - 20),
+                    height: Math.max(190, height - 66),
+                    backgroundColor: chart.backgroundColor || "#111827"
+                });
+            } catch (error) {
+                rendered = "<div>Nie udało się odświeżyć wykresu.</div>";
+            }
+            return `
+                <div class="we-sheet-chart-object" data-sheet-chart-id="${escapeHtml(sheetChart.id)}" style="left:${left}px;top:${top}px;width:${width}px;height:${height}px">
+                    <div class="we-sheet-chart-handle" data-sheet-chart-drag="${escapeHtml(sheetChart.id)}">
+                        <span>${escapeHtml(chart.title || "Wykres")}</span>
+                        <small>${escapeHtml(chart.rangeText || "")}</small>
+                        <button type="button" class="we-sheet-chart-delete" data-delete-sheet-chart-id="${escapeHtml(sheetChart.id)}" title="Usuń wykres z arkusza">×</button>
+                    </div>
+                    <div class="we-sheet-chart-body">${rendered}</div>
+                </div>
+            `;
+        }).join("");
+
+        sheetImageLayer.innerHTML = imageHtml + chartHtml;
     }
+
+    function getChartPlacementCell(config, placement = "near") {
+        const bounds = parseRangeBounds(config?.rangeText || "") || getSelectionBounds() || { rowStart: activeCell.row, rowEnd: activeCell.row, colStart: activeCell.col, colEnd: activeCell.col };
+        if (placement === "active") return { row: activeCell.row, col: activeCell.col };
+        if (placement === "below") return { row: Math.min(currentRows - 1, bounds.rowEnd + 2), col: bounds.colStart };
+        const rightCol = bounds.colEnd + 1;
+        if (rightCol < currentCols) return { row: bounds.rowStart, col: rightCol };
+        return { row: Math.min(currentRows - 1, bounds.rowEnd + 2), col: bounds.colStart };
+    }
+
+    function insertChartOverlayToSheet(config, placement = "near") {
+        if (!currentSheet || !config?.rangeText) return false;
+        const state = getSheetExtensionState();
+        const cell = getChartPlacementCell(config, placement);
+        const pos = getCellLayerPosition(cell.row, cell.col) || { x: 0, y: 0, width: 520, height: 330 };
+        const width = Math.max(420, Math.min(760, Number(config.width) || 560));
+        const height = Math.max(280, Math.min(520, (Number(config.height) || 360) + 58));
+        state.sheetCharts.push({
+            id: `chart-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+            config: { ...config, width: Math.max(420, width - 20), height: Math.max(220, height - 66) },
+            row: cell.row,
+            col: cell.col,
+            x: Math.max(0, pos.x),
+            y: Math.max(0, pos.y),
+            width,
+            height,
+            createdAt: new Date().toISOString()
+        });
+        renderSheetImages();
+        markDirty();
+        logUserAction("Wstawiono wykres na arkusz", { type: "chart_embed", range: config.rangeText, cell: cellAddress(cell.row, cell.col) });
+        return true;
+    }
+
+    function updateSheetChartPosition(chartId, x, y) {
+        const state = getSheetExtensionState();
+        const chart = (state.sheetCharts || []).find(item => item.id === chartId);
+        if (!chart) return;
+        chart.x = Math.max(0, Math.round(x));
+        chart.y = Math.max(0, Math.round(y));
+        markDirty();
+    }
+
+    function startSheetChartDrag(chartId, event) {
+        const element = Array.from(sheetImageLayer?.querySelectorAll("[data-sheet-chart-id]") || []).find(el => el.dataset.sheetChartId === chartId);
+        const chart = (getSheetExtensionState().sheetCharts || []).find(item => item.id === chartId);
+        if (!element || !chart) return;
+        event.preventDefault();
+        activeSheetChartDrag = {
+            id: chartId,
+            element,
+            startX: event.clientX,
+            startY: event.clientY,
+            originX: Number(chart.x) || 0,
+            originY: Number(chart.y) || 0
+        };
+        element.classList.add("dragging");
+        document.body.classList.add("we-dragging-sheet-chart");
+    }
+
 
     function insertImageOverlayAtActiveCell(src) {
         if (!currentSheet || !src) return false;
@@ -2969,8 +3070,226 @@ document.addEventListener("DOMContentLoaded", function () {
             lineWidth: parseInt(chartLineWidthInput?.value || "3", 10),
             pointSize: parseInt(chartPointSizeInput?.value || "5", 10),
             sortOrder: chartSortSelect?.value || "none",
-            legendPosition: chartLegendPositionSelect?.value || "bottom"
+            legendPosition: chartLegendPositionSelect?.value || "bottom",
+            placeOnSheet: chartPlaceOnSheetInput?.checked === true,
+            placement: chartPlacementSelect?.value || "near"
         };
+    }
+
+    function textLooksLikeDateOrPeriod(value) {
+        const text = String(value || "").trim().toLowerCase();
+        if (!text) return false;
+        return /^(\d{4}|\d{1,2}[.\-/]\d{1,2}|\d{1,2}[.\-/]\d{1,2}[.\-/]\d{2,4})/.test(text) ||
+            /(sty|lut|mar|kwi|maj|cze|lip|sie|wrz|paź|paz|lis|gru|jan|feb|apr|jun|jul|aug|sep|oct|nov|dec|mies|kwartał|kwartal|rok|year|month|q[1-4])/.test(text);
+    }
+
+    function compactCellPreview(value, fallback = "") {
+        const text = String(value ?? "").trim();
+        if (!text) return fallback;
+        return text.length > 22 ? `${text.slice(0, 21)}…` : text;
+    }
+
+    function analyzeChartRange(rangeText) {
+        const bounds = parseRangeBounds(rangeText);
+        if (!bounds) return null;
+        const normalizedRange = boundsToRangeText(bounds);
+        const matrix = getRangeMatrix(normalizedRange, true);
+        if (!matrix.length || !matrix[0]?.length) return null;
+
+        const rows = matrix.length;
+        const cols = matrix[0].length;
+        const flat = matrix.flat();
+        const nonEmpty = flat.filter(value => String(value ?? "").trim() !== "").length;
+        const numeric = flat.filter(value => isNumericValue(value)).length;
+        const formulas = [];
+        for (let r = bounds.rowStart; r <= bounds.rowEnd; r += 1) {
+            for (let c = bounds.colStart; c <= bounds.colEnd; c += 1) {
+                if (String(currentSheet?.grid?.[r]?.[c] ?? "").trim().startsWith("=")) formulas.push(cellAddress(r, c));
+            }
+        }
+
+        const firstRow = matrix[0] || [];
+        const firstCol = matrix.map(row => row[0]);
+        const firstRowTextCount = firstRow.filter(value => String(value ?? "").trim() && !isNumericValue(value)).length;
+        const firstColTextCount = firstCol.slice(1).filter(value => String(value ?? "").trim() && !isNumericValue(value)).length;
+        const hasHeader = rows > 1 && firstRowTextCount >= Math.max(1, Math.ceil(cols * 0.35));
+        const hasLabelColumn = cols > 1 && firstColTextCount >= Math.max(1, Math.ceil((rows - 1) * 0.35));
+        const dataRows = hasHeader ? matrix.slice(1) : matrix;
+        const columnProfiles = [];
+
+        for (let c = 0; c < cols; c += 1) {
+            const values = dataRows.map(row => row[c]);
+            const numericCount = values.filter(value => isNumericValue(value)).length;
+            const textCount = values.filter(value => String(value ?? "").trim() && !isNumericValue(value)).length;
+            const header = hasHeader ? compactCellPreview(firstRow[c], colToLabel(bounds.colStart + c)) : colToLabel(bounds.colStart + c);
+            columnProfiles.push({
+                index: c,
+                header,
+                numericCount,
+                textCount,
+                emptyCount: values.length - numericCount - textCount,
+                numericRatio: values.length ? numericCount / values.length : 0,
+                looksLikePeriod: values.some(textLooksLikeDateOrPeriod) || textLooksLikeDateOrPeriod(header)
+            });
+        }
+
+        const numericColumns = columnProfiles.filter((profile, index) => profile.numericRatio >= 0.5 && !(hasLabelColumn && index === 0));
+        const labelColumn = hasLabelColumn ? columnProfiles[0] : null;
+        const periodLike = Boolean(labelColumn?.looksLikePeriod || firstCol.some(textLooksLikeDateOrPeriod));
+        let recommendedType = "column";
+        let recommendation = "Porównanie wartości według kategorii.";
+
+        if (cols >= 3 && numericColumns.length >= 2 && (hasLabelColumn || periodLike)) {
+            recommendedType = periodLike ? "line" : "column";
+            recommendation = periodLike ? "Pierwsza kolumna wygląda jak czas, więc najlepszy będzie wykres liniowy." : "Kilka kolumn liczbowych — dobry układ do porównania serii.";
+        } else if (cols >= 2 && numericColumns.length >= 2 && !hasLabelColumn) {
+            recommendedType = "scatter";
+            recommendation = "Dwie kolumny liczbowe bez etykiet — pasuje wykres punktowy XY.";
+        } else if (cols >= 2 && numericColumns.length === 1 && hasLabelColumn) {
+            recommendedType = rows > 7 ? "bar" : "column";
+            recommendation = "Pierwsza kolumna wygląda jak etykiety, druga jak wartości.";
+        } else if (numericColumns.length === 1 && rows >= 8) {
+            recommendedType = "histogram";
+            recommendation = "Jedna długa seria liczbowa — można pokazać rozkład wartości.";
+        } else if (rows === 1 && cols > 2) {
+            recommendedType = "column";
+            recommendation = "Jeden wiersz danych — pokaż wartości jako kolumny.";
+        }
+
+        const headers = columnProfiles.map(profile => profile.header).filter(Boolean);
+        const numericNames = numericColumns.map(profile => profile.header).filter(Boolean);
+        const titleBase = headers.filter(Boolean).slice(0, 3).join(" / ");
+        const title = titleBase ? `Wykres: ${titleBase}` : `Wykres ${normalizedRange}`;
+        const xTitle = hasLabelColumn ? (labelColumn?.header || "Kategorie") : (periodLike ? "Czas" : "Oś X");
+        const yTitle = numericNames.length === 1 ? numericNames[0] : (numericNames.length ? "Wartości" : "Wartość");
+
+        return {
+            rangeText: normalizedRange,
+            bounds,
+            rows,
+            cols,
+            nonEmpty,
+            numeric,
+            text: nonEmpty - numeric,
+            formulas,
+            hasHeader,
+            hasLabelColumn,
+            numericColumns,
+            headers,
+            recommendedType,
+            recommendation,
+            title,
+            xTitle,
+            yTitle,
+            summary: `${normalizedRange}: ${rows}×${cols}, ${numeric} liczb, ${nonEmpty - numeric} tekstów${formulas.length ? `, formuły: ${formulas.slice(0, 4).join(", ")}${formulas.length > 4 ? "…" : ""}` : ""}.`
+        };
+    }
+
+    function findChartDataRegions(limit = 8) {
+        if (!currentSheet?.grid?.length) return [];
+        const rows = Math.min(currentRows || currentSheet.grid.length, currentSheet.grid.length);
+        const cols = Math.min(currentCols || Math.max(...currentSheet.grid.map(row => row?.length || 0), 0), 40);
+        const nonEmpty = Array.from({ length: rows }, (_, r) => Array.from({ length: cols }, (_, c) => String(currentSheet.grid?.[r]?.[c] ?? "").trim() !== ""));
+        const visited = new Set();
+        const regions = [];
+
+        for (let r = 0; r < rows; r += 1) {
+            for (let c = 0; c < cols; c += 1) {
+                const key = `${r}:${c}`;
+                if (!nonEmpty[r][c] || visited.has(key)) continue;
+                const queue = [[r, c]];
+                visited.add(key);
+                let rowStart = r, rowEnd = r, colStart = c, colEnd = c;
+                let count = 0;
+                while (queue.length) {
+                    const [qr, qc] = queue.shift();
+                    count += 1;
+                    rowStart = Math.min(rowStart, qr); rowEnd = Math.max(rowEnd, qr);
+                    colStart = Math.min(colStart, qc); colEnd = Math.max(colEnd, qc);
+                    [[qr - 1, qc], [qr + 1, qc], [qr, qc - 1], [qr, qc + 1]].forEach(([nr, nc]) => {
+                        if (nr < 0 || nc < 0 || nr >= rows || nc >= cols) return;
+                        const nextKey = `${nr}:${nc}`;
+                        if (!nonEmpty[nr][nc] || visited.has(nextKey)) return;
+                        visited.add(nextKey);
+                        queue.push([nr, nc]);
+                    });
+                }
+                if (count >= 3 && (rowEnd > rowStart || colEnd > colStart)) {
+                    const paddedBounds = { rowStart, rowEnd, colStart, colEnd };
+                    const analysis = analyzeChartRange(boundsToRangeText(paddedBounds));
+                    if (analysis && analysis.numeric > 0) regions.push({ ...analysis, score: count + analysis.numeric * 2 + analysis.cols + analysis.rows });
+                }
+            }
+        }
+
+        const byRange = new Map();
+        regions.sort((a, b) => b.score - a.score).forEach(region => {
+            if (!byRange.has(region.rangeText)) byRange.set(region.rangeText, region);
+        });
+        return Array.from(byRange.values()).slice(0, limit);
+    }
+
+    function applyChartSuggestion(rangeText, type, title, xTitle, yTitle) {
+        if (chartRangeInput) chartRangeInput.value = rangeText || "";
+        if (chartTypeSelect && type) chartTypeSelect.value = type;
+        syncChartTypeCards(type || chartTypeSelect?.value || "line");
+        if (title && chartTitleInput && !chartTitleInput.value.trim()) chartTitleInput.value = title;
+        if (xTitle && chartXTitleInput && !chartXTitleInput.value.trim()) chartXTitleInput.value = xTitle;
+        if (yTitle && chartYTitleInput && !chartYTitleInput.value.trim()) chartYTitleInput.value = yTitle;
+        const analysis = analyzeChartRange(rangeText);
+        if (analysis) {
+            if (chartFirstRowHeaderInput) chartFirstRowHeaderInput.checked = analysis.hasHeader;
+            if (chartFirstColLabelsInput) chartFirstColLabelsInput.checked = analysis.hasLabelColumn;
+        }
+        scheduleChartPreviewRefresh();
+        renderChartRangeInsight();
+    }
+
+    function renderChartRangeInsight() {
+        if (!chartRangeInsight) return;
+        const analysis = analyzeChartRange(chartRangeInput?.value || "");
+        if (!analysis) {
+            chartRangeInsight.innerHTML = "Nie rozpoznaję jeszcze zakresu. Zaznacz tabelę albo wybierz jedną z podpowiedzi.";
+            return;
+        }
+        const headerText = analysis.hasHeader ? "wykryto nagłówki" : "bez wyraźnych nagłówków";
+        const labelText = analysis.hasLabelColumn ? "pierwsza kolumna jako etykiety" : "brak kolumny etykiet";
+        chartRangeInsight.innerHTML = `
+            <b>${escapeHtml(analysis.rangeText)}</b> — ${analysis.rows} wiersz(e/y), ${analysis.cols} kolumn(y), ${analysis.numeric} wartości liczbowych; ${headerText}, ${labelText}.<br>
+            <span>Propozycja: <b>${escapeHtml(analysis.recommendedType)}</b> — ${escapeHtml(analysis.recommendation)}</span>
+        `;
+    }
+
+    function renderChartSmartSuggestions() {
+        if (!chartSmartPanel) return;
+        const suggestions = [];
+        const selectionRange = getCurrentSelectionRangeText();
+        const selectionAnalysis = analyzeChartRange(selectionRange);
+        if (selectionAnalysis && selectionAnalysis.numeric > 0 && (selectionAnalysis.rows > 1 || selectionAnalysis.cols > 1)) suggestions.push({ ...selectionAnalysis, sourceLabel: "Bieżące zaznaczenie" });
+        findChartDataRegions(8).forEach(item => {
+            if (!suggestions.some(existing => existing.rangeText === item.rangeText)) suggestions.push({ ...item, sourceLabel: "Wykryty zakres" });
+        });
+
+        if (!suggestions.length) {
+            chartSmartPanel.innerHTML = '<div class="we-chart-smart-empty">Nie widzę jeszcze zwartej tabeli z liczbami. Zaznacz zakres ręcznie, np. A1:C10.</div>';
+            renderChartRangeInsight();
+            return;
+        }
+
+        chartSmartPanel.innerHTML = `
+            <div class="we-chart-smart-title">Smart podpowiedzi zakresów</div>
+            <div class="we-chart-smart-list">
+                ${suggestions.slice(0, 6).map((item, index) => `
+                    <button type="button" class="we-chart-smart-card" data-chart-suggestion-index="${index}" data-range="${escapeHtml(item.rangeText)}" data-type="${escapeHtml(item.recommendedType)}" data-title="${escapeHtml(item.title)}" data-x-title="${escapeHtml(item.xTitle)}" data-y-title="${escapeHtml(item.yTitle)}">
+                        <span class="we-chart-smart-source">${escapeHtml(item.sourceLabel)}</span>
+                        <strong>${escapeHtml(item.rangeText)}</strong>
+                        <small>${escapeHtml(item.summary)}</small>
+                        <em>${escapeHtml(item.recommendedType)} · ${escapeHtml(item.recommendation)}</em>
+                    </button>
+                `).join("")}
+            </div>
+        `;
+        renderChartRangeInsight();
     }
 
     function refreshChartActionLabel() {
@@ -3004,6 +3323,8 @@ document.addEventListener("DOMContentLoaded", function () {
         if (chartShowLegendInput) chartShowLegendInput.checked = config.showLegend !== false;
         if (chartShowGridInput) chartShowGridInput.checked = config.showGrid !== false;
         if (chartShowLabelsInput) chartShowLabelsInput.checked = config.showLabels !== false;
+        if (chartPlaceOnSheetInput) chartPlaceOnSheetInput.checked = index === null ? config.placeOnSheet !== false : false;
+        if (chartPlacementSelect) chartPlacementSelect.value = config.placement || "near";
         refreshChartActionLabel();
         scheduleChartPreviewRefresh();
     }
@@ -3921,7 +4242,9 @@ document.addEventListener("DOMContentLoaded", function () {
     function openModal(modalEl) {
         if (modalEl === chartModal) {
             if (chartRangeInput && !chartRangeInput.value.trim()) chartRangeInput.value = getCurrentSelectionRangeText();
+            if (editingChartIndex === null && chartPlaceOnSheetInput) chartPlaceOnSheetInput.checked = true;
             refreshChartActionLabel();
+            renderChartSmartSuggestions();
             scheduleChartPreviewRefresh();
         }
         if (modalEl === pivotModal) {
@@ -4395,6 +4718,7 @@ document.addEventListener("DOMContentLoaded", function () {
                         <div class="we-chart-object-subtitle">${escapeHtml(chart.rangeText)} • ${escapeHtml(chart.type)}</div>
                     </div>
                     <div class="we-object-actions">
+                        <button type="button" class="btn btn-secondary" data-chart-action="embed" data-chart-index="${index}">Wstaw na arkusz</button>
                         <button type="button" class="btn btn-secondary" data-chart-action="edit" data-chart-index="${index}">Edytuj</button>
                         <button type="button" class="btn btn-ghost" data-chart-action="delete" data-chart-index="${index}">Usuń</button>
                     </div>
@@ -8279,12 +8603,44 @@ ${selectedPivots.length ? selectedPivots.map(item => `• ${escapeHtml(item.titl
         toggleGridBtn?.addEventListener("click", toggleGrid);
         autofitBtn?.addEventListener("click", () => autoFitColumns(true));
         sheetImageLayer?.addEventListener("click", event => {
+            const deleteChartBtn = event.target.closest("[data-delete-sheet-chart-id]");
+            if (deleteChartBtn) {
+                const state = getSheetExtensionState();
+                state.sheetCharts = (state.sheetCharts || []).filter(chart => chart.id !== deleteChartBtn.dataset.deleteSheetChartId);
+                renderSheetImages();
+                markDirty();
+                return;
+            }
             const deleteBtn = event.target.closest("[data-delete-image-id]");
             if (!deleteBtn) return;
             const state = getSheetExtensionState();
             state.images = (state.images || []).filter(image => image.id !== deleteBtn.dataset.deleteImageId);
             renderSheetImages();
             markDirty();
+        });
+        sheetImageLayer?.addEventListener("mousedown", event => {
+            const handle = event.target.closest("[data-sheet-chart-drag]");
+            if (!handle || event.target.closest("button")) return;
+            startSheetChartDrag(handle.dataset.sheetChartDrag, event);
+        });
+        document.addEventListener("mousemove", event => {
+            if (!activeSheetChartDrag) return;
+            const dx = event.clientX - activeSheetChartDrag.startX;
+            const dy = event.clientY - activeSheetChartDrag.startY;
+            const x = Math.max(0, activeSheetChartDrag.originX + dx);
+            const y = Math.max(0, activeSheetChartDrag.originY + dy);
+            activeSheetChartDrag.element.style.left = `${x}px`;
+            activeSheetChartDrag.element.style.top = `${y}px`;
+        });
+        document.addEventListener("mouseup", () => {
+            if (!activeSheetChartDrag) return;
+            const x = parseFloat(activeSheetChartDrag.element.style.left || "0");
+            const y = parseFloat(activeSheetChartDrag.element.style.top || "0");
+            updateSheetChartPosition(activeSheetChartDrag.id, x, y);
+            activeSheetChartDrag.element.classList.remove("dragging");
+            document.body.classList.remove("we-dragging-sheet-chart");
+            activeSheetChartDrag = null;
+            renderSheetImages();
         });
         document.addEventListener("paste", async event => {
             const insideSheet = document.activeElement?.closest?.(".we-sheet-table") || event.target?.closest?.(".we-sheet-table");
@@ -8354,16 +8710,23 @@ ${selectedPivots.length ? selectedPivots.map(item => `• ${escapeHtml(item.titl
             scheduleChartPreviewRefresh();
         });
 
-        [chartRangeInput, chartTypeSelect, chartTitleInput, chartXTitleInput, chartYTitleInput, chartSeriesColorInput, chartBgColorInput, chartWidthInput, chartHeightInput, chartLineWidthInput, chartPointSizeInput, chartSortSelect, chartLegendPositionSelect, chartFirstRowHeaderInput, chartFirstColLabelsInput, chartShowLegendInput, chartShowGridInput, chartShowLabelsInput]
+        [chartRangeInput, chartTypeSelect, chartTitleInput, chartXTitleInput, chartYTitleInput, chartSeriesColorInput, chartBgColorInput, chartWidthInput, chartHeightInput, chartLineWidthInput, chartPointSizeInput, chartSortSelect, chartLegendPositionSelect, chartPlacementSelect, chartFirstRowHeaderInput, chartFirstColLabelsInput, chartShowLegendInput, chartShowGridInput, chartShowLabelsInput, chartPlaceOnSheetInput]
             .filter(Boolean)
             .forEach(control => {
-                control.addEventListener("input", scheduleChartPreviewRefresh);
-                control.addEventListener("change", scheduleChartPreviewRefresh);
+                control.addEventListener("input", () => { scheduleChartPreviewRefresh(); renderChartRangeInsight(); });
+                control.addEventListener("change", () => { scheduleChartPreviewRefresh(); renderChartRangeInsight(); });
             });
 
         chartUseSelectionBtn?.addEventListener("click", () => {
             if (chartRangeInput) chartRangeInput.value = getCurrentSelectionRangeText();
+            renderChartSmartSuggestions();
             scheduleChartPreviewRefresh();
+        });
+
+        chartSmartPanel?.addEventListener("click", event => {
+            const card = event.target.closest("[data-chart-suggestion-index]");
+            if (!card) return;
+            applyChartSuggestion(card.dataset.range || "", card.dataset.type || "column", card.dataset.title || "", card.dataset.xTitle || "", card.dataset.yTitle || "");
         });
 
         buildChartBtn?.addEventListener("click", () => {
@@ -8377,6 +8740,9 @@ ${selectedPivots.length ? selectedPivots.map(item => `• ${escapeHtml(item.titl
                 chartObjects[editingChartIndex] = config;
             } else {
                 chartObjects.push(config);
+                if (config.placeOnSheet) {
+                    insertChartOverlayToSheet(config, config.placement || "near");
+                }
             }
 
             editingChartIndex = null;
@@ -8391,6 +8757,9 @@ ${selectedPivots.length ? selectedPivots.map(item => `• ${escapeHtml(item.titl
             const index = parseInt(actionBtn.dataset.chartIndex || "-1", 10);
             if (!Number.isInteger(index) || !chartObjects[index]) return;
             const action = actionBtn.dataset.chartAction;
+            if (action === "embed") {
+                insertChartOverlayToSheet(chartObjects[index], chartObjects[index].placement || "near");
+            }
             if (action === "edit") {
                 populateChartModal(chartObjects[index], index);
                 openModal(chartModal);

@@ -5,7 +5,7 @@
 {% block topbar_title %}Edytor arkusza{% endblock %}
 
 {% block extra_head %}
-<link rel="stylesheet" href="{% static 'css/worksheet_editor.css' %}?v=0.9.19-solver-excel-like-zlp">
+<link rel="stylesheet" href="{% static 'css/worksheet_editor.css' %}?v=0.9.20-smart-charts-sheet-embed">
 {% endblock %}
 
 {% block content %}
@@ -612,6 +612,9 @@ api.notify("Policzono sumę kolumny B.");</code></pre>
                 <button id="chart-use-selection-btn" class="btn btn-secondary" type="button">Użyj bieżącego zaznaczenia</button>
                 <span class="we-chart-preview-helper">Podgląd odświeża się automatycznie po zmianie ustawień.</span>
             </div>
+            <div class="we-chart-smart-panel" id="chart-smart-panel">
+                <div class="we-chart-smart-empty">Smart podpowiedzi pojawią się po wykryciu zakresów danych w arkuszu.</div>
+            </div>
         </section>
 
             <section class="we-chart-config-panel">
@@ -619,6 +622,7 @@ api.notify("Policzono sumę kolumny B.");</code></pre>
                 <div class="we-chart-form-grid">
                     <label class="we-grid-span-2">Zakres danych
                         <input id="chart-range-input" type="text" placeholder="A1:B10 albo zaznacz zakres">
+                        <div id="chart-range-insight" class="we-chart-range-insight">Zaznacz dane albo wybierz zakres z podpowiedzi.</div>
                     </label>
                     <label class="we-grid-span-2">Tytuł wykresu
                         <input id="chart-title-input" type="text" placeholder="Np. Sprzedaż miesięczna">
@@ -661,6 +665,13 @@ api.notify("Policzono sumę kolumny B.");</code></pre>
                             <option value="none">Ukryj</option>
                         </select>
                     </label>
+                    <label class="we-grid-span-2">Pozycja na arkuszu
+                        <select id="chart-placement-select">
+                            <option value="near" selected>Obok danych, jeśli jest miejsce</option>
+                            <option value="below">Pod danymi</option>
+                            <option value="active">Przy aktywnej komórce</option>
+                        </select>
+                    </label>
                 </div>
 
                 <div class="we-chart-checks">
@@ -669,6 +680,7 @@ api.notify("Policzono sumę kolumny B.");</code></pre>
                     <label><input id="chart-show-legend" type="checkbox" checked> Pokaż legendę</label>
                     <label><input id="chart-show-grid" type="checkbox" checked> Pokaż siatkę</label>
                     <label><input id="chart-show-labels" type="checkbox"> Etykiety danych</label>
+                    <label><input id="chart-place-on-sheet" type="checkbox" checked> Wstaw też na arkusz przy danych</label>
                 </div>
                 <p class="we-chart-preview-note">Podpowiedź: zaznacz dane w arkuszu, kliknij „Wykres”, a zakres zostanie użyty automatycznie. Dla bąbelkowego najlepiej użyć 3 kolumn: X, Y, rozmiar.</p>
             </section>
@@ -930,6 +942,6 @@ window.addEventListener("unhandledrejection", function (event) {
     } catch (_) {}
 });
 </script>
-<script src="{% static 'js/worksheet_editor.js' %}?v=0.9.19-solver-excel-like-zlp"></script>
+<script src="{% static 'js/worksheet_editor.js' %}?v=0.9.20-smart-charts-sheet-embed"></script>
 <script src="{% static 'js/worksheet_chat.js' %}?v=0.8.4-speed"></script>
 {% endblock %}
