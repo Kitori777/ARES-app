@@ -10,7 +10,7 @@
             <span class="login-logo-mark"><img src="{% static 'img/ares-logo.svg' %}" alt=""></span>
             <span>
                 <strong>ARES</strong>
-                <small>System arkuszy</small>
+                <small data-i18n="subtitle">System arkuszy</small>
             </span>
         </a>
 
@@ -99,7 +99,7 @@
                 <div class="login-secondary-actions">
                     <a href="{% url 'demo' %}" data-i18n="demo">Otwórz demo</a>
                     <a href="{% url 'register' %}" data-i18n="register">Utwórz konto</a>
-                    <a href="{% url 'password_forgot' %}">Nie pamiętam hasła</a>
+                    <a href="{% url 'password_forgot' %}" data-i18n="forgotPassword">Nie pamiętam hasła</a>
                 </div>
             </div>
         </section>
@@ -138,6 +138,7 @@
                 topReport: 'Zgłoś błąd',
                 languageLabel: 'Język',
                 themeLabel: 'Motyw',
+                subtitle: 'System arkuszy',
                 title: 'Arkusze, raporty oraz historia pracy. Wszystko w jednym miejscu.',
                 lead: 'ARES pomaga porządkować importy, edytować arkusze i wracać do zapisanych zmian bez szukania plików na dysku.',
                 noticeTitle: 'Informacja o dostępie',
@@ -157,6 +158,7 @@
                 submit: 'Zaloguj się',
                 demo: 'Otwórz demo',
                 register: 'Utwórz konto',
+                forgotPassword: 'Nie pamiętam hasła',
                 helpTitle: 'Pomoc przy logowaniu',
                 helpBody: 'Jeżeli konto oczekuje na potwierdzenie, zalogowanie przekieruje Cię do wpisania kodu z wiadomości e-mail. Jeśli nie pamiętasz danych, skontaktuj się z administratorem systemu.',
                 privacyTitle: 'Informacja o danych',
@@ -171,6 +173,7 @@
                 topReport: 'Report issue',
                 languageLabel: 'Language',
                 themeLabel: 'Theme',
+                subtitle: 'Spreadsheet system',
                 title: 'Sheets, reports, and activity history in one place.',
                 lead: 'ARES helps organize imports, edit sheets, and return to saved changes without searching through local files.',
                 noticeTitle: 'Access information',
@@ -190,6 +193,7 @@
                 submit: 'Sign in',
                 demo: 'Open demo',
                 register: 'Create account',
+                forgotPassword: 'Forgot password',
                 helpTitle: 'Sign-in help',
                 helpBody: 'If your account is awaiting confirmation, signing in redirects you to the email code screen. If you do not remember your details, contact the system administrator.',
                 privacyTitle: 'Data information',
@@ -204,6 +208,7 @@
                 topReport: 'Fehler melden',
                 languageLabel: 'Sprache',
                 themeLabel: 'Design',
+                subtitle: 'Tabellensystem',
                 title: 'Tabellen, Berichte und Verlauf an einem Ort.',
                 lead: 'ARES hilft, Importe zu ordnen, Tabellen zu bearbeiten und gespeicherte Änderungen ohne Dateisuche wiederzufinden.',
                 noticeTitle: 'Information zum Zugriff',
@@ -223,6 +228,7 @@
                 submit: 'Anmelden',
                 demo: 'Demo öffnen',
                 register: 'Konto erstellen',
+                forgotPassword: 'Passwort vergessen',
                 helpTitle: 'Hilfe bei der Anmeldung',
                 helpBody: 'Wenn das Konto auf Bestätigung wartet, führt die Anmeldung zur Eingabe des E-Mail-Codes. Wenn Sie Ihre Daten nicht kennen, wenden Sie sich an den Administrator.',
                 privacyTitle: 'Information zu Daten',
@@ -243,6 +249,29 @@
             document.querySelectorAll('[data-i18n-placeholder]').forEach(node => {
                 const value = copy[next][node.dataset.i18nPlaceholder];
                 if (value) node.setAttribute('placeholder', value);
+            });
+            const loose = {
+                pl: {
+                    'Zostałeś wylogowany.': 'Zostałeś wylogowany.',
+                    'Nie pamiętam hasła': 'Nie pamiętam hasła',
+                    'System arkuszy': 'System arkuszy'
+                },
+                en: {
+                    'Zostałeś wylogowany.': 'You have been signed out.',
+                    'Nie pamiętam hasła': 'Forgot password',
+                    'System arkuszy': 'Spreadsheet system'
+                },
+                de: {
+                    'Zostałeś wylogowany.': 'Sie wurden abgemeldet.',
+                    'Nie pamiętam hasła': 'Passwort vergessen',
+                    'System arkuszy': 'Tabellensystem'
+                }
+            };
+            document.querySelectorAll('.messages-stack .alert, .login-logo small, .login-secondary-actions a').forEach(node => {
+                const original = node.dataset.originalText || node.textContent.trim();
+                node.dataset.originalText = original;
+                const translated = loose[next][original];
+                if (translated) node.textContent = translated;
             });
             if (languageSelect) languageSelect.value = next;
             localStorage.setItem(languageKey, next);
