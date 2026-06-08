@@ -239,6 +239,18 @@ document.addEventListener("DOMContentLoaded", function () {
     let highlightedCells = [];
     let highlightedHeaders = [];
     let highlightedFillCells = [];
+    let formulaReferenceHighlightFrame = null;
+    let pendingFormulaReferenceSource = undefined;
+    const FORMULA_REFERENCE_COLORS = [
+        { color: "#f97316", fill: "rgba(249, 115, 22, 0.12)" },
+        { color: "#22c55e", fill: "rgba(34, 197, 94, 0.12)" },
+        { color: "#38bdf8", fill: "rgba(56, 189, 248, 0.13)" },
+        { color: "#a855f7", fill: "rgba(168, 85, 247, 0.13)" },
+        { color: "#facc15", fill: "rgba(250, 204, 21, 0.15)" },
+        { color: "#fb7185", fill: "rgba(251, 113, 133, 0.13)" },
+        { color: "#14b8a6", fill: "rgba(20, 184, 166, 0.13)" },
+        { color: "#818cf8", fill: "rgba(129, 140, 248, 0.13)" }
+    ];
     let activeCellElement = null;
     let computedCellKeys = new Set();
     let gridDelegationBound = false;
@@ -1853,6 +1865,136 @@ document.addEventListener("DOMContentLoaded", function () {
         return { rowStart: Math.min(start.row, end.row), rowEnd: Math.max(start.row, end.row), colStart: Math.min(start.col, end.col), colEnd: Math.max(start.col, end.col) };
     }
 
+    function ensureFormulaReferenceLayer() {
+        if (!sheetGridTable) return null;
+        const scroll = sheetGridTable.closest(".we-sheet-scroll") || sheetEditorCard;
+        if (!scroll) return null;
+        let layer = document.getElementById("formula-reference-layer");
+        if (!layer) {
+            layer = document.createElement("div");
+            layer.id = "formula-reference-layer";
+            layer.className = "we-formula-reference-layer";
+            layer.setAttribute("aria-hidden", "true");
+            scroll.appendChild(layer);
+        }
+        layer.style.width = `${Math.max(scroll.scrollWidth || 0, sheetGridTable.offsetWidth || 0)}px`;
+        layer.style.height = `${Math.max(scroll.scrollHeight || 0, sheetGridTable.offsetHeight || 0)}px`;
+        return layer;
+    }
+
+    function clearFormulaReferenceHighlights() {
+        pendingFormulaReferenceSource = undefined;
+        const layer = document.getElementById("formula-reference-layer");
+        if (layer) {
+            layer.innerHTML = "";
+            layer.hidden = true;
+        }
+    }
+
+    function stripQuotedFormulaText(formula) {
+        return String(formula || "").replace(/"(?:[^"]|"")*"/g, match => " ".repeat(match.length));
+    }
+
+    function normalizeFormulaRangeText(rangeText) {
+        const text = String(rangeText || "").trim().toUpperCase().replace(/\$/g, "").replace(/\s+/g, "");
+        const parts = text.split(":");
+        const start = normalizeCellRefText(parts[0] || "");
+        const end = normalizeCellRefText(parts[1] || parts[0] || "");
+        return start && end && start !== end ? `${start}:${end}` : start;
+    }
+
+    function parseFormulaReferenceRanges(formula) {
+        const text = stripQuotedFormulaText(formula);
+        if (!String(text || "").trim().startsWith("=")) return [];
+        const refs = [];
+        const seen = new Set();
+        const refPattern = /\$?[A-Z]{1,4}\$?\d+(?:\s*:\s*\$?[A-Z]{1,4}\$?\d+)?/gi;
+        let match;
+        while ((match = refPattern.exec(text)) !== null) {
+            const raw = match[0];
+            const before = text.slice(0, match.index).trimEnd();
+            if (before.endsWith("!")) continue; // odwołanie do innego arkusza — nie podświetlamy lokalnej komórki przez przypadek
+            const normalized = normalizeFormulaRangeText(raw);
+            if (!normalized || seen.has(normalized)) continue;
+            const bounds = parseRangeBounds(normalized);
+            if (!bounds) continue;
+            if (bounds.rowEnd < 0 || bounds.colEnd < 0 || bounds.rowStart >= currentRows || bounds.colStart >= currentCols) continue;
+            seen.add(normalized);
+            refs.push({ text: normalized, bounds });
+            if (refs.length >= 16) break;
+        }
+        return refs;
+    }
+
+    function getCurrentFormulaReferenceSource() {
+        if (!currentSheet) return "";
+        if (formulaInput && document.activeElement === formulaInput) {
+            return formulaInput.value || "";
+        }
+        return currentSheet.grid?.[activeCell.row]?.[activeCell.col] || "";
+    }
+
+    function drawFormulaReferenceOverlay(ref, index, layer, scroll) {
+        const bounds = ref.bounds;
+        const first = cellElements[bounds.rowStart]?.[bounds.colStart];
+        const last = cellElements[bounds.rowEnd]?.[bounds.colEnd];
+        if (!first || !last || !layer || !scroll) return;
+
+        const firstRect = first.getBoundingClientRect();
+        const lastRect = last.getBoundingClientRect();
+        const scrollRect = scroll.getBoundingClientRect();
+        const left = firstRect.left - scrollRect.left + scroll.scrollLeft;
+        const top = firstRect.top - scrollRect.top + scroll.scrollTop;
+        const width = Math.max(2, lastRect.right - firstRect.left);
+        const height = Math.max(2, lastRect.bottom - firstRect.top);
+        const palette = FORMULA_REFERENCE_COLORS[index % FORMULA_REFERENCE_COLORS.length];
+
+        const overlay = document.createElement("div");
+        overlay.className = "we-formula-ref-overlay";
+        overlay.style.left = `${left}px`;
+        overlay.style.top = `${top}px`;
+        overlay.style.width = `${width}px`;
+        overlay.style.height = `${height}px`;
+        overlay.style.setProperty("--we-formula-ref-color", palette.color);
+        overlay.style.setProperty("--we-formula-ref-fill", palette.fill);
+        overlay.title = `Zakres ${index + 1}: ${ref.text}`;
+
+        const badge = document.createElement("span");
+        badge.className = "we-formula-ref-badge";
+        badge.textContent = ref.text;
+        overlay.appendChild(badge);
+        layer.appendChild(overlay);
+    }
+
+    function applyFormulaReferenceHighlights(formula = null) {
+        const layer = ensureFormulaReferenceLayer();
+        if (!layer) return;
+        layer.innerHTML = "";
+        layer.hidden = true;
+
+        const source = formula !== null && formula !== undefined ? formula : getCurrentFormulaReferenceSource();
+        if (!String(source || "").trim().startsWith("=")) return;
+
+        const refs = parseFormulaReferenceRanges(source);
+        if (!refs.length) return;
+
+        const scroll = sheetGridTable?.closest(".we-sheet-scroll") || sheetEditorCard;
+        if (!scroll) return;
+        layer.hidden = false;
+        refs.forEach((ref, index) => drawFormulaReferenceOverlay(ref, index, layer, scroll));
+    }
+
+    function scheduleFormulaReferenceHighlights(formula = undefined) {
+        pendingFormulaReferenceSource = formula;
+        if (formulaReferenceHighlightFrame) return;
+        formulaReferenceHighlightFrame = window.requestAnimationFrame(() => {
+            formulaReferenceHighlightFrame = null;
+            const source = pendingFormulaReferenceSource;
+            pendingFormulaReferenceSource = undefined;
+            applyFormulaReferenceHighlights(source);
+        });
+    }
+
     function isCellInsideRuleRange(row, col, rangeText) {
         const bounds = parseRangeBounds(rangeText);
         return Boolean(bounds && row >= bounds.rowStart && row <= bounds.rowEnd && col >= bounds.colStart && col <= bounds.colEnd);
@@ -2325,6 +2467,7 @@ document.addEventListener("DOMContentLoaded", function () {
         const value = currentSheet.grid[activeCell.row][activeCell.col] || "";
         if (formulaInput) formulaInput.value = value;
         if (activeCellLabel) activeCellLabel.textContent = `${colToLabel(activeCell.col)}${activeCell.row + 1}`;
+        scheduleFormulaReferenceHighlights(value);
     }
 
     function getSelectionMatrix(raw = true) {
@@ -2650,6 +2793,7 @@ document.addEventListener("DOMContentLoaded", function () {
             const width = colWidths[col] || 112;
             colEl.style.width = `${width}px`;
         });
+        scheduleFormulaReferenceHighlights();
     }
 
     function scheduleApplyColumnWidths(colWidths) {
@@ -2669,6 +2813,7 @@ document.addEventListener("DOMContentLoaded", function () {
         const colEl = columnElements[col];
         if (header) header.style.width = `${nextWidth}px`;
         if (colEl) colEl.style.width = `${nextWidth}px`;
+        scheduleFormulaReferenceHighlights();
     }
 
     function scheduleApplySingleColumnWidth(col, width) {
@@ -3049,6 +3194,7 @@ document.addEventListener("DOMContentLoaded", function () {
             if (!coords) return;
             const currentRaw = currentSheet?.grid?.[coords.row]?.[coords.col] || "";
             if (formulaInput) formulaInput.value = currentRaw;
+            scheduleFormulaReferenceHighlights(currentRaw);
         });
 
         body.addEventListener("focusout", event => {
@@ -3384,6 +3530,7 @@ document.addEventListener("DOMContentLoaded", function () {
             generatedObjectsCard.hidden = true;
         }
         repairSheetMetaFromRenderedGrid();
+        scheduleFormulaReferenceHighlights();
     }
 
     function refreshComputedCells(changedRow = null, changedCol = null) {
@@ -5603,14 +5750,78 @@ h2 { margin: 24px 0 10px; font-size: 16px; }
         return null;
     }
 
-    function detectZlpModelFromActiveSheet() {
+    function rangeBoundsFromRefs(refs) {
+        if (!Array.isArray(refs) || !refs.length) return null;
+        const rowStart = Math.min(...refs.map(ref => ref.row));
+        const rowEnd = Math.max(...refs.map(ref => ref.row));
+        const colStart = Math.min(...refs.map(ref => ref.col));
+        const colEnd = Math.max(...refs.map(ref => ref.col));
+        const expected = (rowEnd - rowStart + 1) * (colEnd - colStart + 1);
+        const unique = new Set(refs.map(ref => `${ref.row}:${ref.col}`));
+        if (unique.size !== expected) return null;
+        return { rowStart, rowEnd, colStart, colEnd };
+    }
+
+    function boundsToRangeText(bounds) {
+        if (!bounds) return "";
+        const first = cellAddress(bounds.rowStart, bounds.colStart);
+        const last = cellAddress(bounds.rowEnd, bounds.colEnd);
+        return first === last ? first : `${first}:${last}`;
+    }
+
+    function rangeTextToBounds(text) {
+        const refs = expandCellRefs(text);
+        return rangeBoundsFromRefs(refs);
+    }
+
+    function sameBounds(a, b) {
+        return Boolean(a && b
+            && a.rowStart === b.rowStart && a.rowEnd === b.rowEnd
+            && a.colStart === b.colStart && a.colEnd === b.colEnd);
+    }
+
+    function cellInsideBounds(row, col, bounds) {
+        return Boolean(bounds && row >= bounds.rowStart && row <= bounds.rowEnd && col >= bounds.colStart && col <= bounds.colEnd);
+    }
+
+    function valueLooksFilledNumberOrFormula(value) {
+        const raw = String(value ?? "").trim();
+        return raw !== "" && (isNumericValue(value) || isFormulaCell(value));
+    }
+
+    function rangeHasOnlyPlainValues(bounds) {
+        if (!bounds) return false;
+        for (let row = bounds.rowStart; row <= bounds.rowEnd; row += 1) {
+            for (let col = bounds.colStart; col <= bounds.colEnd; col += 1) {
+                const value = solverCellRawValue(row, col);
+                if (String(value ?? "").trim() === "") return false;
+                if (isFormulaCell(value)) return false;
+            }
+        }
+        return true;
+    }
+
+    function getVariableCandidateFromInputOrSelection() {
+        const typed = solverVariableInput?.value?.trim();
+        if (typed) {
+            const refs = expandCellRefs(typed);
+            if (refs.length) {
+                return { refs, bounds: rangeBoundsFromRefs(refs), rangeText: typed.toUpperCase() };
+            }
+        }
+        const bounds = getSelectionBounds();
+        if (bounds) {
+            const rangeText = boundsToRangeText(bounds);
+            const refs = expandCellRefs(rangeText);
+            if (refs.length) return { refs, bounds, rangeText };
+        }
+        return null;
+    }
+
+    function detectVariablesByLabels() {
         if (!currentSheet?.grid?.length) return null;
         const rows = currentSheet.grid.length;
         const cols = Math.max(...currentSheet.grid.map(row => Array.isArray(row) ? row.length : 0), 0);
-        let variablesRange = "";
-        let variableRow = -1;
-        let variableStartCol = -1;
-        let variableEndCol = -1;
         for (let row = 0; row < rows; row += 1) {
             for (let col = 0; col < Math.min(cols, 8); col += 1) {
                 const label = solverCellRawValue(row, col);
@@ -5626,60 +5837,244 @@ h2 { margin: 24px 0 10px; font-size: 16px; }
                     endCol += 1;
                 }
                 if (endCol - startCol >= 1) {
-                    variableRow = row;
-                    variableStartCol = startCol;
-                    variableEndCol = endCol - 1;
-                    variablesRange = rangeTextFromBounds(row, row, variableStartCol, variableEndCol);
-                    break;
+                    const rangeText = rangeTextFromBounds(row, row, startCol, endCol - 1);
+                    return { refs: expandCellRefs(rangeText), bounds: rangeTextToBounds(rangeText), rangeText };
                 }
             }
-            if (variablesRange) break;
         }
-        if (!variablesRange) return null;
+        return null;
+    }
 
-        let targetRef = "";
-        for (let row = Math.max(0, variableRow - 3); row < Math.min(rows, variableRow + 8); row += 1) {
-            const label = (currentSheet.grid[row] || []).slice(0, Math.min(4, cols)).join(" ");
-            const formula = findFirstFormulaCellInRow(row, Math.max(0, variableStartCol));
-            if (formula && (textContainsAny(label, ["cel", "zysk", "koszt", "wynik", "razem", "funkcja"]) || String(solverCellRawValue(formula.row, formula.col)).toUpperCase().includes("SUMA.ILOCZYNÓW"))) {
-                targetRef = cellAddress(formula.row, formula.col);
-                break;
-            }
+    function getRangeDimensions(bounds) {
+        return bounds ? { rows: bounds.rowEnd - bounds.rowStart + 1, cols: bounds.colEnd - bounds.colStart + 1 } : { rows: 0, cols: 0 };
+    }
+
+    function scoreVariableRangeCandidate(bounds) {
+        if (!bounds) return -Infinity;
+        const rows = currentSheet?.grid?.length || 0;
+        const cols = Math.max(...(currentSheet?.grid || []).map(row => Array.isArray(row) ? row.length : 0), 0);
+        let score = 0;
+        const labelText = collectNearbyCellText(bounds.rowStart, bounds.colStart, 2, 3);
+        if (textContainsAny(labelText, ["ilość", "ilosc", "zmienne", "decyzyjne", "plan", "x1", "x2"])) score += 20;
+        for (let row = bounds.rowStart; row <= bounds.rowEnd; row += 1) {
+            const right = solverCellRawValue(row, bounds.colEnd + 1);
+            if (isFormulaCell(right) || isNumericValue(right)) score += 5;
         }
+        for (let col = bounds.colStart; col <= bounds.colEnd; col += 1) {
+            const below = solverCellRawValue(bounds.rowEnd + 1, col);
+            if (isFormulaCell(below) || isNumericValue(below)) score += 5;
+        }
+        if (bounds.rowEnd < rows - 1) score += 1;
+        if (bounds.colEnd < cols - 1) score += 1;
+        return score;
+    }
 
-        const constraints = [];
-        let maxLimit = null;
-        for (let row = variableRow + 1; row < rows; row += 1) {
-            const usageFormula = findFirstFormulaCellInRow(row, Math.max(0, variableEndCol + 1));
-            if (!usageFormula) continue;
-            let limitCol = -1;
-            for (let col = usageFormula.col + 1; col < cols; col += 1) {
-                const candidate = solverCellRawValue(row, col);
-                if (isNumericValue(candidate) || isFormulaCell(candidate)) {
-                    limitCol = col;
-                    break;
-                }
-            }
-            if (limitCol < 0) {
-                for (let col = 0; col < cols; col += 1) {
-                    if (col === usageFormula.col || (col >= variableStartCol && col <= variableEndCol)) continue;
-                    const candidate = solverCellRawValue(row, col);
-                    const header = solverCellRawValue(Math.max(0, row - 1), col);
-                    const isLikelyLimit = textContainsAny(header, ["limit", "dostęp", "dostep", "rhs", "maks"])
-                        || textContainsAny(candidate, ["limit", "dostęp", "dostep", "rhs", "maks"]);
-                    if ((isNumericValue(candidate) || isFormulaCell(candidate)) && (isLikelyLimit || col > variableEndCol)) {
-                        limitCol = col;
-                        break;
+    function detectVariablesFromSumProductFormulas() {
+        if (!currentSheet?.grid?.length) return null;
+        const rows = currentSheet.grid.length;
+        const cols = Math.max(...currentSheet.grid.map(row => Array.isArray(row) ? row.length : 0), 0);
+        let best = null;
+        for (let row = 0; row < rows; row += 1) {
+            for (let col = 0; col < cols; col += 1) {
+                const raw = String(solverCellRawValue(row, col) || "").trim();
+                if (!/^=/.test(raw) || !/SUMA\.ILOCZYN[ÓO]W|SUMPRODUCT/i.test(raw)) continue;
+                const args = splitFormulaArgs(getFormulaArgsText(raw));
+                const ranges = args.filter(isRangeArg).map(arg => ({ text: normalizeCellRefText(arg), bounds: rangeTextToBounds(arg) })).filter(item => item.bounds);
+                ranges.forEach(item => {
+                    const score = scoreVariableRangeCandidate(item.bounds);
+                    if (!best || score > best.score) {
+                        best = { refs: expandCellRefs(item.text), bounds: item.bounds, rangeText: item.text, score };
                     }
-                }
-            }
-            if (limitCol >= 0) {
-                constraints.push(`${cellAddress(usageFormula.row, usageFormula.col)} <= ${cellAddress(row, limitCol)}`);
-                const limit = solverNumber(getCellComputedValue(row, limitCol));
-                if (Number.isFinite(limit)) maxLimit = maxLimit === null ? limit : Math.max(maxLimit, limit);
+                });
             }
         }
-        constraints.push(`${variablesRange} >= 0`);
+        return best;
+    }
+
+    function detectVariableCandidate() {
+        return getVariableCandidateFromInputOrSelection()
+            || detectVariablesByLabels()
+            || detectVariablesFromSumProductFormulas();
+    }
+
+    function collectNearbyCellText(row, col, radiusRows = 1, radiusCols = 4) {
+        const parts = [];
+        const rows = currentSheet?.grid?.length || 0;
+        const cols = Math.max(...(currentSheet?.grid || []).map(item => Array.isArray(item) ? item.length : 0), 0);
+        for (let r = Math.max(0, row - radiusRows); r <= Math.min(rows - 1, row + radiusRows); r += 1) {
+            for (let c = Math.max(0, col - radiusCols); c <= Math.min(cols - 1, col + radiusCols); c += 1) {
+                const value = solverCellRawValue(r, c);
+                if (value !== undefined && value !== null && String(value).trim() !== "") parts.push(String(value));
+            }
+        }
+        return parts.join(" ");
+    }
+
+    function analyzeLinearSideForVariables(variableRefs, side) {
+        const originalValues = variableRefs.map(ref => currentSheet.grid?.[ref.row]?.[ref.col]);
+        try {
+            const baseValues = variableRefs.map(() => 0);
+            const fn = buildLinearFunction(variableRefs, side, baseValues);
+            if (!fn) return null;
+            const hasVariable = fn.coeffs.some(coeff => Math.abs(coeff) > 1e-8);
+            return hasVariable ? fn : null;
+        } finally {
+            originalValues.forEach((value, idx) => {
+                const ref = variableRefs[idx];
+                if (!currentSheet.grid[ref.row]) currentSheet.grid[ref.row] = [];
+                currentSheet.grid[ref.row][ref.col] = value;
+            });
+        }
+    }
+
+    function findLinearFormulaCells(variableRefs, variableBounds) {
+        if (!currentSheet?.grid?.length || !variableRefs?.length) return [];
+        const rows = currentSheet.grid.length;
+        const cols = Math.max(...currentSheet.grid.map(row => Array.isArray(row) ? row.length : 0), 0);
+        const items = [];
+        for (let row = 0; row < rows; row += 1) {
+            for (let col = 0; col < cols; col += 1) {
+                const raw = solverCellRawValue(row, col);
+                if (!isFormulaCell(raw)) continue;
+                if (cellInsideBounds(row, col, variableBounds)) continue;
+                const fn = analyzeLinearSideForVariables(variableRefs, { row, col });
+                if (!fn) continue;
+                const nearby = collectNearbyCellText(row, col, 1, 5);
+                const text = String(raw || "").toUpperCase();
+                const isNearVariableRight = variableBounds && row >= variableBounds.rowStart && row <= variableBounds.rowEnd && col > variableBounds.colEnd && col <= variableBounds.colEnd + 3;
+                const isNearVariableBelow = variableBounds && col >= variableBounds.colStart && col <= variableBounds.colEnd && row > variableBounds.rowEnd && row <= variableBounds.rowEnd + 3;
+                let objectiveScore = 0;
+                if (/SUMA\.ILOCZYN[ÓO]W|SUMPRODUCT/i.test(text)) objectiveScore += 35;
+                if (textContainsAny(nearby, ["funkcja celu", "cel", "zysk", "koszt", "koszty", "wynik", "z=", "z =", "razem"])) objectiveScore += 30;
+                if (isNearVariableRight || isNearVariableBelow) objectiveScore -= 30;
+                if (textContainsAny(nearby, ["limit", "ogranic", "zużycie", "zuzycie", "dostęp", "dostep", "zasób", "zasob"])) objectiveScore -= 20;
+                items.push({ row, col, ref: cellAddress(row, col), raw, fn, objectiveScore, isNearVariableRight, isNearVariableBelow });
+            }
+        }
+        return items;
+    }
+
+    function findTargetForZlp(variableRefs, variableBounds) {
+        const typed = solverTargetInput?.value?.trim();
+        const typedRef = cellRefToIndex(typed);
+        if (typedRef) return cellAddress(typedRef.row, typedRef.col);
+        const formulas = findLinearFormulaCells(variableRefs, variableBounds);
+        const best = formulas
+            .filter(item => item.objectiveScore > -20)
+            .sort((a, b) => b.objectiveScore - a.objectiveScore)[0];
+        return best ? best.ref : "";
+    }
+
+    function matchingVerticalRangeCell(formulaRow, formulaCol, variableBounds) {
+        if (!variableBounds) return null;
+        const height = variableBounds.rowEnd - variableBounds.rowStart + 1;
+        const offset = formulaRow - variableBounds.rowStart;
+        if (offset < 0 || offset >= height) return null;
+        const rows = currentSheet?.grid?.length || 0;
+        const cols = Math.max(...(currentSheet?.grid || []).map(row => Array.isArray(row) ? row.length : 0), 0);
+        let best = null;
+        for (let col = formulaCol + 1; col < cols; col += 1) {
+            for (let startRow = 0; startRow + height - 1 < rows; startRow += 1) {
+                const targetRow = startRow + offset;
+                if (targetRow === formulaRow && col === formulaCol) continue;
+                const bounds = { rowStart: startRow, rowEnd: startRow + height - 1, colStart: col, colEnd: col };
+                if (!rangeHasOnlyPlainValues(bounds)) continue;
+                let localScore = 0;
+                if (startRow < variableBounds.rowStart) localScore += 20;
+                localScore -= Math.abs(col - (formulaCol + 1));
+                localScore -= Math.abs(startRow - Math.max(0, variableBounds.rowStart - height));
+                if (!best || localScore > best.score) best = { row: targetRow, col, score: localScore };
+            }
+        }
+        return best;
+    }
+
+    function matchingHorizontalRangeCell(formulaRow, formulaCol, variableBounds) {
+        if (!variableBounds) return null;
+        const width = variableBounds.colEnd - variableBounds.colStart + 1;
+        const offset = formulaCol - variableBounds.colStart;
+        if (offset < 0 || offset >= width) return null;
+        const rows = currentSheet?.grid?.length || 0;
+        const cols = Math.max(...(currentSheet?.grid || []).map(row => Array.isArray(row) ? row.length : 0), 0);
+        let best = null;
+        for (let row = 0; row < rows; row += 1) {
+            if (row === formulaRow) continue;
+            for (let startCol = 0; startCol + width - 1 < cols; startCol += 1) {
+                const targetCol = startCol + offset;
+                const bounds = { rowStart: row, rowEnd: row, colStart: startCol, colEnd: startCol + width - 1 };
+                if (!rangeHasOnlyPlainValues(bounds)) continue;
+                let localScore = 0;
+                if (row < variableBounds.rowStart) localScore += 20;
+                if (startCol === variableBounds.colStart) localScore += 10;
+                localScore -= Math.abs(row - Math.max(0, variableBounds.rowStart - 1));
+                localScore -= Math.abs(startCol - variableBounds.colStart);
+                if (!best || localScore > best.score) best = { row, col: targetCol, score: localScore };
+            }
+        }
+        return best;
+    }
+
+    function findConstraintRightHandCell(item, variableBounds, variableRefs) {
+        const rows = currentSheet?.grid?.length || 0;
+        const cols = Math.max(...(currentSheet?.grid || []).map(row => Array.isArray(row) ? row.length : 0), 0);
+        for (let col = item.col + 1; col < Math.min(cols, item.col + 5); col += 1) {
+            const candidate = solverCellRawValue(item.row, col);
+            if (valueLooksFilledNumberOrFormula(candidate) && !analyzeLinearSideForVariables(variableRefs, { row: item.row, col })) {
+                return { row: item.row, col };
+            }
+        }
+        if (item.isNearVariableRight) return matchingVerticalRangeCell(item.row, item.col, variableBounds);
+        if (item.isNearVariableBelow) return matchingHorizontalRangeCell(item.row, item.col, variableBounds);
+        return null;
+    }
+
+    function detectConstraintsForZlp(variableRefs, variableBounds, targetRef) {
+        const formulas = findLinearFormulaCells(variableRefs, variableBounds);
+        const constraints = [];
+        const seen = new Set();
+        const mode = getSolverMode();
+        formulas.forEach(item => {
+            if (item.ref === targetRef) return;
+            const looksLikeConstraint = item.isNearVariableRight
+                || item.isNearVariableBelow
+                || textContainsAny(collectNearbyCellText(item.row, item.col, 1, 4), ["limit", "ogranic", "zużycie", "zuzycie", "dostęp", "dostep", "zasób", "zasob", "suma"]);
+            if (!looksLikeConstraint) return;
+            const rhs = findConstraintRightHandCell(item, variableBounds, variableRefs);
+            if (!rhs) return;
+            let op = "<=";
+            if (item.isNearVariableBelow && mode === "min") op = ">=";
+            const line = `${item.ref} ${op} ${cellAddress(rhs.row, rhs.col)}`;
+            if (!seen.has(line)) {
+                seen.add(line);
+                constraints.push(line);
+            }
+        });
+        if (variableBounds) constraints.push(`${boundsToRangeText(variableBounds)} >= 0`);
+        return constraints;
+    }
+
+    function detectZlpModelFromActiveSheet() {
+        if (!currentSheet?.grid?.length) return null;
+        const candidate = detectVariableCandidate();
+        if (!candidate?.refs?.length) return null;
+        const variableRefs = candidate.refs;
+        const variableBounds = candidate.bounds || rangeBoundsFromRefs(variableRefs);
+        const variablesRange = candidate.rangeText || boundsToRangeText(variableBounds) || variableRefs.map(ref => cellAddress(ref.row, ref.col)).join(",");
+        const targetRef = findTargetForZlp(variableRefs, variableBounds);
+        let constraints = detectConstraintsForZlp(variableRefs, variableBounds, targetRef);
+        const existingConstraints = (solverConstraintsInput?.value || "").trim();
+        if ((!constraints.length || constraints.every(line => />=\s*0\s*$/i.test(line))) && existingConstraints) {
+            constraints = existingConstraints.split(/\n/).map(line => line.trim()).filter(Boolean);
+        }
+        let maxLimit = null;
+        constraints.forEach(line => {
+            const split = splitConstraintLine(line);
+            if (!split) return;
+            parseConstraintSides(split.leftRaw, split.rightRaw).forEach(pair => {
+                const right = getConstraintValue(pair.right);
+                if (Number.isFinite(right)) maxLimit = maxLimit === null ? right : Math.max(maxLimit, right);
+            });
+        });
         return { targetRef, variablesRange, constraints, maxLimit };
     }
 
@@ -7477,6 +7872,7 @@ ${selectedPivots.length ? selectedPivots.map(item => `• ${escapeHtml(item.titl
             const value = formulaInput.value || "";
             ensureDimensions(activeCell.row + 1, activeCell.col + 1);
             currentSheet.grid[activeCell.row][activeCell.col] = value;
+            scheduleFormulaReferenceHighlights(value);
             clearTimeout(autosaveTimer);
             autosaveTimer = setTimeout(saveSheet, 300000);
             setAutosaveState("saving", "Niezapisane zmiany — autozapis co 5 min");
@@ -7484,6 +7880,10 @@ ${selectedPivots.length ? selectedPivots.map(item => `• ${escapeHtml(item.titl
         formulaInput?.addEventListener("focus", () => {
             formulaEditTarget = { ...activeCell };
             renderFormulaHelper();
+            scheduleFormulaReferenceHighlights(formulaInput.value || "");
+        });
+        formulaInput?.addEventListener("blur", () => {
+            window.setTimeout(() => scheduleFormulaReferenceHighlights(), 0);
         });
         document.addEventListener("click", event => {
             if (!formulaHelperPopover || formulaHelperPopover.hidden) return;
