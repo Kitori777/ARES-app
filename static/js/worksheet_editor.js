@@ -1,4 +1,4 @@
-﻿document.addEventListener("DOMContentLoaded", function () {
+document.addEventListener("DOMContentLoaded", function () {
     const params = new URLSearchParams(window.location.search);
     let sheetId = params.get("sheet");
     const DEMO_MODE = document.body?.dataset.demoMode === "1";
@@ -179,8 +179,15 @@
     const solverTargetValueInput = document.getElementById("solver-target-value-input");
     const solverTargetUpdateBtn = document.getElementById("solver-target-update-btn");
     const solverTargetClearBtn = document.getElementById("solver-target-clear-btn");
+    const solverSheetSelect = document.getElementById("solver-sheet-select");
+    const solverCurrentSheetBtn = document.getElementById("solver-current-sheet-btn");
     const solverVariableAddBtn = document.getElementById("solver-variable-add-btn");
+    const solverVariableUpdateBtn = document.getElementById("solver-variable-update-btn");
     const solverVariableDeleteBtn = document.getElementById("solver-variable-delete-btn");
+    const solverConstraintAddBtn = document.getElementById("solver-constraint-add-btn");
+    const solverConstraintUpdateBtn = document.getElementById("solver-constraint-update-btn");
+    const solverConstraintZlpBtn = document.getElementById("solver-constraint-zlp-btn");
+    const solverConstraintClearBtn = document.getElementById("solver-constraint-clear-btn");
     const runSolverBtn = document.getElementById("run-solver-btn");
 
     const modalCloseButtons = document.querySelectorAll("[data-close-modal]");
@@ -410,6 +417,29 @@
 
     function currentSheetLabel() {
         return currentSheet?.activeTabName || workbook?.sheets?.[activeWorkbookSheetIndex]?.name || currentSheet?.name || "Arkusz";
+    }
+
+
+    function refreshSolverSheetSelect(selectedIndex = activeWorkbookSheetIndex) {
+        if (!solverSheetSelect) return;
+        const sheets = Array.isArray(workbook?.sheets) && workbook.sheets.length
+            ? workbook.sheets
+            : [{ name: currentSheetLabel() }];
+        const normalizedIndex = Math.max(0, Math.min(Number(selectedIndex) || 0, sheets.length - 1));
+        solverSheetSelect.innerHTML = sheets.map((sheet, index) => {
+            const label = safeSheetName(sheet?.name || sheet?.activeTabName, `Arkusz ${index + 1}`);
+            return `<option value="${index}" ${index === normalizedIndex ? "selected" : ""}>${escapeHtml(label)}</option>`;
+        }).join("");
+    }
+
+    function activateSelectedSolverSheet() {
+        if (!solverSheetSelect || !Array.isArray(workbook?.sheets) || !workbook.sheets.length) return true;
+        const selectedIndex = Number(solverSheetSelect.value);
+        if (!Number.isInteger(selectedIndex) || !workbook.sheets[selectedIndex]) return true;
+        if (selectedIndex !== activeWorkbookSheetIndex) {
+            activateWorkbookSheet(selectedIndex);
+        }
+        return true;
     }
 
     const actionLogQueue = [];
@@ -929,6 +959,7 @@
         updateSheetMeta();
         renderSheetTags();
         renderWorkbookTabs();
+        refreshSolverSheetSelect(index);
         renderCellTasks();
         renderScenarios();
         if (shouldRender) renderGrid();
@@ -2550,10 +2581,7 @@
             return openModal(solverModal);
         }
         if (action === "solver-variable") {
-            const ref = cellAddress(activeCell.row, activeCell.col);
-            if (solverVariableInput && !solverVariableInput.value.split(/[;,\n]/).map(x => x.trim().toUpperCase()).includes(ref)) {
-                solverVariableInput.value = solverVariableInput.value.trim() ? `${solverVariableInput.value.trim()},${ref}` : ref;
-            }
+            setSolverVariablesFromSelection(false);
             return openModal(solverModal);
         }
     }
@@ -3742,6 +3770,9 @@
             if (pivotRangeInput && !pivotRangeInput.value.trim()) pivotRangeInput.value = getCurrentSelectionRangeText();
             renderPivotEditor();
         }
+        if (modalEl === solverModal) {
+            refreshSolverSheetSelect(activeWorkbookSheetIndex);
+        }
         if (modalEl === reportModal) {
             populateReportBuilder();
         }
@@ -4443,6 +4474,7 @@
             if (applyFormulaBtn) applyFormulaBtn.disabled = !currentSheetCanEdit;
             if (renameBtn) renameBtn.disabled = !currentSheetCanShare;
             renderWorkbookTabs();
+            refreshSolverSheetSelect(activeWorkbookSheetIndex);
             renderSheetTags();
             renderScriptSelect();
             renderCellTasks();
@@ -5494,38 +5526,266 @@ h2 { margin: 24px 0 10px; font-size: 16px; }
         return document.querySelector('input[name="solver-objective-sense"]:checked')?.value || "max";
     }
 
-    function parseConstraintSides(leftRaw, rightRaw) {
-        const leftRefs = expandCellRefs(leftRaw);
-        const rightRefs = expandCellRefs(rightRaw);
-        const count = Math.max(leftRefs.length, rightRefs.length);
+    function rangeTextFromBounds(rowStart, rowEnd, colStart, colEnd) {
+        return `${cellAddress(rowStart, colStart)}:${cellAddress(rowEnd, colEnd)}`;
+    }
 
-        if (count > 0 && (leftRefs.length || rightRefs.length)) {
-            return Array.from({ length: count }, (_, idx) => ({
-                left: leftRefs[idx] || leftRefs[0] || leftRaw.trim(),
-                right: rightRefs[idx] || rightRefs[0] || rightRaw.trim()
-            }));
+    function normalizeRefListText(text) {
+        return String(text || "")
+            .split(/[;,\n]/)
+            .map(item => item.trim().toUpperCase())
+            .filter(Boolean);
+    }
+
+    function setSolverVariablesFromSelection(replace = false) {
+        if (!solverVariableInput) return;
+        const selectionText = getCurrentSelectionRangeText();
+        if (replace || !solverVariableInput.value.trim()) {
+            solverVariableInput.value = selectionText;
+            return;
+        }
+        const existing = normalizeRefListText(solverVariableInput.value);
+        const next = selectionText.toUpperCase();
+        if (!existing.includes(next)) {
+            solverVariableInput.value = `${solverVariableInput.value.trim()},${selectionText}`;
+        }
+    }
+
+    function setSolverConstraintText(line, replace = false) {
+        if (!solverConstraintsInput || !line) return;
+        if (replace || !solverConstraintsInput.value.trim()) {
+            solverConstraintsInput.value = line;
+            return;
+        }
+        solverConstraintsInput.value = `${solverConstraintsInput.value.trim()}\n${line}`;
+    }
+
+    function buildConstraintFromSelection() {
+        const bounds = getSelectionBounds();
+        if (!bounds) return `${cellAddress(activeCell.row, activeCell.col)} <= `;
+        const width = bounds.colEnd - bounds.colStart + 1;
+        const height = bounds.rowEnd - bounds.rowStart + 1;
+        if (width === 2) {
+            const left = rangeTextFromBounds(bounds.rowStart, bounds.rowEnd, bounds.colStart, bounds.colStart);
+            const right = rangeTextFromBounds(bounds.rowStart, bounds.rowEnd, bounds.colEnd, bounds.colEnd);
+            return `${left} <= ${right}`;
+        }
+        if (height === 2) {
+            const left = rangeTextFromBounds(bounds.rowStart, bounds.rowStart, bounds.colStart, bounds.colEnd);
+            const right = rangeTextFromBounds(bounds.rowEnd, bounds.rowEnd, bounds.colStart, bounds.colEnd);
+            return `${left} <= ${right}`;
+        }
+        return `${getCurrentSelectionRangeText()} <= `;
+    }
+
+    function addSolverConstraintFromSelection(replace = false) {
+        setSolverConstraintText(buildConstraintFromSelection(), replace);
+    }
+
+    function solverCellRawValue(row, col) {
+        return currentSheet?.grid?.[row]?.[col] ?? "";
+    }
+
+    function textContainsAny(value, needles) {
+        const normalized = String(value || "").toLowerCase();
+        return needles.some(needle => normalized.includes(needle));
+    }
+
+    function isFormulaCell(value) {
+        return String(value || "").trim().startsWith("=");
+    }
+
+    function findFirstFormulaCellInRow(row, startCol = 0) {
+        const values = currentSheet?.grid?.[row] || [];
+        for (let col = Math.max(0, startCol); col < values.length; col += 1) {
+            if (isFormulaCell(values[col])) return { row, col };
+        }
+        return null;
+    }
+
+    function detectZlpModelFromActiveSheet() {
+        if (!currentSheet?.grid?.length) return null;
+        const rows = currentSheet.grid.length;
+        const cols = Math.max(...currentSheet.grid.map(row => Array.isArray(row) ? row.length : 0), 0);
+        let variablesRange = "";
+        let variableRow = -1;
+        let variableStartCol = -1;
+        let variableEndCol = -1;
+        for (let row = 0; row < rows; row += 1) {
+            for (let col = 0; col < Math.min(cols, 8); col += 1) {
+                const label = solverCellRawValue(row, col);
+                if (!textContainsAny(label, ["ilość", "ilosc", "zmienne", "decyzyjne", "produkcja", "plan"])) continue;
+                let startCol = col + 1;
+                while (startCol < cols && String(solverCellRawValue(row, startCol) || "").trim() === "") startCol += 1;
+                let endCol = startCol;
+                while (endCol < cols) {
+                    const cell = solverCellRawValue(row, endCol);
+                    const below = row + 1 < rows ? solverCellRawValue(row + 1, endCol) : "";
+                    const usable = cell === "" || isNumericValue(cell) || isFormulaCell(cell) || isNumericValue(below) || isFormulaCell(below);
+                    if (!usable) break;
+                    endCol += 1;
+                }
+                if (endCol - startCol >= 1) {
+                    variableRow = row;
+                    variableStartCol = startCol;
+                    variableEndCol = endCol - 1;
+                    variablesRange = rangeTextFromBounds(row, row, variableStartCol, variableEndCol);
+                    break;
+                }
+            }
+            if (variablesRange) break;
+        }
+        if (!variablesRange) return null;
+
+        let targetRef = "";
+        for (let row = Math.max(0, variableRow - 3); row < Math.min(rows, variableRow + 8); row += 1) {
+            const label = (currentSheet.grid[row] || []).slice(0, Math.min(4, cols)).join(" ");
+            const formula = findFirstFormulaCellInRow(row, Math.max(0, variableStartCol));
+            if (formula && (textContainsAny(label, ["cel", "zysk", "koszt", "wynik", "razem", "funkcja"]) || String(solverCellRawValue(formula.row, formula.col)).toUpperCase().includes("SUMA.ILOCZYNÓW"))) {
+                targetRef = cellAddress(formula.row, formula.col);
+                break;
+            }
         }
 
-        return [{ left: leftRaw.trim(), right: rightRaw.trim() }];
+        const constraints = [];
+        let maxLimit = null;
+        for (let row = variableRow + 1; row < rows; row += 1) {
+            const usageFormula = findFirstFormulaCellInRow(row, Math.max(0, variableEndCol + 1));
+            if (!usageFormula) continue;
+            let limitCol = -1;
+            for (let col = usageFormula.col + 1; col < cols; col += 1) {
+                const candidate = solverCellRawValue(row, col);
+                if (isNumericValue(candidate) || isFormulaCell(candidate)) {
+                    limitCol = col;
+                    break;
+                }
+            }
+            if (limitCol < 0) {
+                for (let col = 0; col < cols; col += 1) {
+                    if (col === usageFormula.col || (col >= variableStartCol && col <= variableEndCol)) continue;
+                    const candidate = solverCellRawValue(row, col);
+                    const header = solverCellRawValue(Math.max(0, row - 1), col);
+                    const isLikelyLimit = textContainsAny(header, ["limit", "dostęp", "dostep", "rhs", "maks"])
+                        || textContainsAny(candidate, ["limit", "dostęp", "dostep", "rhs", "maks"]);
+                    if ((isNumericValue(candidate) || isFormulaCell(candidate)) && (isLikelyLimit || col > variableEndCol)) {
+                        limitCol = col;
+                        break;
+                    }
+                }
+            }
+            if (limitCol >= 0) {
+                constraints.push(`${cellAddress(usageFormula.row, usageFormula.col)} <= ${cellAddress(row, limitCol)}`);
+                const limit = solverNumber(getCellComputedValue(row, limitCol));
+                if (Number.isFinite(limit)) maxLimit = maxLimit === null ? limit : Math.max(maxLimit, limit);
+            }
+        }
+        constraints.push(`${variablesRange} >= 0`);
+        return { targetRef, variablesRange, constraints, maxLimit };
+    }
+
+    function fillSolverFromZlpModel() {
+        const model = detectZlpModelFromActiveSheet();
+        if (!model) {
+            alert("Nie udało się automatycznie rozpoznać układu ZLP w aktywnym arkuszu. Zaznacz komórki zmienne i ograniczenia albo wpisz je ręcznie.");
+            return;
+        }
+        if (solverTargetInput && model.targetRef) solverTargetInput.value = model.targetRef;
+        if (solverVariableInput) solverVariableInput.value = model.variablesRange;
+        if (solverConstraintsInput) solverConstraintsInput.value = model.constraints.join("\n");
+        if (solverMaxInput && Number.isFinite(model.maxLimit) && model.maxLimit > 0) solverMaxInput.value = Math.ceil(model.maxLimit);
+    }
+
+    function solverNumber(value) {
+        if (typeof value === "number") return Number.isFinite(value) ? value : NaN;
+        if (typeof value === "boolean") return value ? 1 : 0;
+        const normalized = String(value ?? "").trim().replace(/\s+/g, "").replace(",", ".");
+        if (!normalized) return NaN;
+        const num = Number(normalized);
+        return Number.isFinite(num) ? num : NaN;
+    }
+
+    function normalizeSolverExpression(text) {
+        const trimmed = String(text || "").trim();
+        if (!trimmed) return "";
+        if (cellRefToIndex(trimmed)) return trimmed;
+        if (/^[-+]?\d+(?:[\.,]\d+)?$/.test(trimmed)) return trimmed;
+        if (trimmed.startsWith("=")) return trimmed;
+        if (/[A-Z]+\d+|[+\-*/()]|SUMA|MIN|MAX|ŚRED|SRED/i.test(trimmed)) return `=${trimmed}`;
+        return trimmed;
     }
 
     function getConstraintValue(side) {
         if (side && typeof side === "object" && Number.isInteger(side.row) && Number.isInteger(side.col)) {
-            return parseNumber(getCellComputedValue(side.row, side.col));
+            return solverNumber(getCellComputedValue(side.row, side.col));
         }
-        return parseNumber(normalizeScalarToken(side));
+        const expression = normalizeSolverExpression(side);
+        if (!expression) return NaN;
+        try {
+            const value = expression.startsWith("=")
+                ? FormulaEngine.evaluate(expression, buildFormulaContext(), new Set())
+                : normalizeScalarToken(expression, new Set());
+            return solverNumber(value);
+        } catch (error) {
+            console.warn("Nie udało się policzyć ograniczenia Solvera:", side, error);
+            return NaN;
+        }
+    }
+
+    function splitConstraintLine(line) {
+        const normalized = String(line || "")
+            .replace(/≤/g, "<=")
+            .replace(/≥/g, ">=")
+            .replace(/=>/g, ">=")
+            .replace(/=</g, "<=");
+        let depth = 0;
+        for (let i = 0; i < normalized.length; i += 1) {
+            const ch = normalized[i];
+            if (ch === "(") depth += 1;
+            if (ch === ")") depth = Math.max(0, depth - 1);
+            if (depth !== 0) continue;
+            const two = normalized.slice(i, i + 2);
+            if (["<=", ">=", "=="].includes(two)) {
+                return { leftRaw: normalized.slice(0, i), op: two === "==" ? "=" : two, rightRaw: normalized.slice(i + 2) };
+            }
+            if (["<", ">"].includes(ch)) {
+                return { leftRaw: normalized.slice(0, i), op: ch, rightRaw: normalized.slice(i + 1) };
+            }
+            if (ch === "=" && i > 0) {
+                return { leftRaw: normalized.slice(0, i), op: "=", rightRaw: normalized.slice(i + 1) };
+            }
+        }
+        return null;
+    }
+
+    function parseConstraintSides(leftRaw, rightRaw) {
+        const leftText = String(leftRaw || "").trim();
+        const rightText = String(rightRaw || "").trim();
+        const plainRange = /^\$?[A-Z]+\$?\d+\s*:\s*\$?[A-Z]+\$?\d+$/i;
+        const plainRef = /^\$?[A-Z]+\$?\d+$/i;
+        const leftExpandable = plainRange.test(leftText) || plainRef.test(leftText);
+        const rightExpandable = plainRange.test(rightText) || plainRef.test(rightText);
+        const leftRefs = leftExpandable ? expandCellRefs(leftText) : [];
+        const rightRefs = rightExpandable ? expandCellRefs(rightText) : [];
+        const count = Math.max(leftRefs.length, rightRefs.length);
+
+        if (count > 0 && (leftRefs.length || rightRefs.length)) {
+            return Array.from({ length: count }, (_, idx) => ({
+                left: leftRefs[idx] || leftRefs[0] || leftText,
+                right: rightRefs[idx] || rightRefs[0] || rightText
+            }));
+        }
+        return [{ left: leftText, right: rightText }];
     }
 
     function parseSolverConstraints() {
         const raw = solverConstraintsInput?.value || "";
         const constraints = [];
         raw.split(/\n/).map(line => line.trim()).filter(Boolean).forEach(line => {
-            const match = line.match(/^(.*?)(<=|>=|=|==)(.*)$/);
-            if (!match) return;
-
-            const [, leftRaw, op, rightRaw] = match;
+            const split = splitConstraintLine(line);
+            if (!split) return;
+            const { leftRaw, op, rightRaw } = split;
             parseConstraintSides(leftRaw, rightRaw).forEach(pair => {
-                constraints.push({ ...pair, op: op === "==" ? "=" : op });
+                constraints.push({ ...pair, op });
             });
         });
         return constraints;
@@ -5536,28 +5796,160 @@ h2 { margin: 24px 0 10px; font-size: 16px; }
             const left = getConstraintValue(constraint.left);
             const right = getConstraintValue(constraint.right);
             if (!Number.isFinite(left) || !Number.isFinite(right)) return false;
-
-            if (constraint.op === "<=") return left <= right + 1e-9;
-            if (constraint.op === ">=") return left + 1e-9 >= right;
-            return Math.abs(left - right) <= 1e-9;
+            if (constraint.op === "<=") return left <= right + 1e-7;
+            if (constraint.op === ">=") return left + 1e-7 >= right;
+            if (constraint.op === "<") return left < right + 1e-7;
+            if (constraint.op === ">") return left + 1e-7 > right;
+            return Math.abs(left - right) <= 1e-7;
         });
+    }
+
+    function ensureRefsFitGrid(refs) {
+        const maxRow = refs.reduce((max, ref) => Math.max(max, ref.row + 1), currentRows);
+        const maxCol = refs.reduce((max, ref) => Math.max(max, ref.col + 1), currentCols);
+        ensureDimensions(maxRow, maxCol);
+    }
+
+    function setSolverVariableValues(variableRefs, values) {
+        variableRefs.forEach((ref, idx) => {
+            currentSheet.grid[ref.row][ref.col] = values[idx];
+        });
+    }
+
+    function solveLinearSystem(matrix, vector) {
+        const n = vector.length;
+        const a = matrix.map((row, idx) => [...row, vector[idx]]);
+        for (let col = 0; col < n; col += 1) {
+            let pivot = col;
+            for (let row = col + 1; row < n; row += 1) {
+                if (Math.abs(a[row][col]) > Math.abs(a[pivot][col])) pivot = row;
+            }
+            if (Math.abs(a[pivot][col]) < 1e-10) return null;
+            [a[col], a[pivot]] = [a[pivot], a[col]];
+            const divisor = a[col][col];
+            for (let c = col; c <= n; c += 1) a[col][c] /= divisor;
+            for (let row = 0; row < n; row += 1) {
+                if (row === col) continue;
+                const factor = a[row][col];
+                for (let c = col; c <= n; c += 1) a[row][c] -= factor * a[col][c];
+            }
+        }
+        return a.map(row => row[n]);
+    }
+
+    function combinationsOfIndexes(count, choose) {
+        const results = [];
+        function build(start, combo) {
+            if (combo.length === choose) {
+                results.push([...combo]);
+                return;
+            }
+            for (let i = start; i < count; i += 1) {
+                combo.push(i);
+                build(i + 1, combo);
+                combo.pop();
+            }
+        }
+        build(0, []);
+        return results;
+    }
+
+    function buildLinearFunction(variableRefs, side, baseValues) {
+        setSolverVariableValues(variableRefs, baseValues);
+        const constant = getConstraintValue(side);
+        if (!Number.isFinite(constant)) return null;
+        const coeffs = variableRefs.map((_, idx) => {
+            const testValues = [...baseValues];
+            testValues[idx] += 1;
+            setSolverVariableValues(variableRefs, testValues);
+            return getConstraintValue(side) - constant;
+        });
+        const ones = baseValues.map(value => value + 1);
+        setSolverVariableValues(variableRefs, ones);
+        const actual = getConstraintValue(side);
+        const predicted = constant + coeffs.reduce((sum, coeff) => sum + coeff, 0);
+        if (!Number.isFinite(actual) || Math.abs(actual - predicted) > 1e-5) return null;
+        return { constant, coeffs };
+    }
+
+    function tryBuildLinearModel(variableRefs, constraints, target, searchMin, searchMax) {
+        if (!variableRefs.length || variableRefs.length > 8) return null;
+        const baseValues = variableRefs.map(() => 0);
+        const targetFunction = buildLinearFunction(variableRefs, target, baseValues);
+        if (!targetFunction) return null;
+        const inequalities = [];
+        for (const constraint of constraints) {
+            const left = buildLinearFunction(variableRefs, constraint.left, baseValues);
+            const right = buildLinearFunction(variableRefs, constraint.right, baseValues);
+            if (!left || !right) return null;
+            let coeffs = left.coeffs.map((coeff, idx) => coeff - right.coeffs[idx]);
+            let rhs = right.constant - left.constant;
+            if (constraint.op === ">=" || constraint.op === ">") {
+                coeffs = coeffs.map(value => -value);
+                rhs = -rhs;
+            }
+            if (constraint.op === "=") {
+                inequalities.push({ coeffs, rhs });
+                inequalities.push({ coeffs: coeffs.map(value => -value), rhs: -rhs });
+            } else {
+                inequalities.push({ coeffs, rhs });
+            }
+        }
+        variableRefs.forEach((_, idx) => {
+            const upper = Array.from({ length: variableRefs.length }, () => 0);
+            upper[idx] = 1;
+            inequalities.push({ coeffs: upper, rhs: searchMax });
+            const lower = Array.from({ length: variableRefs.length }, () => 0);
+            lower[idx] = -1;
+            inequalities.push({ coeffs: lower, rhs: -searchMin });
+        });
+        return { targetFunction, inequalities };
+    }
+
+    function solveLinearCandidate(variableRefs, constraints, target, mode, searchMin, searchMax) {
+        if (mode === "target") return null;
+        const model = tryBuildLinearModel(variableRefs, constraints, target, searchMin, searchMax);
+        if (!model) return null;
+        const n = variableRefs.length;
+        const candidates = [variableRefs.map(() => searchMin)];
+        combinationsOfIndexes(model.inequalities.length, n).forEach(combo => {
+            const matrix = combo.map(idx => model.inequalities[idx].coeffs);
+            const vector = combo.map(idx => model.inequalities[idx].rhs);
+            const solution = solveLinearSystem(matrix, vector);
+            if (solution && solution.every(value => Number.isFinite(value))) candidates.push(solution);
+        });
+        let best = null;
+        candidates.forEach(values => {
+            if (values.some(value => value < searchMin - 1e-7 || value > searchMax + 1e-7)) return;
+            setSolverVariableValues(variableRefs, values);
+            const linearOk = model.inequalities.every(item => item.coeffs.reduce((sum, coeff, idx) => sum + coeff * values[idx], 0) <= item.rhs + 1e-6);
+            if (!linearOk) return;
+            if (constraints.length && !constraintsSatisfied(constraints)) return;
+            const result = solverNumber(getCellComputedValue(target.row, target.col));
+            if (!Number.isFinite(result)) return;
+            if (!best || (mode === "max" ? result > best.value + 1e-7 : result < best.value - 1e-7)) {
+                best = { values: values.map(value => Math.abs(value) < 1e-9 ? 0 : Number(value.toFixed(10))), value: result };
+            }
+        });
+        return best;
     }
 
     function runSolverFromModal() {
         if (!currentSheet) return;
+        activateSelectedSolverSheet();
 
         const targetRef = solverTargetInput?.value?.trim().toUpperCase();
         const variablesRaw = solverVariableInput?.value?.trim().toUpperCase();
         const mode = getSolverMode();
-        const step = Math.abs(parseNumber(solverStepInput?.value || 1)) || 1;
-        const min = parseNumber(solverMinInput?.value || 0);
-        const max = parseNumber(solverMaxInput?.value || 100);
-        const targetValue = parseNumber(solverTargetValueInput?.value || 0);
+        const step = Math.abs(solverNumber(solverStepInput?.value || 1)) || 1;
+        const min = solverNumber(solverMinInput?.value || 0);
+        const max = solverNumber(solverMaxInput?.value || 100);
+        const targetValue = solverNumber(solverTargetValueInput?.value || 0);
         const forceNonnegative = solverNonnegativeInput?.checked !== false;
 
         const target = cellRefToIndex(targetRef);
-        if (!target || !variablesRaw) {
-            alert("Podaj poprawną komórkę celu i co najmniej jedną komórkę zmienną.");
+        if (!target || !variablesRaw || !Number.isFinite(min) || !Number.isFinite(max) || max < min) {
+            alert("Podaj poprawną komórkę celu, komórki zmienne oraz zakres min/max.");
             return;
         }
 
@@ -5575,6 +5967,7 @@ h2 { margin: 24px 0 10px; font-size: 16px; }
             return;
         }
 
+        ensureRefsFitGrid([...variableRefs, target]);
         const constraints = parseSolverConstraints();
         pushHistorySnapshot();
 
@@ -5585,9 +5978,7 @@ h2 { margin: 24px 0 10px; font-size: 16px; }
         let bestCombination = variableRefs.map(() => searchMin);
 
         function setVariables(values) {
-            variableRefs.forEach((ref, idx) => {
-                currentSheet.grid[ref.row][ref.col] = values[idx];
-            });
+            setSolverVariableValues(variableRefs, values);
         }
 
         function scoreObjective(result) {
@@ -5601,7 +5992,7 @@ h2 { margin: 24px 0 10px; font-size: 16px; }
                 setVariables(currentCombination);
                 if (constraints.length && !constraintsSatisfied(constraints)) return;
 
-                const result = parseNumber(getCellComputedValue(target.row, target.col));
+                const result = solverNumber(getCellComputedValue(target.row, target.col));
                 if (!Number.isFinite(result)) return;
 
                 const score = scoreObjective(result);
@@ -5619,7 +6010,26 @@ h2 { margin: 24px 0 10px; font-size: 16px; }
             }
         }
 
-        search(0, Array.from({ length: variableRefs.length }, () => searchMin));
+        const linearCandidate = solveLinearCandidate(variableRefs, constraints, target, mode, searchMin, max);
+        if (linearCandidate) {
+            bestValue = linearCandidate.value;
+            bestCombination = linearCandidate.values;
+            bestScore = scoreObjective(linearCandidate.value);
+        }
+
+        const valuesPerVariable = Math.floor((max - searchMin) / step) + 1;
+        const estimatedGridChecks = Math.pow(Math.max(valuesPerVariable, 1), variableRefs.length);
+        if (!linearCandidate && estimatedGridChecks > 200000) {
+            originalValues.forEach((value, idx) => {
+                const ref = variableRefs[idx];
+                currentSheet.grid[ref.row][ref.col] = value;
+            });
+            alert("Solver rozpoznał zbyt duży zakres do przeszukiwania krok po kroku. Użyj 'Wczytaj ZLP' albo zmniejsz zakres/krok.");
+            return;
+        }
+        if (!linearCandidate || mode === "target") {
+            search(0, Array.from({ length: variableRefs.length }, () => searchMin));
+        }
 
         if (bestValue === null) {
             originalValues.forEach((value, idx) => {
@@ -7351,21 +7761,29 @@ ${selectedPivots.length ? selectedPivots.map(item => `• ${escapeHtml(item.titl
             if (sheetContextMenu && !event.target.closest(".we-workbook-tab") && !event.target.closest("#sheet-context-menu")) sheetContextMenu.hidden = true;
         });
 
+        solverSheetSelect?.addEventListener("change", () => {
+            activateSelectedSolverSheet();
+            refreshSolverSheetSelect(activeWorkbookSheetIndex);
+        });
+        solverCurrentSheetBtn?.addEventListener("click", () => {
+            refreshSolverSheetSelect(activeWorkbookSheetIndex);
+        });
         solverTargetUpdateBtn?.addEventListener("click", () => {
             if (solverTargetInput) solverTargetInput.value = `${colToLabel(activeCell.col)}${activeCell.row + 1}`;
         });
         solverTargetClearBtn?.addEventListener("click", () => {
             if (solverTargetInput) solverTargetInput.value = "";
         });
-        solverVariableAddBtn?.addEventListener("click", () => {
-            if (!solverVariableInput) return;
-            const ref = `${colToLabel(activeCell.col)}${activeCell.row + 1}`;
-            solverVariableInput.value = solverVariableInput.value.trim()
-                ? `${solverVariableInput.value.trim()},${ref}`
-                : ref;
-        });
+        solverVariableAddBtn?.addEventListener("click", () => setSolverVariablesFromSelection(false));
+        solverVariableUpdateBtn?.addEventListener("click", () => setSolverVariablesFromSelection(true));
         solverVariableDeleteBtn?.addEventListener("click", () => {
             if (solverVariableInput) solverVariableInput.value = "";
+        });
+        solverConstraintAddBtn?.addEventListener("click", () => addSolverConstraintFromSelection(false));
+        solverConstraintUpdateBtn?.addEventListener("click", () => addSolverConstraintFromSelection(true));
+        solverConstraintZlpBtn?.addEventListener("click", fillSolverFromZlpModel);
+        solverConstraintClearBtn?.addEventListener("click", () => {
+            if (solverConstraintsInput) solverConstraintsInput.value = "";
         });
 
         teamOrgAddBtn?.addEventListener("click", async () => {

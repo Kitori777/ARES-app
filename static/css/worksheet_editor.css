@@ -5614,3 +5614,10 @@ body.we-resizing-columns .we-col-resize-handle::after,
         grid-template-columns: 1fr !important;
     }
 }
+
+.we-solver-constraint-actions {
+    margin-top: 8px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
